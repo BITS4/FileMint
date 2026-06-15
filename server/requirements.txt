@@ -1,0 +1,8 @@
+pdf2docx
+PyMuPDF
+python-docx
+Pillow
+pillow-heif
+opencv-python-headless
+openpyxl
+python-pptx
