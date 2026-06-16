@@ -1,10 +1,10 @@
-import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppHeader, Badge, Icon, Screen, TileGrid, Txt } from '@/components/ui';
 import { pickTools } from '@/constants/tools';
 import { Accents, Radius, Spacing } from '@/constants/theme';
 import { useIsDesktop } from '@/hooks/use-breakpoint';
+import { useOpenTool } from '@/hooks/use-open-tool';
 import { useTheme } from '@/hooks/use-theme';
 import { withAlpha } from '@/lib/color';
 import * as haptics from '@/lib/haptics';
@@ -30,7 +30,7 @@ function editorRoute(tool: ToolDef) {
 }
 
 export default function EditScreen() {
-  const router = useRouter();
+  const openTool = useOpenTool();
   const desktop = useIsDesktop();
   const crop = EDITOR_TOOLS.find((tool) => tool.id === 'crop-pdf');
   const rest = EDITOR_TOOLS.filter((tool) => tool.id !== 'crop-pdf');
@@ -42,7 +42,7 @@ export default function EditScreen() {
         Open a PDF into a full editor with thumbnails, canvas preview, tool settings, undo, zoom, and export controls.
       </Txt>
 
-      {crop ? <FeaturedCropCard tool={crop} onPress={() => router.push(editorRoute(crop))} /> : null}
+      {crop ? <FeaturedCropCard tool={crop} onPress={() => openTool(crop, editorRoute(crop))} /> : null}
 
       <View style={styles.group}>
         <View style={styles.groupHeader}>
@@ -54,7 +54,7 @@ export default function EditScreen() {
           columns={desktop ? 3 : 1}
           gap={Spacing.md}
           keyExtractor={(tool) => tool.id}
-          renderItem={(tool) => <PremiumToolCard tool={tool} onPress={() => router.push(editorRoute(tool))} />}
+          renderItem={(tool) => <PremiumToolCard tool={tool} onPress={() => openTool(tool, editorRoute(tool))} />}
         />
       </View>
     </Screen>
@@ -86,7 +86,7 @@ function FeaturedCropCard({ tool, onPress }: { tool: ToolDef; onPress: () => voi
       <View style={styles.featureBody}>
         <View style={styles.featureTitleRow}>
           <Txt variant="title">{tool.title}</Txt>
-          <Badge label="Premium crop editor" color={color} variant="soft" small />
+          <Badge label={tool.premium ? 'Premium crop editor' : 'Crop editor'} color={color} variant="soft" small />
         </View>
         <Txt variant="caption" muted>
           Bright crop overlay, draggable corners and sides, perspective mode, grid guides, page thumbnails, zoom, and apply scopes.
@@ -123,7 +123,7 @@ function PremiumToolCard({ tool, onPress }: { tool: ToolDef; onPress: () => void
         <View style={[styles.cardIcon, { backgroundColor: withAlpha(color, 0.16) }]}>
           <Icon name={tool.icon} size={26} color={color} />
         </View>
-        {needsBadge ? <Badge label="Advanced UI" color={color} variant="soft" small /> : null}
+        {tool.premium ? <Badge label="Premium" color={Accents.amber} variant="soft" small /> : needsBadge ? <Badge label="Advanced UI" color={color} variant="soft" small /> : null}
       </View>
       <View style={styles.cardBody}>
         <Txt variant="h3" numberOfLines={1}>

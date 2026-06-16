@@ -118,6 +118,9 @@ export interface ToolDef {
   input: ToolInput;
   /** Highlighted in the Home quick-action grid. */
   quick?: boolean;
+  /** Premium-only tools remain visible but route through the upgrade gate for free users. */
+  premium?: boolean;
+  premiumReason?: string;
   keywords?: string[];
 }
 

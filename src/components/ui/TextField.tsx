@@ -48,7 +48,7 @@ export function TextField({ label, icon, hint, style, multiline, ...rest }: Text
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: Spacing.xs },
+  wrap: { gap: Spacing.xs, flexShrink: 1, minWidth: 0 },
   label: { marginLeft: 2 },
   field: {
     flexDirection: 'row',
@@ -58,9 +58,10 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     minHeight: 50,
+    minWidth: 0,
   },
   multiline: { alignItems: 'flex-start', paddingVertical: Spacing.sm },
-  input: { flex: 1, fontSize: 15, fontWeight: '500', paddingVertical: Spacing.sm },
+  input: { flex: 1, minWidth: 0, fontSize: 15, fontWeight: '500', paddingVertical: Spacing.sm },
   inputMultiline: { minHeight: 120, textAlignVertical: 'top' },
   hint: { marginLeft: 2 },
 });
