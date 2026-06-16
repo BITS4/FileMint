@@ -14,6 +14,7 @@ import {
 } from '@/components/ui';
 import { searchTools } from '@/constants/tools';
 import { Spacing } from '@/constants/theme';
+import { useOpenTool } from '@/hooks/use-open-tool';
 import { goBack } from '@/lib/nav';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -22,6 +23,7 @@ import type { ToolDef } from '@/types';
 
 export default function SearchScreen() {
   const router = useRouter();
+  const openTool = useOpenTool();
   const [query, setQuery] = useState('');
   const files = useLibrary(useShallow(selectActiveFiles));
 
@@ -32,7 +34,7 @@ export default function SearchScreen() {
     return files.filter((f) => f.name.toLowerCase().includes(q)).slice(0, 12);
   }, [files, query]);
 
-  const open = (tool: ToolDef) => router.push(tool.route);
+  const open = (tool: ToolDef) => openTool(tool);
   const hasQuery = query.trim().length > 0;
   const empty = hasQuery && toolResults.length === 0 && fileResults.length === 0;
 

@@ -276,6 +276,14 @@ const OPERATIONS: Record<string, ToolOperation> = {
   // --- view / open
   'import-pdf': { mode: 'open', libraryKinds: ['pdf'], deviceTypes: 'application/pdf', pickTitle: 'Import a PDF' },
   'open-pdf': { mode: 'open', libraryKinds: ['pdf'], deviceTypes: 'application/pdf', pickTitle: 'Open a PDF' },
+  'open-document': {
+    mode: 'open',
+    libraryKinds: ['pdf', 'image', 'word', 'excel', 'ppt', 'text', 'csv', 'other'],
+    deviceTypes: '*/*',
+    pickTitle: 'Open a document',
+    pickSubtitle: 'Read PDFs, Word, PowerPoint, Excel, CSV, HTML, text, and code files.',
+    pickIcon: 'file-eye-outline',
+  },
 
   // --- compose
   'txt-to-pdf': {
@@ -523,8 +531,37 @@ const OPERATIONS: Record<string, ToolOperation> = {
     libraryKinds: ['pdf'],
     deviceTypes: 'application/pdf',
     serverCapability: 'ocr',
-    run: ({ file, onProgress }) =>
-      backendConvert(file!, 'ocr', { language: useSettings.getState().ocrLanguage }, 'pdf', onProgress, 'searchable'),
+    fields: [
+      OCR_LANGUAGE_FIELD,
+      {
+        key: 'ocrMode',
+        label: 'OCR mode',
+        type: 'select',
+        default: 'auto',
+        options: [
+          { label: 'Auto', value: 'auto' },
+          { label: 'Force OCR', value: 'true' },
+          { label: 'Keep existing text', value: 'false' },
+        ],
+        hint: 'Auto OCRs scanned/image-backed pages and preserves normal searchable pages.',
+      },
+      { key: 'deskew', label: 'Straighten scanned pages', type: 'switch', default: true },
+      { key: 'rotatePages', label: 'Auto-rotate pages', type: 'switch', default: true },
+    ],
+    run: ({ file, values, onProgress }) =>
+      backendConvert(
+        file!,
+        'ocr',
+        {
+          language: str(values, 'language', 'auto') || useSettings.getState().ocrLanguage,
+          forceOcr: str(values, 'ocrMode', 'auto'),
+          deskew: values.deskew === undefined ? true : bool(values, 'deskew'),
+          rotatePages: values.rotatePages === undefined ? true : bool(values, 'rotatePages'),
+        },
+        'pdf',
+        onProgress,
+        'searchable',
+      ),
   },
 
   // --- security (backend)

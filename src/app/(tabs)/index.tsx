@@ -22,6 +22,7 @@ import {
 import { QUICK_TOOLS } from '@/constants/tools';
 import { type AccentName, Spacing } from '@/constants/theme';
 import { useIsDesktop } from '@/hooks/use-breakpoint';
+import { useOpenTool } from '@/hooks/use-open-tool';
 import { useTheme } from '@/hooks/use-theme';
 import { withAlpha } from '@/lib/color';
 import { importIntoLibrary, pickDocuments } from '@/lib/pick';
@@ -29,6 +30,7 @@ import { canShareFiles, shareFile } from '@/lib/share';
 import { useShallow } from 'zustand/react/shallow';
 
 import { selectActiveFiles, useLibrary } from '@/store/useLibrary';
+import { selectIsPremium, useAuth } from '@/store/useAuth';
 import type { FileFilter, FileItem } from '@/types';
 
 const FILTERS: FilterChipItem<FileFilter>[] = [
@@ -67,16 +69,19 @@ interface QuickItem {
   icon: string;
   accent: AccentName;
   route: string;
+  premium?: boolean;
 }
 
 const QUICK_GRID: QuickItem[] = [
-  ...QUICK_TOOLS.map((t) => ({ id: t.id, title: t.title, icon: t.icon, accent: t.accent, route: t.route })),
+  ...QUICK_TOOLS.map((t) => ({ id: t.id, title: t.title, icon: t.icon, accent: t.accent, route: t.route, premium: t.premium })),
   { id: 'more', title: 'More', icon: 'dots-horizontal-circle-outline', accent: 'slate', route: '/tools' },
 ];
 
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const openTool = useOpenTool();
+  const isPremium = useAuth(selectIsPremium);
   const files = useLibrary(useShallow(selectActiveFiles));
   const desktop = useIsDesktop();
   const [filter, setFilter] = useState<FileFilter>('all');
@@ -183,7 +188,13 @@ export default function HomeScreen() {
             title={item.title}
             icon={item.icon}
             accent={item.accent}
-            onPress={() => router.push(item.route)}
+            badge={item.premium ? 'Premium' : undefined}
+            locked={!!item.premium && !isPremium}
+            onPress={() => {
+              const tool = QUICK_TOOLS.find((candidate) => candidate.id === item.id);
+              if (tool) openTool(tool);
+              else router.push(item.route as never);
+            }}
           />
         )}
       />

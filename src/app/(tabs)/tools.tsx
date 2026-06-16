@@ -5,12 +5,14 @@ import { AppHeader, IconButton, Screen, Txt } from '@/components/ui';
 import { CATEGORIES, toolsByCategory } from '@/constants/tools';
 import { Spacing } from '@/constants/theme';
 import { useIsDesktop } from '@/hooks/use-breakpoint';
+import { useOpenTool } from '@/hooks/use-open-tool';
 import type { ToolDef } from '@/types';
 
 export default function ToolsScreen() {
   const router = useRouter();
   const desktop = useIsDesktop();
-  const open = (tool: ToolDef) => router.push(tool.route);
+  const openTool = useOpenTool();
+  const open = (tool: ToolDef) => openTool(tool);
 
   return (
     <Screen scroll padded contentContainerStyle={{ paddingBottom: desktop ? 42 : 110 }}>

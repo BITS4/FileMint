@@ -20,6 +20,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
+import { registerAuth } from './auth';
 import { detectCollabora, registerEdit } from './edit';
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -141,6 +142,8 @@ const IMAGE_NORMALIZE_SCRIPT = fileURLToPath(new URL('./image_normalize.py', imp
 const PDF_UTILITY_SCRIPT = fileURLToPath(new URL('./pdf_utility.py', import.meta.url));
 const PDF_SECURITY_SCRIPT = fileURLToPath(new URL('./pdf_security.py', import.meta.url));
 const PDF_REPAIR_SCRIPT = fileURLToPath(new URL('./pdf_repair.py', import.meta.url));
+const PDF_EDIT_SCRIPT = fileURLToPath(new URL('./pdf_edit.py', import.meta.url));
+const SEARCHABLE_PDF_SCRIPT = fileURLToPath(new URL('./searchable_pdf.py', import.meta.url));
 
 function pythonCanImport(modules: string[]): boolean {
   if (!PYTHON) return false;
@@ -161,17 +164,20 @@ const PY_PDF_SECURITY = pythonCanImport(['fitz']);
 const PDF_SECURITY_AVAILABLE = !!BIN.qpdf || !!(PYTHON && PY_PDF_SECURITY);
 const PY_PDF_REPAIR = pythonCanImport(['fitz']);
 const PDF_REPAIR_AVAILABLE = !!BIN.gs || !!BIN.qpdf || !!(PYTHON && PY_PDF_REPAIR);
+const PY_PDF_EDIT = pythonCanImport(['fitz']);
+const PY_SEARCHABLE_PDF = pythonCanImport(['fitz']);
 
 const CAPABILITIES = {
   libreoffice: !!BIN.soffice,
   qpdf: PDF_SECURITY_AVAILABLE,
   ghostscript: !!BIN.gs,
   pdfRepair: PDF_REPAIR_AVAILABLE,
-  ocr: !!BIN.ocrmypdf,
+  ocr: !!(BIN.ocrmypdf && PYTHON && PY_SEARCHABLE_PDF),
   pdf2docx: !!BIN.pdf2docx || PY_PDF_TO_DOCX,
   pdfExport: !!(PYTHON && PY_PDF_EXPORT),
   imageNormalize: !!(PYTHON && PY_IMAGE_NORMALIZE),
   pdfUtility: !!(PYTHON && PY_PDF_UTILITY),
+  pdfEdit: !!(PYTHON && PY_PDF_EDIT),
 };
 
 // ------------------------------------------------------------------- utils
@@ -272,10 +278,48 @@ const collaboraTimer = setInterval(refreshCollabora, 30000);
 if (typeof collaboraTimer.unref === 'function') collaboraTimer.unref();
 
 app.get('/health', (c) =>
-  c.json({ version: VERSION, capabilities: { ...CAPABILITIES, collabora: collaboraOnline } }),
+  c.json({ version: VERSION, capabilities: { ...CAPABILITIES, collabora: collaboraOnline, auth: true, premium: true } }),
 );
 
+registerAuth(app);
 registerEdit(app, { collaboraUrl: COLLABORA_URL, wopiHost: WOPI_HOST });
+
+app.post('/edit/redact', async (c) => {
+  const dir = await makeWorkdir();
+  try {
+    if (!PYTHON || !PY_PDF_EDIT) throw new Error('PDF redaction needs Python + PyMuPDF. Run: pip install -r server/requirements.txt');
+    const body = await c.req.parseBody();
+    const upload = await saveUpload(dir, body['file']);
+    const out = join(dir, 'redacted.pdf');
+    const areasJson = String(body['areasJson'] ?? '[]');
+    const color = String(body['color'] ?? '#000000').replace(/[^#a-fA-F0-9]/g, '').slice(0, 7) || '#000000';
+    const label = String(body['label'] ?? 'Redacted').slice(0, 80);
+    const res = await run(
+      PYTHON,
+      [
+        PDF_EDIT_SCRIPT,
+        '--task',
+        'redact',
+        '--input',
+        upload.path,
+        '--output',
+        out,
+        '--areas-json',
+        areasJson,
+        '--color',
+        color,
+        '--label',
+        label,
+      ],
+      300000,
+    );
+    if (!existsSync(out)) throw new Error(`Redaction failed. ${res.stderr || res.stdout}`.slice(0, 400));
+    return await sendFile(c, dir, out, `${basename(upload.name, extname(upload.name))} redacted.pdf`);
+  } catch (e) {
+    await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+    return c.json({ error: e instanceof Error ? e.message : 'Redaction failed.' }, 500);
+  }
+});
 
 app.post('/convert', async (c) => {
   const dir = await makeWorkdir();
@@ -522,14 +566,53 @@ app.post('/pdf/text', async (c) => {
 app.post('/ocr', async (c) => {
   const dir = await makeWorkdir();
   try {
-    if (!BIN.ocrmypdf) throw new Error('OCR engine (ocrmypdf) is not installed on the server.');
+    if (!BIN.ocrmypdf || !PYTHON || !PY_SEARCHABLE_PDF) {
+      throw new Error('Searchable PDF needs OCRmyPDF, Python, PyMuPDF and Tesseract. Run: pip install -r server/requirements.txt');
+    }
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
-    const lang = String(body['language'] ?? 'eng').replace(/[^a-z_+]/gi, '') || 'eng';
+    const lang = String(body['language'] ?? 'auto').replace(/[^a-z_+]/gi, '') || 'auto';
+    const force = String(body['forceOcr'] ?? body['force'] ?? 'auto');
+    const deskew = String(body['deskew'] ?? 'true') === 'true';
+    const rotatePages = String(body['rotatePages'] ?? 'true') === 'true';
     const out = join(dir, 'searchable.pdf');
-    const res = await run(BIN.ocrmypdf, ['-l', lang, '--force-ocr', upload.path, out]);
-    if (!existsSync(out)) throw new Error(`OCR failed. ${res.stderr}`.slice(0, 300));
-    return await sendFile(c, dir, out, `${basename(upload.name, extname(upload.name))} searchable.pdf`);
+    const reportPath = join(dir, 'report.json');
+    const res = await run(
+      PYTHON,
+      [
+        SEARCHABLE_PDF_SCRIPT,
+        '--input',
+        upload.path,
+        '--output',
+        out,
+        '--lang',
+        lang,
+        '--force',
+        force,
+        '--deskew',
+        deskew ? 'true' : 'false',
+        '--rotate-pages',
+        rotatePages ? 'true' : 'false',
+        '--ocrmypdf',
+        BIN.ocrmypdf,
+        '--report',
+        reportPath,
+      ],
+      600000,
+    );
+    if (!existsSync(out)) throw new Error(`OCR failed. ${res.stderr || res.stdout}`.slice(0, 800));
+    let reportHeader: string | undefined;
+    if (existsSync(reportPath)) {
+      const report = await readFile(reportPath, 'utf8');
+      reportHeader = Buffer.from(report, 'utf8').toString('base64url');
+    }
+    return await sendFile(
+      c,
+      dir,
+      out,
+      `${basename(upload.name, extname(upload.name))} searchable.pdf`,
+      reportHeader ? { 'X-FileMint-Report': reportHeader } : {},
+    );
   } catch (e) {
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
     return c.json({ error: e instanceof Error ? e.message : 'OCR failed.' }, 500);

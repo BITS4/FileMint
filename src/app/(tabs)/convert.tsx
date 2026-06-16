@@ -1,10 +1,9 @@
-import { useRouter } from 'expo-router';
-
 import { ToolGroup } from '@/components/tools/ToolGroup';
 import { AppHeader, Screen, Txt } from '@/components/ui';
 import { pickTools } from '@/constants/tools';
 import { Spacing } from '@/constants/theme';
 import { useIsDesktop } from '@/hooks/use-breakpoint';
+import { useOpenTool } from '@/hooks/use-open-tool';
 import type { ToolDef } from '@/types';
 
 const TO_PDF = pickTools(['image-to-pdf', 'txt-to-pdf', 'csv-to-pdf', 'docx-to-pdf', 'pptx-to-pdf', 'xlsx-to-pdf']);
@@ -21,9 +20,9 @@ const FROM_PDF = pickTools([
 const BATCH = pickTools(['batch-convert']);
 
 export default function ConvertScreen() {
-  const router = useRouter();
   const desktop = useIsDesktop();
-  const open = (tool: ToolDef) => router.push(tool.route);
+  const openTool = useOpenTool();
+  const open = (tool: ToolDef) => openTool(tool);
 
   return (
     <Screen scroll padded contentContainerStyle={{ paddingBottom: desktop ? 42 : 110 }}>

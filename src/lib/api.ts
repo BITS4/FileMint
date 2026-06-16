@@ -21,6 +21,7 @@ export interface ServerCapabilities {
   pdfExport: boolean;
   imageNormalize: boolean;
   pdfUtility: boolean;
+  pdfEdit: boolean;
   collabora: boolean;
 }
 
@@ -32,7 +33,7 @@ export interface ServerStatus {
 
 const OFFLINE: ServerStatus = {
   online: false,
-  capabilities: { libreoffice: false, qpdf: false, ghostscript: false, pdfRepair: false, ocr: false, pdf2docx: false, pdfExport: false, imageNormalize: false, pdfUtility: false, collabora: false },
+  capabilities: { libreoffice: false, qpdf: false, ghostscript: false, pdfRepair: false, ocr: false, pdf2docx: false, pdfExport: false, imageNormalize: false, pdfUtility: false, pdfEdit: false, collabora: false },
 };
 
 function baseUrl(): string {
@@ -225,6 +226,7 @@ function capabilityForRequest(endpoint: string, fields?: Record<string, string |
   const normalized = endpoint.replace(/^\/+/, '');
   if (normalized === 'image/normalize') return 'imageNormalize';
   if (normalized === 'pdf/render' || normalized === 'pdf/text') return 'pdfUtility';
+  if (normalized === 'edit/redact') return 'pdfEdit';
   if (normalized === 'ocr') return 'ocr';
   if (normalized.startsWith('secure/')) return 'qpdf';
   if (normalized === 'repair') return 'pdfRepair';

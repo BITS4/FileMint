@@ -3,31 +3,64 @@ import { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { FileActionsSheet } from '@/components/files/FileActionsSheet';
+import { AppHeader, Button, EmptyState, IconButton, Screen } from '@/components/ui';
 import { OfficeView } from '@/components/viewer/OfficeView';
 import { PdfView } from '@/components/viewer/PdfView';
-import { AppHeader, Button, EmptyState, IconButton, Screen, Txt } from '@/components/ui';
-import { Fonts, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { TextDocumentView } from '@/components/viewer/TextDocumentView';
+import { Spacing } from '@/constants/theme';
 import { goBack } from '@/lib/nav';
 import { canShareFiles, downloadFile, shareFile } from '@/lib/share';
 import * as storage from '@/lib/storage';
-import { decodeUtf8, formatCsvAsText } from '@/lib/text';
 import { useLibrary } from '@/store/useLibrary';
 import type { FileKind } from '@/types';
 
 const OFFICE_KINDS: FileKind[] = ['word', 'excel', 'ppt'];
+const READABLE_EXTS = new Set([
+  'txt',
+  'md',
+  'markdown',
+  'html',
+  'htm',
+  'json',
+  'xml',
+  'yaml',
+  'yml',
+  'log',
+  'ini',
+  'cfg',
+  'conf',
+  'js',
+  'jsx',
+  'ts',
+  'tsx',
+  'css',
+  'scss',
+  'py',
+  'java',
+  'c',
+  'cpp',
+  'h',
+  'hpp',
+  'cs',
+  'go',
+  'rs',
+  'php',
+  'rb',
+  'sh',
+  'bat',
+  'ps1',
+  'sql',
+]);
 
 export default function ViewerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const theme = useTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const file = useLibrary((s) => s.files.find((f) => f.id === id));
   const touch = useLibrary((s) => s.touch);
 
   const [night, setNight] = useState(false);
   const [showActions, setShowActions] = useState(false);
-  const [text, setText] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
@@ -38,14 +71,9 @@ export default function ViewerScreen() {
 
   useEffect(() => {
     if (!file) return;
-    setText(null);
     setImageUri(undefined);
     setImageSize(null);
-    if (file.kind === 'text') {
-      storage.readBytes(file.storageKey).then((b) => setText(decodeUtf8(b))).catch(() => setText(''));
-    } else if (file.kind === 'csv') {
-      storage.readBytes(file.storageKey).then((b) => setText(formatCsvAsText(decodeUtf8(b)))).catch(() => setText(''));
-    } else if (file.kind === 'image') {
+    if (file.kind === 'image') {
       storage
         .getUri(file.storageKey)
         .then((uri) => {
@@ -78,6 +106,7 @@ export default function ViewerScreen() {
 
   const isPdf = file.kind === 'pdf';
   const isOffice = OFFICE_KINDS.includes(file.kind);
+  const isReadableText = file.kind === 'text' || file.kind === 'csv' || READABLE_EXTS.has(file.ext);
   const editable = isOffice || file.kind === 'text' || file.kind === 'csv';
   const shareSupported = canShareFiles();
   const imageBox = getContainedSize({
@@ -94,7 +123,7 @@ export default function ViewerScreen() {
           showBack
           right={
             <>
-              {isPdf ? (
+              {isPdf || isReadableText ? (
                 <IconButton
                   name={night ? 'white-balance-sunny' : 'weather-night'}
                   onPress={() => setNight((n) => !n)}
@@ -126,18 +155,14 @@ export default function ViewerScreen() {
             centerContent>
             <Image source={{ uri: imageUri }} style={[styles.image, imageBox]} resizeMode="contain" />
           </ScrollView>
-        ) : file.kind === 'text' || file.kind === 'csv' ? (
-          <ScrollView style={styles.fill} contentContainerStyle={styles.textWrap}>
-            <ScrollView horizontal showsHorizontalScrollIndicator>
-              <Txt style={[styles.text, { color: theme.text }]}>{text ?? 'Loading…'}</Txt>
-            </ScrollView>
-          </ScrollView>
+        ) : isReadableText ? (
+          <TextDocumentView file={file} night={night} />
         ) : (
           <View style={styles.unsupported}>
             <EmptyState
               icon="file-eye-outline"
               title="Preview not available"
-              subtitle={`FileMint can’t preview ${file.ext.toUpperCase()} files directly. Open it in another app.`}
+              subtitle={`FileMint cannot preview ${file.ext.toUpperCase()} files directly. Open it in another app.`}
             />
             <View style={{ gap: Spacing.sm, marginTop: Spacing.lg }}>
               <Button title="Download" icon="download-outline" variant="secondary" onPress={() => void downloadFile(file)} full />
@@ -175,7 +200,5 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   imageWrap: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.md },
   image: { borderRadius: 10 },
-  textWrap: { padding: Spacing.lg },
-  text: { fontFamily: Fonts.mono, fontSize: 13, lineHeight: 20 },
   unsupported: { flex: 1, padding: Spacing.lg },
 });
