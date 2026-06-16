@@ -49,6 +49,7 @@ export function ToolRow({ tool, onPress }: ToolRowProps) {
       {tool.status !== 'ready' ? (
         <Badge label={STATUS_LABEL[tool.status]} color={statusColor[tool.status]} variant="soft" small />
       ) : null}
+      {tool.premium ? <Badge label="Premium" color={Accents.amber} variant="soft" small /> : null}
       <Icon name="chevron-right" size={20} color={theme.textMuted} />
     </Pressable>
   );

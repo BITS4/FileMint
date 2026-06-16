@@ -17,12 +17,16 @@ import {
   Txt,
 } from '@/components/ui';
 import { STATUS_LABEL, findTool } from '@/constants/tools';
+import { Accents } from '@/constants/theme';
 import { Spacing } from '@/constants/theme';
+import { premiumUpgradeRoute } from '@/hooks/use-open-tool';
 import { useRunner } from '@/hooks/use-runner';
 import { useTheme } from '@/hooks/use-theme';
 import { type ServerStatus, checkServer } from '@/lib/api';
 import { withAlpha } from '@/lib/color';
+import { goBack } from '@/lib/nav';
 import { type FieldValues, type ToolField, type ToolOperation, getOperation } from '@/lib/operations';
+import { selectIsPremium, useAuth } from '@/store/useAuth';
 import type { FileItem } from '@/types';
 
 function seedValues(op: ToolOperation | null): FieldValues {
@@ -38,6 +42,7 @@ export default function ToolScreen() {
   const runner = useRunner();
   const tool = findTool(id);
   const op = id ? getOperation(id) : null;
+  const isPremium = useAuth(selectIsPremium);
 
   const [file, setFile] = useState<FileItem | null>(null);
   const [values, setValues] = useState<FieldValues>(() => seedValues(op));
@@ -60,6 +65,10 @@ export default function ToolScreen() {
         <EmptyState icon="help-circle-outline" title="Tool not found" subtitle="This tool doesn’t exist yet." />
       </Screen>
     );
+  }
+
+  if (tool.premium && !isPremium) {
+    return <LockedToolScreen tool={tool} />;
   }
 
   if (!op || tool.status === 'soon') {
@@ -184,6 +193,35 @@ export default function ToolScreen() {
       ) : null}
 
       <ToolOutcome runner={runner} runningLabel={`${tool.title}…`} doneLabel="All done" />
+    </Screen>
+  );
+}
+
+function LockedToolScreen({ tool }: { tool: NonNullable<ReturnType<typeof findTool>> }) {
+  const router = useRouter();
+  const theme = useTheme();
+  const upgradeRoute = premiumUpgradeRoute(tool);
+
+  return (
+    <Screen padded>
+      <AppHeader title={tool.title} showBack />
+      <Card style={{ alignItems: 'center', gap: Spacing.md, marginTop: Spacing.xl }}>
+        <View style={{ width: 78, height: 78, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: withAlpha(Accents.amber, 0.18) }}>
+          <Icon name="crown-outline" size={38} color={Accents.amber} />
+        </View>
+        <Txt variant="title" center>
+          Premium tool
+        </Txt>
+        <Txt variant="caption" muted center>
+          {tool.premiumReason ?? `${tool.title} is included with FileMint Premium.`}
+        </Txt>
+        <Button title="Upgrade Now" icon="crown-outline" full onPress={() => router.push(upgradeRoute as never)} />
+        <Button title="View Plans" variant="secondary" icon="credit-card-outline" full onPress={() => router.push(upgradeRoute as never)} />
+        <Button title="Maybe Later" variant="ghost" full onPress={goBack} />
+        <Txt variant="tiny" muted center style={{ color: theme.textSecondary }}>
+          After upgrading, FileMint returns you to this tool automatically.
+        </Txt>
+      </Card>
     </Screen>
   );
 }

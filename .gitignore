@@ -39,6 +39,7 @@ yarn-error.*
 # Python
 __pycache__/
 *.pyc
+server/data/
 
 example
 

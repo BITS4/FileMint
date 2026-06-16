@@ -77,6 +77,7 @@ function ToolCard({ tool, onPress }: { tool: ToolDef; onPress: () => void }) {
         {tool.status !== 'ready' ? (
           <Badge label={STATUS_LABEL[tool.status]} color={statusColor[tool.status]} variant="soft" small />
         ) : null}
+        {tool.premium ? <Badge label="Premium" color={Accents.amber} variant="soft" small /> : null}
       </View>
       <View style={styles.cardBody}>
         <Txt variant="h3" numberOfLines={1}>

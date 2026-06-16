@@ -6,6 +6,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { withAlpha } from '@/lib/color';
 import * as haptics from '@/lib/haptics';
 
+import { Badge } from './Badge';
 import { Icon } from './Icon';
 import { Txt } from './Txt';
 
@@ -15,9 +16,11 @@ export interface FeatureTileProps {
   icon: string;
   accent: AccentName;
   onPress?: () => void;
+  badge?: string;
+  locked?: boolean;
 }
 
-export function FeatureTile({ title, subtitle, icon, accent, onPress }: FeatureTileProps) {
+export function FeatureTile({ title, subtitle, icon, accent, onPress, badge, locked }: FeatureTileProps) {
   const theme = useTheme();
   const desktop = useIsDesktop();
   const color = Accents[accent];
@@ -40,8 +43,13 @@ export function FeatureTile({ title, subtitle, icon, accent, onPress }: FeatureT
         !desktop && elevation(1),
       ]}>
       <View style={[styles.accentLine, { backgroundColor: color }]} />
+      {badge ? (
+        <View style={styles.badge}>
+          <Badge label={badge} color={Accents.amber} variant="soft" small />
+        </View>
+      ) : null}
       <View style={[styles.iconChip, { backgroundColor: withAlpha(color, 0.16) }]}>
-        <Icon name={icon} size={26} color={color} />
+        <Icon name={locked ? 'crown-outline' : icon} size={26} color={locked ? Accents.amber : color} />
       </View>
       <Txt variant="label" numberOfLines={2} style={!desktop ? styles.title : undefined}>
         {title}
@@ -81,4 +89,5 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   title: { textAlign: 'center' },
+  badge: { position: 'absolute', top: 8, right: 8 },
 });

@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -33,7 +33,9 @@ import {
   Txt,
 } from '@/components/ui';
 import { Accents, Radius, Spacing } from '@/constants/theme';
+import { findTool } from '@/constants/tools';
 import { useIsDesktop } from '@/hooks/use-breakpoint';
+import { premiumUpgradeRoute } from '@/hooks/use-open-tool';
 import { useRunner } from '@/hooks/use-runner';
 import { useTheme } from '@/hooks/use-theme';
 import { convertFile } from '@/lib/api';
@@ -59,6 +61,7 @@ import { importIntoLibrary, pickDocuments } from '@/lib/pick';
 import * as storage from '@/lib/storage';
 import { decodeUtf8, parseCsvRows } from '@/lib/text';
 import { uid } from '@/lib/uid';
+import { selectIsPremium, useAuth } from '@/store/useAuth';
 import { useLibrary } from '@/store/useLibrary';
 import type { ConversionReport, FileItem, FileKind } from '@/types';
 
@@ -137,6 +140,16 @@ const SUPPORTED_EXTS = new Set([
   'md',
   'text',
 ]);
+
+const PROFILE_TOOL_IDS: Partial<Record<StudioProfile, string>> = {
+  image: 'image-to-pdf',
+  word: 'docx-to-pdf',
+  ppt: 'pptx-to-pdf',
+  excel: 'xlsx-to-pdf',
+  csv: 'csv-to-pdf',
+  text: 'txt-to-pdf',
+  batch: 'batch-convert',
+};
 
 const OFFICE_TYPES = [
   'application/msword',
@@ -579,11 +592,14 @@ async function sourcePdfFromFile(
 }
 
 export default function ConvertToPdfScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams<{ profile?: string }>();
   const profile = normalizeProfile(params.profile);
   const theme = useTheme();
   const desktop = useIsDesktop();
   const runner = useRunner();
+  const isPremium = useAuth(selectIsPremium);
+  const profileTool = findTool(PROFILE_TOOL_IDS[profile]);
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [sources, setSources] = useState<SourceDoc[]>([]);
@@ -612,6 +628,30 @@ export default function ConvertToPdfScreen() {
   const filterCount = pages.filter((page) => page.filter !== 'original').length;
   const cropCount = pages.filter((page) => cropIsActive(page.crop)).length;
   const freeCropCount = pages.filter((page) => !quadIsDefault(page.quad) && !quadIsAxisAligned(page.quad)).length;
+
+  if (profileTool?.premium && !isPremium) {
+    const redirect = `/convert-to-pdf?profile=${encodeURIComponent(profile)}`;
+    const upgradeRoute = premiumUpgradeRoute(profileTool, redirect);
+    return (
+      <Screen padded contentContainerStyle={styles.lockedScreen}>
+        <AppHeader title={profileTool.title} showBack />
+        <Card style={styles.lockedCard}>
+          <View style={[styles.lockedIcon, { backgroundColor: withAlpha(Accents.amber, 0.18) }]}>
+            <Icon name="crown-outline" size={38} color={Accents.amber} />
+          </View>
+          <Txt variant="title" center>
+            Premium conversion
+          </Txt>
+          <Txt variant="caption" muted center>
+            {profileTool.premiumReason ?? `${profileTool.title} is included with FileMint Premium.`}
+          </Txt>
+          <Button title="Upgrade Now" icon="crown-outline" full onPress={() => router.push(upgradeRoute as never)} />
+          <Button title="View Plans" icon="credit-card-outline" variant="secondary" full onPress={() => router.push(upgradeRoute as never)} />
+          <Button title="Maybe Later" variant="ghost" full onPress={() => router.back()} />
+        </Card>
+      </Screen>
+    );
+  }
 
   const prepareFiles = async (nextFiles: FileItem[]) => {
     setPreparing(true);
@@ -1570,6 +1610,9 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
   actionsRow: { flexDirection: 'row', gap: Spacing.sm },
   actionButton: { flex: 1 },
+  lockedScreen: { flex: 1, justifyContent: 'center', maxWidth: 560, alignSelf: 'center', width: '100%' },
+  lockedCard: { alignItems: 'center', gap: Spacing.md },
+  lockedIcon: { width: 78, height: 78, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
   cropHandle: {
     position: 'absolute',
     width: 34,

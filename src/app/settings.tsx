@@ -7,12 +7,14 @@ import { Share, StyleSheet, Switch, View } from 'react-native';
 import {
   ActionSheet,
   AppHeader,
+  Button,
   Card,
   IconButton,
   ListRow,
   PromptModal,
   Screen,
   SectionHeader,
+  TextField,
   type SheetAction,
   Txt,
 } from '@/components/ui';
@@ -22,6 +24,7 @@ import { withAlpha } from '@/lib/color';
 import { confirm } from '@/lib/confirm';
 import { formatBytes } from '@/lib/format';
 import { useTheme } from '@/hooks/use-theme';
+import { selectIsLoggedIn, selectIsPremium, useAuth } from '@/store/useAuth';
 import { useLibrary } from '@/store/useLibrary';
 import { type Quality, type ScanColorMode, type ThemeMode, useSettings } from '@/store/useSettings';
 
@@ -44,6 +47,13 @@ const OCR_LANGS: [string, string][] = [
   ['hin', 'Hindi'],
 ];
 
+const PLAN_LABEL: Record<string, string> = {
+  week: '1 Week Plan',
+  month: '1 Month Plan',
+  year: '1 Year Plan',
+  forever: 'Forever Plan',
+};
+
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View>
@@ -59,11 +69,23 @@ export default function SettingsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const settings = useSettings();
+  const user = useAuth((s) => s.user);
+  const isLoggedIn = useAuth(selectIsLoggedIn);
+  const isPremium = useAuth(selectIsPremium);
+  const authLoading = useAuth((s) => s.loading);
+  const logout = useAuth((s) => s.logout);
+  const changePassword = useAuth((s) => s.changePassword);
+  const deleteAccount = useAuth((s) => s.deleteAccount);
+  const manageSubscription = useAuth((s) => s.manageSubscription);
+  const restorePurchases = useAuth((s) => s.restorePurchases);
   const files = useLibrary((s) => s.files);
   const clearLibrary = useLibrary((s) => s.clearLibrary);
 
   const [picker, setPicker] = useState<Picker>(null);
   const [editingServer, setEditingServer] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [server, setServer] = useState<ServerStatus | null>(null);
 
   useEffect(() => {
@@ -80,6 +102,14 @@ export default function SettingsScreen() {
     ? Object.values(server.capabilities).filter(Boolean).length
     : 0;
   const ocrLabel = OCR_LANGS.find(([code]) => code === settings.ocrLanguage)?.[1] ?? settings.ocrLanguage;
+  const planName = user?.currentPlanId ? PLAN_LABEL[user.currentPlanId] ?? user.currentPlanId : 'Free';
+  const planExpiry = user?.lifetimePremium
+    ? 'Lifetime Premium'
+    : user?.premiumExpiresAt
+      ? new Date(user.premiumExpiresAt).toLocaleDateString()
+      : isPremium
+        ? 'Active'
+        : 'No active plan';
 
   const pickerActions: Record<Exclude<Picker, null>, { title: string; actions: SheetAction[] }> = {
     theme: {
@@ -137,6 +167,46 @@ export default function SettingsScreen() {
     if (ok) await clearLibrary();
   };
 
+  const handleLogout = async () => {
+    const ok = await confirm('Log out?', 'Your local session token will be cleared. You can log in again any time.', 'Log out');
+    if (ok) await logout();
+  };
+
+  const handleDeleteAccount = async () => {
+    const ok = await confirm('Delete account?', 'This signs you out and removes the account record from the local FileMint server. This cannot be undone.', 'Delete account', true);
+    if (ok) await deleteAccount();
+  };
+
+  const handleChangePassword = async () => {
+    try {
+      await changePassword({ currentPassword, newPassword });
+      setCurrentPassword('');
+      setNewPassword('');
+      setChangingPassword(false);
+      await confirm('Password changed', 'Your password was updated. Other active sessions were signed out.', 'OK');
+    } catch (e) {
+      await confirm('Could not change password', e instanceof Error ? e.message : 'Try again later.', 'OK');
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const message = await manageSubscription();
+      await confirm('Subscription', message, 'OK');
+    } catch (e) {
+      await confirm('Subscription', e instanceof Error ? e.message : 'Log in to manage your subscription.', 'OK');
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      const restored = await restorePurchases();
+      await confirm(restored ? 'Premium restored' : 'No active purchase', restored ? 'Your Premium access is active.' : 'No active Premium purchase was found.', 'OK');
+    } catch (e) {
+      await confirm('Restore failed', e instanceof Error ? e.message : 'Log in to restore purchases.', 'OK');
+    }
+  };
+
   const switchTrack = { false: theme.backgroundSelected, true: withAlpha(theme.primary, 0.6) };
 
   return (
@@ -148,13 +218,56 @@ export default function SettingsScreen() {
           <IconButton name="crown-outline" color={theme.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Txt variant="h3">FileMint Pro</Txt>
+          <Txt variant="h3">{isPremium ? 'FileMint Premium' : 'Upgrade to Premium'}</Txt>
           <Txt variant="caption" muted>
-            {settings.premium ? 'Thanks for being Pro!' : 'Remove ads & unlock everything'}
+            {isPremium ? planExpiry : 'Remove ads, unlock OCR, batch tools, and premium PDF editing'}
           </Txt>
         </View>
         <IconButton name="chevron-right" color={theme.textMuted} />
       </Card>
+
+      <Group title="Account">
+        {isLoggedIn && user ? (
+          <>
+            <ListRow
+              icon="account-circle-outline"
+              title={user.fullName || user.email}
+              subtitle={user.fullName ? user.email : 'Signed in'}
+              value={user.emailVerified ? 'Verified' : 'Unverified'}
+            />
+            <ListRow
+              icon={user.emailVerified ? 'email-check-outline' : 'email-alert-outline'}
+              iconColor={user.emailVerified ? theme.success : theme.warning}
+              title="Email verification"
+              subtitle={user.emailVerified ? 'Your email is confirmed.' : 'Confirm your email before buying Premium.'}
+              value={user.emailVerified ? 'Done' : 'Needed'}
+              onPress={user.emailVerified ? undefined : () => router.push(`/auth/verify?email=${encodeURIComponent(user.email)}`)}
+              showChevron={!user.emailVerified}
+            />
+            <ListRow icon="crown-outline" iconColor={theme.primary} title="Current plan" subtitle={planExpiry} value={planName} />
+            <ListRow icon="credit-card-cog-outline" title="Upgrade / manage subscription" onPress={isPremium ? handleManageSubscription : () => router.push('/upgrade')} showChevron />
+            <ListRow icon="restore" title="Restore purchases" onPress={handleRestorePurchases} showChevron />
+            <ListRow icon="lock-reset" title="Change password" onPress={() => setChangingPassword((v) => !v)} showChevron />
+            {changingPassword ? (
+              <View style={styles.passwordPanel}>
+                <TextField label="Current password" icon="lock-outline" value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry autoCapitalize="none" />
+                <TextField label="New password" icon="lock-check-outline" value={newPassword} onChangeText={setNewPassword} secureTextEntry autoCapitalize="none" hint="At least 8 characters with a letter and a number." />
+                <Button title="Save password" icon="check" loading={authLoading} disabled={!currentPassword || !newPassword} onPress={handleChangePassword} />
+              </View>
+            ) : null}
+            <ListRow icon="logout" title="Logout" onPress={handleLogout} showChevron />
+            <ListRow icon="account-remove-outline" title="Delete account" destructive onPress={handleDeleteAccount} showChevron />
+          </>
+        ) : (
+          <>
+            <ListRow icon="account-outline" title="Not signed in" subtitle="Log in to manage Premium, sessions, and account security." />
+            <View style={styles.authButtons}>
+              <Button title="Log in" icon="login" onPress={() => router.push('/auth/login')} style={{ flex: 1 }} />
+              <Button title="Sign up" icon="account-plus-outline" variant="secondary" onPress={() => router.push('/auth/signup')} style={{ flex: 1 }} />
+            </View>
+          </>
+        )}
+      </Group>
 
       <Group title="General">
         <ListRow icon="theme-light-dark" title="Appearance" value={THEME_LABEL[settings.themeMode]} onPress={() => setPicker('theme')} showChevron />
@@ -257,4 +370,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   upgrade: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.sm },
   upgradeIcon: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  authButtons: { flexDirection: 'row', gap: Spacing.md, paddingHorizontal: Spacing.sm, paddingBottom: Spacing.sm, flexWrap: 'wrap' },
+  passwordPanel: { gap: Spacing.md, paddingHorizontal: Spacing.sm, paddingBottom: Spacing.md },
 });

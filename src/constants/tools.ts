@@ -7,7 +7,20 @@ import type { ToolCategory, ToolDef } from '@/types';
  * `ready` runs fully in the client, `beta` works with caveats, `backend` needs
  * the conversion server, `soon` has UI but no processing yet.
  */
-export const TOOLS: ToolDef[] = [
+export const PREMIUM_TOOL_IDS = new Set([
+  'pdf-to-docx',
+  'pptx-to-pdf',
+  'pdf-to-xlsx',
+  'pdf-to-html',
+  'pdf-to-searchable',
+  'add-signature',
+  'add-stamp',
+  'redact',
+  'repair-pdf',
+  'ocr',
+]);
+
+const TOOL_DEFS: ToolDef[] = [
   // ---------------------------------------------------------------- Convert
   {
     id: 'image-to-pdf',
@@ -171,7 +184,7 @@ export const TOOLS: ToolDef[] = [
   {
     id: 'pdf-to-searchable',
     title: 'Searchable PDF',
-    subtitle: 'Add an OCR text layer',
+    subtitle: 'Same look, selectable text',
     icon: 'file-search-outline',
     accent: 'indigo',
     category: 'ocr',
@@ -568,7 +581,7 @@ export const TOOLS: ToolDef[] = [
   {
     id: 'ocr',
     title: 'OCR / Extract Text',
-    subtitle: 'Read text from images',
+    subtitle: 'Save recognized text as TXT',
     icon: 'text-recognition',
     accent: 'purple',
     category: 'ocr',
@@ -605,7 +618,30 @@ export const TOOLS: ToolDef[] = [
     input: 'pdf',
     keywords: ['view', 'reader', 'preview'],
   },
+  {
+    id: 'open-document',
+    title: 'Read Documents',
+    subtitle: 'DOCX, PPTX, Excel, CSV, HTML',
+    icon: 'file-eye-outline',
+    accent: 'sky',
+    category: 'view',
+    status: 'ready',
+    route: '/tool/open-document',
+    input: 'any',
+    quick: true,
+    keywords: ['view', 'reader', 'preview', 'docx', 'pptx', 'xlsx', 'csv', 'html', 'text'],
+  },
 ];
+
+export const TOOLS: ToolDef[] = TOOL_DEFS.map((tool) =>
+  PREMIUM_TOOL_IDS.has(tool.id)
+    ? {
+        ...tool,
+        premium: true,
+        premiumReason: 'Premium unlocks higher quality processing, advanced editing, and priority server workflows for this tool.',
+      }
+    : tool,
+);
 
 export interface CategoryMeta {
   key: ToolCategory;
