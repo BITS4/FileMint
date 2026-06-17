@@ -33,6 +33,7 @@
     "jszip": "^3.10.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.0.227",
+    "pg": "^8.21.0",
     "pptx-preview": "^1.0.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.9.2",
+    "@types/pg": "^8.20.0",
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },

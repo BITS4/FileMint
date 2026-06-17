@@ -72,6 +72,7 @@ Set these before deploying the server:
 ```bash
 NODE_ENV=production
 FILEMINT_PUBLIC_URL=https://your-filemint-domain.com
+DATABASE_URL=postgresql://...sslmode=require
 
 # Email verification / password reset via Resend
 RESEND_API_KEY=re_...
