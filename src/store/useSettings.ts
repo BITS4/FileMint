@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -22,9 +23,18 @@ export interface SettingsState {
   update: (patch: Partial<Omit<SettingsState, 'update' | 'hydrated'>>) => void;
 }
 
-/** Default conversion-server origin. Editable in Settings; on a physical
- *  device point this at the dev machine's LAN IP instead of localhost. */
-export const DEFAULT_SERVER_URL = 'http://localhost:8788';
+export const PRODUCTION_SERVER_URL =
+  process.env.EXPO_PUBLIC_FILEMINT_SERVER_URL?.replace(/\/+$/, '') || 'https://filemint-docker.onrender.com';
+
+function isHostedWeb(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return !!host && host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]' && !/^(10|127)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host);
+}
+
+/** Default conversion-server origin. Production web points at the hosted
+ *  Render conversion stack; local/dev still defaults to localhost. */
+export const DEFAULT_SERVER_URL = isHostedWeb() ? PRODUCTION_SERVER_URL : 'http://localhost:8788';
 
 export const useSettings = create<SettingsState>()(
   persist(

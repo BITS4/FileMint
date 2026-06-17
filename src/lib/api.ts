@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
 
 import { base64ToBytes } from '@/lib/base64';
 import { decodeUtf8 } from '@/lib/text';
-import { useSettings } from '@/store/useSettings';
+import { PRODUCTION_SERVER_URL, useSettings } from '@/store/useSettings';
 import type { ConversionReport } from '@/types';
 
 export interface ServerCapabilities {
@@ -37,7 +37,12 @@ const OFFLINE: ServerStatus = {
 };
 
 function baseUrl(): string {
-  return useSettings.getState().serverUrl.replace(/\/+$/, '');
+  const configured = useSettings.getState().serverUrl.replace(/\/+$/, '');
+  const corrected = shouldUseHostedServer(configured) ? PRODUCTION_SERVER_URL : configured;
+  if (corrected !== configured) {
+    useSettings.getState().update({ serverUrl: corrected });
+  }
+  return corrected;
 }
 
 export function getServerBaseUrl(): string {
@@ -53,10 +58,36 @@ function isLocalServerUrl(url: string): boolean {
   }
 }
 
+function isPrivateLanHost(hostname: string): boolean {
+  return /^(10|127)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(hostname) || hostname.endsWith('.local');
+}
+
+function isHostedWebRuntime(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return !!host && host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]' && !isPrivateLanHost(host);
+}
+
+function shouldUseHostedServer(url: string): boolean {
+  if (!isHostedWebRuntime()) return false;
+  try {
+    const parsed = new URL(url);
+    const pageHost = typeof window !== 'undefined' ? window.location.hostname : '';
+    return (
+      isLocalServerUrl(url) ||
+      (parsed.hostname === pageHost && (parsed.port === '8787' || parsed.port === '8788')) ||
+      parsed.hostname.endsWith('.vercel.app')
+    );
+  } catch {
+    return true;
+  }
+}
+
 function browserLanCandidates(): string[] {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return [];
   const { hostname, protocol } = window.location;
   if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') return [];
+  if (!isPrivateLanHost(hostname)) return [];
   const scheme = protocol === 'https:' ? 'https:' : 'http:';
   return ['8788', '8787'].map((port) => `${scheme}//${hostname}:${port}`);
 }
@@ -93,9 +124,10 @@ function nativeLanCandidates(): string[] {
 function localServerCandidates(): string[] {
   const configured = baseUrl();
   const nativeCandidates = nativeLanCandidates();
+  const hostedCandidates = isHostedWebRuntime() ? [PRODUCTION_SERVER_URL] : [];
   const candidates = isLocalServerUrl(configured) && Platform.OS !== 'web'
     ? [...nativeCandidates, configured]
-    : [configured, ...browserLanCandidates(), ...nativeCandidates];
+    : [configured, ...hostedCandidates, ...browserLanCandidates(), ...nativeCandidates];
   if (isLocalServerUrl(configured)) {
     try {
       const url = new URL(configured);
