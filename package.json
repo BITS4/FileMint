@@ -46,13 +46,13 @@
     "react-native-webview": "13.16.1",
     "react-native-worklets": "0.8.3",
     "tesseract.js": "^7.0.0",
+    "tsx": "^4.22.4",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",
     "@types/react": "~19.2.2",
-    "tsx": "^4.22.4",
     "typescript": "~6.0.3"
   },
   "scripts": {
