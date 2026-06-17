@@ -30,9 +30,28 @@ const sessions = new Map<string, EditSession>();
 
 let discoveryCache: { url: string; byExt: Map<string, string>; fallback: string } | null = null;
 
+export interface CollaboraProbe {
+  online: boolean;
+  url: string;
+  status?: number;
+  error?: string;
+  durationMs: number;
+  checkedAt: string;
+}
+
+let lastCollaboraProbe: CollaboraProbe | null = null;
+
+export function getLastCollaboraProbe(): CollaboraProbe | null {
+  return lastCollaboraProbe;
+}
+
+function discoveryUrl(collaboraUrl: string): string {
+  return new URL('hosting/discovery', `${collaboraUrl.replace(/\/+$/, '')}/`).toString();
+}
+
 async function loadDiscovery(collaboraUrl: string) {
   if (discoveryCache && discoveryCache.url === collaboraUrl) return discoveryCache;
-  const res = await fetch(`${collaboraUrl}/hosting/discovery`);
+  const res = await fetch(discoveryUrl(collaboraUrl));
   if (!res.ok) throw new Error(`Collabora discovery failed (${res.status})`);
   const xml = await res.text();
   const byExt = new Map<string, string>();
@@ -52,14 +71,36 @@ async function loadDiscovery(collaboraUrl: string) {
 }
 
 export async function detectCollabora(collaboraUrl: string): Promise<boolean> {
+  const started = Date.now();
+  const url = discoveryUrl(collaboraUrl);
+  const checkedAt = new Date().toISOString();
+  const timeoutMs = Math.max(4000, Number(process.env.COLLABORA_DETECT_TIMEOUT_MS ?? 15000) || 15000);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 4000);
-    const res = await fetch(`${collaboraUrl}/hosting/discovery`, { signal: ctrl.signal });
-    clearTimeout(timer);
-    return res.ok;
-  } catch {
+    const res = await fetch(url, { signal: ctrl.signal });
+    const xml = await res.text();
+    const online = res.ok && /<wopi-discovery\b/i.test(xml);
+    lastCollaboraProbe = {
+      online,
+      url,
+      status: res.status,
+      error: online ? undefined : `Discovery response did not look like WOPI XML (${res.status}).`,
+      durationMs: Date.now() - started,
+      checkedAt,
+    };
+    return online;
+  } catch (e) {
+    lastCollaboraProbe = {
+      online: false,
+      url,
+      error: e instanceof Error ? e.message : 'Collabora discovery failed.',
+      durationMs: Date.now() - started,
+      checkedAt,
+    };
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

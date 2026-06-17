@@ -21,13 +21,28 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import { registerAuth } from './auth';
-import { detectCollabora, registerEdit } from './edit';
+import { detectCollabora, getLastCollaboraProbe, registerEdit } from './edit';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const VERSION = '1.0.0';
+
+function cleanServiceUrl(value: string | undefined, fallback: string): string {
+  const raw = (value ?? fallback).trim().replace(/^['"]+|['"]+$/g, '').trim();
+  const candidate = raw || fallback;
+  try {
+    const url = new URL(candidate);
+    url.pathname = url.pathname.replace(/\/hosting\/discovery\/?$/i, '');
+    url.search = '';
+    url.hash = '';
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    return candidate.replace(/\/+$/, '');
+  }
+}
+
 // Browser -> Collabora; Collabora -> this server (Docker Desktop host alias).
-const COLLABORA_URL = process.env.COLLABORA_URL ?? 'http://localhost:9980';
-const WOPI_HOST = process.env.WOPI_HOST ?? `http://host.docker.internal:${PORT}`;
+const COLLABORA_URL = cleanServiceUrl(process.env.COLLABORA_URL, 'http://localhost:9980');
+const WOPI_HOST = cleanServiceUrl(process.env.WOPI_HOST, `http://host.docker.internal:${PORT}`);
 
 // ---------------------------------------------------------------- binaries
 function resolveBinary(candidates: string[], versionArgs: string[]): string | null {
@@ -278,7 +293,17 @@ const collaboraTimer = setInterval(refreshCollabora, 30000);
 if (typeof collaboraTimer.unref === 'function') collaboraTimer.unref();
 
 app.get('/health', (c) =>
-  c.json({ version: VERSION, capabilities: { ...CAPABILITIES, collabora: collaboraOnline, auth: true, premium: true } }),
+  c.json({
+    version: VERSION,
+    capabilities: { ...CAPABILITIES, collabora: collaboraOnline, auth: true, premium: true },
+    services: {
+      collabora: getLastCollaboraProbe() ?? {
+        online: collaboraOnline,
+        url: COLLABORA_URL,
+        checkedAt: null,
+      },
+    },
+  }),
 );
 
 registerAuth(app);
