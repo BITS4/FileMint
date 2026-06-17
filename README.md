@@ -60,6 +60,41 @@ Then point the app at the server in **Settings → Conversion server**:
 Uploaded files are processed in a temp directory and **deleted immediately**
 after the response is produced.
 
+### Production auth, email verification, and card payments
+
+FileMint can be deployed as a public web app, but real email delivery and real
+Visa/Mastercard payments must run through provider accounts on the server. Users
+only see FileMint; the server talks to the providers with private environment
+variables.
+
+Set these before deploying the server:
+
+```bash
+NODE_ENV=production
+FILEMINT_PUBLIC_URL=https://your-filemint-domain.com
+
+# Email verification / password reset via Resend
+RESEND_API_KEY=re_...
+FILEMINT_EMAIL_FROM="FileMint <verify@your-domain.com>"
+
+# Stripe Checkout for cards
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_WEEK=price_...
+STRIPE_PRICE_MONTH=price_...
+STRIPE_PRICE_YEAR=price_...
+STRIPE_PRICE_FOREVER=price_...
+```
+
+Stripe webhook endpoint:
+
+```text
+https://your-server-domain.com/auth/stripe/webhook
+```
+
+For local development only, if you want to test the UI without Stripe, set
+`FILEMINT_ALLOW_DEV_PAYMENTS=true`. Do not set that in production.
+
 ### PDF → editable Word (digital & scanned)
 
 PDF→Word is layout-aware ([server/pdf_to_docx.py](server/pdf_to_docx.py)), with modes in the tool UI:

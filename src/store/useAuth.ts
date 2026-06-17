@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { ApiError, authApi, isPremiumUser, type AuthUser, type PlanId, type PremiumPlan } from '@/lib/auth-api';
+import { ApiError, authApi, isPremiumUser, type AuthUser, type CheckoutResponse, type PlanId, type PremiumPlan } from '@/lib/auth-api';
 
 interface AuthState {
   user: AuthUser | null;
@@ -16,7 +16,8 @@ interface AuthState {
   hydrated: boolean;
   setError: (error: string | null) => void;
   clearSession: () => void;
-  signup: (input: { email: string; password: string; fullName?: string; phone?: string }) => Promise<void>;
+  signup: (input: { email: string; username: string; password: string; fullName: string; phone: string }) => Promise<void>;
+  checkUsername: (username: string) => Promise<{ valid: boolean; available: boolean; message: string }>;
   verifyEmail: (input: { email: string; code: string }) => Promise<void>;
   resendCode: (email: string) => Promise<string | null>;
   login: (input: { email: string; password: string }) => Promise<void>;
@@ -25,7 +26,8 @@ interface AuthState {
   requestPasswordReset: (email: string) => Promise<string | null>;
   confirmPasswordReset: (input: { email: string; code: string; password: string }) => Promise<void>;
   loadPlans: () => Promise<void>;
-  buyPlan: (planId: PlanId) => Promise<void>;
+  buyPlan: (planId: PlanId) => Promise<CheckoutResponse>;
+  confirmCheckout: (sessionId: string) => Promise<void>;
   restorePurchases: () => Promise<boolean>;
   manageSubscription: () => Promise<string>;
   changePassword: (input: { currentPassword: string; newPassword: string }) => Promise<void>;
@@ -66,6 +68,10 @@ export const useAuth = create<AuthState>()(
         } finally {
           set({ loading: false });
         }
+      },
+      checkUsername: async (username) => {
+        const res = await authApi.checkUsername(username);
+        return { valid: res.valid, available: res.available, message: res.message };
       },
       verifyEmail: async (input) => {
         set({ loading: true, error: null });
@@ -180,6 +186,22 @@ export const useAuth = create<AuthState>()(
         set({ loading: true, error: null });
         try {
           const res = await authApi.checkout(token, planId);
+          set({ user: res.user });
+          return res;
+        } catch (e) {
+          const message = errorMessage(e);
+          set({ error: message });
+          throw e;
+        } finally {
+          set({ loading: false });
+        }
+      },
+      confirmCheckout: async (sessionId) => {
+        const token = get().token;
+        if (!token) throw new Error('Log in before confirming Premium.');
+        set({ loading: true, error: null });
+        try {
+          const res = await authApi.confirmCheckout(token, sessionId);
           set({ user: res.user });
         } catch (e) {
           const message = errorMessage(e);

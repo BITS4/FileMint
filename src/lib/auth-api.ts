@@ -6,6 +6,7 @@ export type PremiumStatus = 'free' | 'active' | 'expired' | 'canceled' | 'refund
 export interface AuthUser {
   id: string;
   email: string;
+  username?: string | null;
   fullName?: string | null;
   phone?: string | null;
   emailVerified: boolean;
@@ -42,6 +43,7 @@ export interface AuthResponse {
 
 export interface SignupResponse {
   user: AuthUser;
+  sent?: boolean;
   devCode?: string;
 }
 
@@ -52,6 +54,8 @@ export interface CodeResponse {
 
 export interface CheckoutResponse {
   user: AuthUser;
+  checkoutUrl?: string;
+  sessionId?: string;
   purchase?: {
     id: string;
     planId: PlanId;
@@ -109,8 +113,11 @@ function jsonBody(value: Record<string, unknown>): string {
 }
 
 export const authApi = {
-  signup(input: { email: string; password: string; fullName?: string; phone?: string }) {
+  signup(input: { email: string; username: string; password: string; fullName: string; phone: string }) {
     return request<SignupResponse>('/auth/signup', { method: 'POST', body: jsonBody(input) });
+  },
+  checkUsername(username: string) {
+    return request<{ username: string; valid: boolean; available: boolean; message: string }>(`/auth/username?username=${encodeURIComponent(username)}`);
   },
   verifyEmail(input: { email: string; code: string }) {
     return request<{ user: AuthUser }>('/auth/verify-email', { method: 'POST', body: jsonBody(input) });
@@ -149,7 +156,14 @@ export const authApi = {
     return request<CheckoutResponse>('/premium/checkout', {
       method: 'POST',
       token,
-      body: jsonBody({ planId, provider: 'stripe-dev' }),
+      body: jsonBody({ planId, provider: 'stripe' }),
+    });
+  },
+  confirmCheckout(token: string, sessionId: string) {
+    return request<CheckoutResponse>('/premium/checkout/confirm', {
+      method: 'POST',
+      token,
+      body: jsonBody({ sessionId }),
     });
   },
   restore(token: string) {

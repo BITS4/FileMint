@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppHeader, Button, Card, Icon, Screen, TextField, Txt } from '@/components/ui';
@@ -19,20 +19,61 @@ export default function SignupScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ redirect?: string; email?: string }>();
   const signup = useAuth((s) => s.signup);
+  const checkUsername = useAuth((s) => s.checkUsername);
   const loading = useAuth((s) => s.loading);
   const error = useAuth((s) => s.error);
   const devCode = useAuth((s) => s.devCode);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState(String(params.email ?? ''));
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<{ state: 'idle' | 'checking' | 'ok' | 'bad'; message: string }>({
+    state: 'idle',
+    message: 'At least 6 characters. Letters, numbers, and underscore only.',
+  });
 
   const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
+  const canSubmit = !!fullName.trim() && !!phone.trim() && !!email.trim() && !!password && usernameStatus.state === 'ok';
+
+  useEffect(() => {
+    const value = username.trim().toLowerCase();
+    if (!value) {
+      setUsernameStatus({ state: 'idle', message: 'At least 6 characters. Letters, numbers, and underscore only.' });
+      return;
+    }
+    if (value.length < 6) {
+      setUsernameStatus({ state: 'bad', message: 'Username must be at least 6 characters.' });
+      return;
+    }
+    if (!/^[A-Za-z0-9_]+$/.test(value)) {
+      setUsernameStatus({ state: 'bad', message: 'Only letters, numbers, and underscore are allowed.' });
+      return;
+    }
+
+    let canceled = false;
+    setUsernameStatus({ state: 'checking', message: 'Checking username...' });
+    const timer = setTimeout(() => {
+      checkUsername(value)
+        .then((res) => {
+          if (canceled) return;
+          setUsernameStatus({ state: res.valid && res.available ? 'ok' : 'bad', message: res.message });
+        })
+        .catch((e) => {
+          if (canceled) return;
+          setUsernameStatus({ state: 'bad', message: e instanceof Error ? e.message : 'Could not check this username.' });
+        });
+    }, 350);
+    return () => {
+      canceled = true;
+      clearTimeout(timer);
+    };
+  }, [checkUsername, username]);
 
   const submit = async () => {
     try {
-      await signup({ email, password, fullName, phone });
+      await signup({ email, password, fullName: fullName.trim(), phone: phone.trim(), username: username.trim().toLowerCase() });
       router.replace(verifyRoute(email, redirect) as never);
     } catch (e) {
       Alert.alert('Sign up failed', e instanceof Error ? e.message : 'Could not create your account.');
@@ -55,8 +96,17 @@ export default function SignupScreen() {
       </View>
 
       <Card style={styles.card}>
-        <TextField label="Full name" icon="account-outline" value={fullName} onChangeText={setFullName} placeholder="Optional" />
-        <TextField label="Phone" icon="phone-outline" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="Optional" />
+        <TextField label="Full name" icon="account-outline" value={fullName} onChangeText={setFullName} placeholder="Your legal name" />
+        <TextField label="Phone" icon="phone-outline" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+1 555 123 4567" />
+        <TextField
+          label="Username"
+          icon="account-circle-outline"
+          value={username}
+          onChangeText={(value) => setUsername(value.replace(/\s+/g, '').toLowerCase())}
+          autoCapitalize="none"
+          placeholder="vazir_2026"
+          hint={usernameStatus.message}
+        />
         <TextField label="Email" icon="email-outline" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" />
         <TextField
           label="Password"
@@ -78,7 +128,7 @@ export default function SignupScreen() {
             </Txt>
           </View>
         ) : null}
-        <Button title="Sign up" icon="account-plus-outline" size="lg" full loading={loading} disabled={!email || !password} onPress={submit} />
+        <Button title="Sign up" icon="account-plus-outline" size="lg" full loading={loading || usernameStatus.state === 'checking'} disabled={!canSubmit} onPress={submit} />
         <Button title="Already have an account?" variant="ghost" onPress={() => router.replace(`/auth/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirect)}` as never)} />
       </Card>
     </Screen>

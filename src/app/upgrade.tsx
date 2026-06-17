@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppHeader, Badge, Button, Card, Icon, Screen, Txt } from '@/components/ui';
 import { Accents, Radius, Spacing } from '@/constants/theme';
@@ -31,18 +31,21 @@ const BENEFITS = [
 export default function UpgradeScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const params = useLocalSearchParams<{ redirect?: string; lockedTool?: string }>();
+  const params = useLocalSearchParams<{ redirect?: string; lockedTool?: string; checkout?: string; session_id?: string }>();
   const user = useAuth((s) => s.user);
   const plansFromStore = useAuth((s) => s.plans);
   const loading = useAuth((s) => s.loading);
   const error = useAuth((s) => s.error);
   const loadPlans = useAuth((s) => s.loadPlans);
   const buyPlan = useAuth((s) => s.buyPlan);
+  const confirmCheckout = useAuth((s) => s.confirmCheckout);
   const restorePurchases = useAuth((s) => s.restorePurchases);
   const manageSubscription = useAuth((s) => s.manageSubscription);
   const isLoggedIn = useAuth(selectIsLoggedIn);
   const isPremium = useAuth(selectIsPremium);
   const [selected, setSelected] = useState<PlanId>('year');
+  const [confirmingSession, setConfirmingSession] = useState(false);
+  const handledCheckoutRef = useRef<string | null>(null);
 
   const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
   const lockedTool = findTool(params.lockedTool ? String(params.lockedTool) : null);
@@ -51,6 +54,28 @@ export default function UpgradeScreen() {
   useEffect(() => {
     loadPlans().catch(() => undefined);
   }, [loadPlans]);
+
+  useEffect(() => {
+    const checkout = params.checkout ? String(params.checkout) : '';
+    const sessionId = params.session_id ? String(params.session_id) : '';
+    const key = `${checkout}:${sessionId}`;
+    if (!checkout || handledCheckoutRef.current === key) return;
+    if (checkout === 'cancel') {
+      handledCheckoutRef.current = key;
+      Alert.alert('Payment canceled', 'Your Premium purchase was not completed.');
+      return;
+    }
+    if (checkout !== 'success' || !sessionId || confirmingSession || !isLoggedIn) return;
+    handledCheckoutRef.current = key;
+    setConfirmingSession(true);
+    confirmCheckout(sessionId)
+      .then(() => {
+        Alert.alert('Premium unlocked', 'Stripe confirmed your payment. Your Premium plan is active now.');
+        router.replace(redirect as never);
+      })
+      .catch((e) => Alert.alert('Payment confirmation failed', e instanceof Error ? e.message : 'Could not confirm this Stripe checkout.'))
+      .finally(() => setConfirmingSession(false));
+  }, [confirmCheckout, confirmingSession, isLoggedIn, params.checkout, params.session_id, redirect, router]);
 
   const authRoute = (path: '/auth/login' | '/auth/signup') => `${path}?redirect=${encodeURIComponent(`/upgrade?redirect=${encodeURIComponent(redirect)}${lockedTool ? `&lockedTool=${encodeURIComponent(lockedTool.id)}` : ''}`)}`;
 
@@ -64,9 +89,19 @@ export default function UpgradeScreen() {
       return;
     }
     try {
-      await buyPlan(selected);
-      Alert.alert('Premium unlocked', 'Your Premium plan is active now.');
-      router.replace(redirect as never);
+      const res = await buyPlan(selected);
+      if (res.checkoutUrl) {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.location.assign(res.checkoutUrl);
+        } else {
+          await WebBrowser.openBrowserAsync(res.checkoutUrl);
+        }
+        return;
+      }
+      if (res.verified) {
+        Alert.alert('Premium unlocked', 'Your Premium plan is active now.');
+        router.replace(redirect as never);
+      }
     } catch (e) {
       Alert.alert('Payment failed', e instanceof Error ? e.message : 'Could not verify the purchase.');
     }
@@ -155,7 +190,7 @@ export default function UpgradeScreen() {
             <Button title="Sign up" icon="account-plus-outline" variant="secondary" onPress={() => router.push(authRoute('/auth/signup') as never)} style={{ flex: 1 }} />
           </View>
         ) : (
-          <Button title="Continue to payment" icon="credit-card-check-outline" size="lg" full loading={loading} disabled={isPremium} onPress={continueToPayment} />
+          <Button title="Pay with card" icon="credit-card-check-outline" size="lg" full loading={loading || confirmingSession} disabled={isPremium} onPress={continueToPayment} />
         )}
         <View style={styles.secondaryActions}>
           <Button title="Restore purchase" icon="restore" variant="secondary" onPress={restore} style={{ flex: 1 }} />

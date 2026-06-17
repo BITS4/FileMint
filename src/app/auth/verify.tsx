@@ -11,14 +11,14 @@ import { useAuth } from '@/store/useAuth';
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const params = useLocalSearchParams<{ email?: string; redirect?: string }>();
+  const params = useLocalSearchParams<{ email?: string; code?: string; redirect?: string }>();
   const verifyEmail = useAuth((s) => s.verifyEmail);
   const resendCode = useAuth((s) => s.resendCode);
   const loading = useAuth((s) => s.loading);
   const error = useAuth((s) => s.error);
   const devCode = useAuth((s) => s.devCode);
   const [email, setEmail] = useState(String(params.email ?? ''));
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(String(params.code ?? ''));
   const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
 
   const loginRoute = `/auth/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirect)}`;

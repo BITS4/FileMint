@@ -232,7 +232,7 @@ export default function SettingsScreen() {
             <ListRow
               icon="account-circle-outline"
               title={user.fullName || user.email}
-              subtitle={user.fullName ? user.email : 'Signed in'}
+              subtitle={user.username ? `@${user.username} · ${user.email}` : user.fullName ? user.email : 'Signed in'}
               value={user.emailVerified ? 'Verified' : 'Unverified'}
             />
             <ListRow
