@@ -96,6 +96,11 @@ https://your-server-domain.com/auth/stripe/webhook
 For local development only, if you want to test the UI without Stripe, set
 `FILEMINT_ALLOW_DEV_PAYMENTS=true`. Do not set that in production.
 
+For hosted conversion features, deploy the server with the repository
+`Dockerfile` instead of Render's plain Node runtime. The Docker image installs
+LibreOffice, qpdf, Ghostscript, OCRmyPDF, Tesseract and the Python conversion
+packages required by premium PDF/Office tools.
+
 ### PDF → editable Word (digital & scanned)
 
 PDF→Word is layout-aware ([server/pdf_to_docx.py](server/pdf_to_docx.py)), with modes in the tool UI:

@@ -1,0 +1,11 @@
+.git
+.expo
+.vscode
+.claude
+node_modules
+dist
+tmp
+test-files
+server/data
+npm-debug.log*
+*.tmp
