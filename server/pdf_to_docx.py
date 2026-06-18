@@ -759,7 +759,7 @@ def run_tesseract_tsv(image: str, lang: str, psm: str = "11") -> str:
     tessdata_dir = tessdata_dir_for_lang(lang)
     if tessdata_dir:
         cmd[3:3] = ["--tessdata-dir", tessdata_dir]
-    timeout = int(os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC", "90" if FAST_HOSTED_OCR else "180"))
+    timeout = int(os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC", "120" if FAST_HOSTED_OCR else "180"))
     try:
         r = subprocess.run(
             cmd,
@@ -788,7 +788,9 @@ def unique_lang(parts: list[str]) -> str:
 def ocr_language_candidates(lang: str) -> list[str]:
     parts = [p for p in re.split(r"[,+\s]+", lang) if p]
     if FAST_HOSTED_OCR:
-        return [unique_lang(parts)] if parts else ["eng"]
+        preferred = ["eng", "rus", "tgk", "fas", "ara", "chi_sim", "chi_tra", "kor"]
+        singles = [p for p in preferred if p in parts] + [p for p in parts if p not in preferred]
+        return [c for i, c in enumerate(singles or ["eng"]) if c and c not in (singles or ["eng"])[:i]]
     part_set = set(parts)
     candidates = [unique_lang(parts)]
     if "eng" in part_set and ("chi_sim" in part_set or "chi_tra" in part_set):
