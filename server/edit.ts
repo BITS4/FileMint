@@ -125,13 +125,13 @@ function framePolicyAllowsOrigin(policy: string | null, origin: string): boolean
   const frameAncestors = /(?:^|;)\s*frame-ancestors\s+([^;]+)/i.exec(policy)?.[1]?.toLowerCase();
   if (!frameAncestors) return true;
   if (frameAncestors.includes("'none'")) return false;
-  if (frameAncestors.includes('*')) return true;
+  const sources = frameAncestors.split(/\s+/).filter(Boolean);
+  if (sources.includes('*')) return true;
   try {
     const url = new URL(origin);
     const host = url.hostname.toLowerCase();
     const originText = `${url.protocol}//${host}`.toLowerCase();
-    return frameAncestors
-      .split(/\s+/)
+    return sources
       .some((source) => source.includes(originText) || source.includes(`${host}:`) || source === host);
   } catch {
     return false;
