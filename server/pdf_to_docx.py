@@ -3102,6 +3102,18 @@ def ocr_to_docx_exact_visual(
             and rebuilt_table_pages == 0
             and exact_visual_fallback_pages > 0
         )
+        if not report["nonEditableVisualFallback"]:
+            fallback_warning = (
+                "Hosted OCR timed out before editable text reconstruction could finish. "
+                "FileMint returned a visual DOCX fallback instead of failing."
+            )
+            report["warnings"] = [
+                warning for warning in report.get("warnings", []) if warning != fallback_warning
+            ]
+            if report.get("hostedOcrTimedOut"):
+                report["warnings"].append(
+                    "Some hosted OCR regions exceeded the fast server limit; FileMint rebuilt the editable parts it could detect and preserved uncertain content visually."
+                )
         if premium:
             if report["nonEditableVisualFallback"]:
                 report["notes"].append(
