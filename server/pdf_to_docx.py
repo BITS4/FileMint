@@ -112,7 +112,7 @@ def quality_dpi(quality: str, default: int = 300) -> int:
         "original": 360,
     }.get(quality, default)
     if FAST_HOSTED_OCR:
-        return min(dpi, 96)
+        return min(dpi, 72)
     return dpi
 
 
@@ -2058,7 +2058,7 @@ def to_docx_scan_text_layer(
                     pix.height,
                     page.rect.width,
                     page.rect.height,
-                    ["6"] if FAST_HOSTED_OCR else ["11"],
+                    ["11"],
                     report,
                 )
                 if table_detection and premium and dense_table_scan_likely(primary_ocr_lines) and transcript_scan_likely(primary_ocr_lines):
@@ -2751,7 +2751,7 @@ def ocr_to_docx_exact_visual(
                 pix.height,
                 page.rect.width,
                 page.rect.height,
-                ["6"] if FAST_HOSTED_OCR else ["11"],
+                ["11"],
                 report,
             )
             if FAST_HOSTED_OCR and not primary_lines:
