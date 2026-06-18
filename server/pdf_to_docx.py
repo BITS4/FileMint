@@ -1726,6 +1726,9 @@ def offset_ocr_lines(
                 width=word.width,
                 height=word.height,
                 conf=word.conf,
+                block=word.block,
+                par=word.par,
+                line=word.line,
             )
             for word in line.words
         ]
