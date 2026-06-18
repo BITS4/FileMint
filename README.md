@@ -180,13 +180,14 @@ starting the server. Office editing is **web-only** (the iframe editor); on nati
 text/CSV/Markdown editing works in-app and Office files open read-only.
 
 For hosted Collabora (Render/Docker image), the editor can only be embedded if
-Collabora is healthy and its frame policy allows the public FileMint frontend.
-For embedded editing, avoid `collabora/code:latest` on hosts like Render because
-newer CODE builds can ignore custom CSP/frame-ancestor values. Use a pinned image
-that still applies the allow-list:
+Collabora is healthy, its frame policy allows the public FileMint frontend, and
+its WebSocket route works through the host proxy. Render does not expose Apache's
+`AllowEncodedSlashes NoDecode` / `nocanon` proxy controls, so avoid older CODE
+24.x images that generate legacy `/cool/<encoded-document-url>/ws` WebSocket
+paths. Use a pinned 26.x image, which generates the compact `/cool/ws` route:
 
 ```bash
-collabora/code:24.04.12.3.1
+collabora/code:26.04.1.4.1
 ```
 
 Start with the smallest Render config first so `/hosting/discovery` returns XML:
@@ -213,6 +214,10 @@ policy after that:
 ```bash
 extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:security.capabilities=false --o:mount_jail_tree=false --o:net.frame_ancestors=https://file-mint.vercel.app
 ```
+
+If the editor loads but shows `Failed to establish socket connection`, confirm
+the hosted office service is using the 26.x image above. That error means the
+browser reached Collabora, but the reverse proxy rejected the editor WebSocket.
 
 FileMint will still offer an **Open Office editor** fallback in a new tab
 whenever embedded editing is blocked.
