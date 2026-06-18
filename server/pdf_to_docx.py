@@ -2224,12 +2224,26 @@ def to_docx_scan_text_layer(
             pix = page.get_pixmap(dpi=dpi, alpha=False)
             scan_png = os.path.join(tmpdir, f"page-{page_index + 1}.png")
             pix.save(scan_png)
+            ocr_scan_png = scan_png
+            ocr_width = pix.width
+            ocr_height = pix.height
+            if premium and table_detection and FAST_HOSTED_OCR:
+                try:
+                    ocr_pix = page.get_pixmap(dpi=120, alpha=False)
+                    ocr_scan_png = os.path.join(tmpdir, f"page-{page_index + 1}-ocr.png")
+                    ocr_pix.save(ocr_scan_png)
+                    ocr_width = ocr_pix.width
+                    ocr_height = ocr_pix.height
+                except Exception:
+                    ocr_scan_png = scan_png
+                    ocr_width = pix.width
+                    ocr_height = pix.height
             grid_geometry: dict[str, Any] | None = None
             if premium and table_detection and FAST_HOSTED_OCR:
                 try:
                     from PIL import Image
 
-                    with Image.open(scan_png).convert("RGB") as scan_img:
+                    with Image.open(ocr_scan_png).convert("RGB") as scan_img:
                         grid_geometry = detect_transcript_grid_geometry(scan_img, page.rect.width, page.rect.height)
                 except Exception:
                     grid_geometry = None
@@ -2243,10 +2257,10 @@ def to_docx_scan_text_layer(
             if lang and (native_chars < 200 or (premium and table_detection)):
                 if grid_geometry and FAST_HOSTED_OCR:
                     primary_ocr_lines = collect_hosted_transcript_ocr_lines(
-                        scan_png,
+                        ocr_scan_png,
                         lang,
-                        pix.width,
-                        pix.height,
+                        ocr_width,
+                        ocr_height,
                         page.rect.width,
                         page.rect.height,
                         grid_geometry,
@@ -2266,7 +2280,7 @@ def to_docx_scan_text_layer(
                 transcript_table = table_detection and premium and transcript_rebuild_likely(primary_ocr_lines, grid_geometry)
                 if transcript_table and (dense_table_scan_likely(primary_ocr_lines) or grid_geometry):
                     scanned_tables += 1
-                    build_scanned_table_page(out, scan_png, primary_ocr_lines, page.rect.width, page.rect.height, report)
+                    build_scanned_table_page(out, ocr_scan_png, primary_ocr_lines, page.rect.width, page.rect.height, report)
                     continue
                 if native_chars < 200 and primary_ocr_lines:
                     lines = primary_ocr_lines
@@ -2947,21 +2961,35 @@ def ocr_to_docx_exact_visual(
             scan_png = os.path.join(tmpdir, f"page-{page_index + 1}.png")
             residual_png = os.path.join(tmpdir, f"page-{page_index + 1}-visual.png")
             pix.save(scan_png)
+            ocr_scan_png = scan_png
+            ocr_width = pix.width
+            ocr_height = pix.height
+            if premium and table_detection and FAST_HOSTED_OCR:
+                try:
+                    ocr_pix = page.get_pixmap(dpi=120, alpha=False)
+                    ocr_scan_png = os.path.join(tmpdir, f"page-{page_index + 1}-ocr.png")
+                    ocr_pix.save(ocr_scan_png)
+                    ocr_width = ocr_pix.width
+                    ocr_height = ocr_pix.height
+                except Exception:
+                    ocr_scan_png = scan_png
+                    ocr_width = pix.width
+                    ocr_height = pix.height
             grid_geometry: dict[str, Any] | None = None
             if premium and table_detection and FAST_HOSTED_OCR:
                 try:
                     from PIL import Image
 
-                    with Image.open(scan_png).convert("RGB") as scan_img:
+                    with Image.open(ocr_scan_png).convert("RGB") as scan_img:
                         grid_geometry = detect_transcript_grid_geometry(scan_img, page.rect.width, page.rect.height)
                 except Exception:
                     grid_geometry = None
             if grid_geometry and FAST_HOSTED_OCR:
                 primary_lines = collect_hosted_transcript_ocr_lines(
-                    scan_png,
+                    ocr_scan_png,
                     lang,
-                    pix.width,
-                    pix.height,
+                    ocr_width,
+                    ocr_height,
                     page.rect.width,
                     page.rect.height,
                     grid_geometry,
@@ -3028,7 +3056,7 @@ def ocr_to_docx_exact_visual(
                 pages_with_text += 1
             all_low_conf += sum(1 for line in lines for word in line.words if 0 <= word.conf < 55)
             if dense_table:
-                build_scanned_table_page(out, scan_png, lines, page.rect.width, page.rect.height, report)
+                build_scanned_table_page(out, ocr_scan_png, lines, page.rect.width, page.rect.height, report)
                 previous_page_reserved = False
             else:
                 if visible_text and generic_dense_scan:
