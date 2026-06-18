@@ -165,7 +165,7 @@ export default function BatchConvertScreen() {
         <Card style={styles.inlineCard}>
           <ActivityIndicator color={theme.primary} />
           <Txt variant="caption" muted>
-            Checking conversion server...
+            Waking conversion server. This can take a few seconds after inactivity...
           </Txt>
         </Card>
       ) : null}
@@ -179,7 +179,7 @@ export default function BatchConvertScreen() {
           <Txt variant="caption" muted>
             {server?.online
               ? `The server is online, but the ${capability} engine is not available.`
-              : 'Start the FileMint conversion server, then check again.'}
+              : 'The hosted FileMint conversion server may be waking up. Tap Check again and wait a few seconds.'}
           </Txt>
           <Button title="Check again" icon="refresh" onPress={refreshServer} full />
         </Card>

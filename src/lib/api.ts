@@ -35,6 +35,8 @@ const OFFLINE: ServerStatus = {
   online: false,
   capabilities: { libreoffice: false, qpdf: false, ghostscript: false, pdfRepair: false, ocr: false, pdf2docx: false, pdfExport: false, imageNormalize: false, pdfUtility: false, pdfEdit: false, collabora: false },
 };
+const LOCAL_STATUS_TIMEOUT_MS = 4000;
+const HOSTED_STATUS_TIMEOUT_MS = 25000;
 
 function baseUrl(): string {
   const configured = useSettings.getState().serverUrl.replace(/\/+$/, '');
@@ -56,6 +58,21 @@ function isLocalServerUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isHostedServerUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const production = new URL(PRODUCTION_SERVER_URL);
+    return parsed.hostname === production.hostname || parsed.hostname.endsWith('.onrender.com');
+  } catch {
+    return false;
+  }
+}
+
+function statusTimeoutForUrl(url: string, requestedMs: number): number {
+  if (isHostedServerUrl(url)) return Math.max(requestedMs, HOSTED_STATUS_TIMEOUT_MS);
+  return Math.min(requestedMs, LOCAL_STATUS_TIMEOUT_MS);
 }
 
 function isPrivateLanHost(hostname: string): boolean {
@@ -146,11 +163,11 @@ function capabilityScore(capabilities: ServerCapabilities): number {
 }
 
 async function readServerStatusAt(url: string, timeoutMs: number): Promise<ServerStatus> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    timer = setTimeout(() => controller.abort(), timeoutMs);
     const res = await fetch(`${url}/health`, { signal: controller.signal });
-    clearTimeout(timer);
     if (!res.ok) return OFFLINE;
     const data = (await res.json()) as Partial<ServerStatus>;
     return {
@@ -160,6 +177,8 @@ async function readServerStatusAt(url: string, timeoutMs: number): Promise<Serve
     };
   } catch {
     return OFFLINE;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
@@ -168,7 +187,7 @@ async function resolveServerUrl(requiredCapability?: keyof ServerCapabilities, t
   let best: { url: string; status: ServerStatus } | null = null;
 
   for (const url of localServerCandidates()) {
-    const status = await readServerStatusAt(url, timeoutMs);
+    const status = await readServerStatusAt(url, statusTimeoutForUrl(url, timeoutMs));
     if (!status.online) continue;
     if (requiredCapability && !status.capabilities[requiredCapability]) continue;
     if (!best || capabilityScore(status.capabilities) > capabilityScore(best.status.capabilities)) {
@@ -185,7 +204,7 @@ async function resolveServerUrl(requiredCapability?: keyof ServerCapabilities, t
 export async function checkServer(timeoutMs = 4000): Promise<ServerStatus> {
   let best: { url: string; status: ServerStatus } | null = null;
   for (const url of localServerCandidates()) {
-    const status = await readServerStatusAt(url, timeoutMs);
+    const status = await readServerStatusAt(url, statusTimeoutForUrl(url, timeoutMs));
     if (!status.online) continue;
     if (!best || capabilityScore(status.capabilities) > capabilityScore(best.status.capabilities)) {
       best = { url, status };

@@ -122,7 +122,7 @@ export default function ToolScreen() {
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
           <ActivityIndicator color={theme.primary} />
           <Txt variant="caption" muted>
-            Checking conversion server…
+            Waking conversion server. This can take a few seconds after inactivity...
           </Txt>
         </Card>
       ) : null}
@@ -136,7 +136,7 @@ export default function ToolScreen() {
           <Txt variant="caption" muted>
             {server?.online
               ? `The server is online but the ${capability} engine isn’t installed. See the server README to enable it.`
-              : `This tool processes files on the FileMint conversion server, which looks offline. Start it, then set its address in Settings.`}
+              : `This tool uses the hosted FileMint conversion server. If it was sleeping, tap Check again and wait a few seconds.`}
           </Txt>
           <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
             <Button title="Open Settings" variant="secondary" icon="cog-outline" onPress={() => router.push('/settings')} style={{ flex: 1 }} />
