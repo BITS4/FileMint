@@ -44,6 +44,49 @@ export interface InputImage {
   ext: string;
 }
 
+export function pageSizeDimensions(size: Exclude<PageSizeKey, 'fit'>, orientation: Orientation): [number, number] {
+  const [a, b] = PAGE_SIZES[size];
+  return orientation === 'landscape' ? [b, a] : [a, b];
+}
+
+export async function getPdfPageSize(bytes: Uint8Array, pageIndex = 0): Promise<{ width: number; height: number }> {
+  const doc = await load(bytes);
+  if (doc.getPageCount() === 0) return { width: PAGE_SIZES.a4[0], height: PAGE_SIZES.a4[1] };
+  const page = doc.getPage(Math.max(0, Math.min(pageIndex, doc.getPageCount() - 1)));
+  const box = page.getCropBox();
+  return { width: box.width, height: box.height };
+}
+
+export interface ImageToPdfPageOptions {
+  width: number;
+  height: number;
+  margin?: number;
+  fit?: 'contain' | 'cover' | 'stretch';
+}
+
+export async function imageToPdfPage(image: InputImage, opts: ImageToPdfPageOptions): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const isPng = image.ext.toLowerCase() === 'png';
+  const embedded = isPng ? await doc.embedPng(image.bytes) : await doc.embedJpg(image.bytes);
+  const pw = Math.max(1, opts.width);
+  const ph = Math.max(1, opts.height);
+  const margin = Math.max(0, opts.margin ?? 0);
+  const page = doc.addPage([pw, ph]);
+  const maxW = Math.max(1, pw - margin * 2);
+  const maxH = Math.max(1, ph - margin * 2);
+  const fit = opts.fit ?? 'contain';
+  const drawScale =
+    fit === 'stretch'
+      ? 1
+      : fit === 'cover'
+        ? Math.max(maxW / embedded.width, maxH / embedded.height)
+        : Math.min(maxW / embedded.width, maxH / embedded.height);
+  const w = fit === 'stretch' ? maxW : embedded.width * drawScale;
+  const h = fit === 'stretch' ? maxH : embedded.height * drawScale;
+  page.drawImage(embedded, { x: (pw - w) / 2, y: (ph - h) / 2, width: w, height: h });
+  return doc.save();
+}
+
 export async function imagesToPdf(images: InputImage[], opts: ImagesToPdfOptions): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const margin = Math.max(0, opts.margin);
@@ -58,8 +101,7 @@ export async function imagesToPdf(images: InputImage[], opts: ImagesToPdfOptions
       pw = embedded.width + margin * 2;
       ph = embedded.height + margin * 2;
     } else {
-      const [a, b] = PAGE_SIZES[opts.pageSize];
-      [pw, ph] = opts.orientation === 'landscape' ? [b, a] : [a, b];
+      [pw, ph] = pageSizeDimensions(opts.pageSize, opts.orientation);
     }
 
     const page = doc.addPage([pw, ph]);

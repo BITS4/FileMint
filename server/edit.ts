@@ -88,20 +88,30 @@ function isPrivateLanHost(hostname: string): boolean {
   return /^(10|127)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(hostname) || hostname.endsWith('.local');
 }
 
-function hostedWopiHostForSession(origin: string, fallback: string): string {
+function publicHttpsOrigin(value: string): string | null {
   try {
-    const url = new URL(origin);
-    if (url.protocol !== 'https:') return fallback;
-    if (!url.hostname || url.hostname === 'localhost' || url.hostname === '127.0.0.1' || isPrivateLanHost(url.hostname)) {
-      return fallback;
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return null;
+    if (
+      !url.hostname ||
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === 'host.docker.internal' ||
+      isPrivateLanHost(url.hostname)
+    ) {
+      return null;
     }
     url.pathname = '';
     url.search = '';
     url.hash = '';
     return url.toString().replace(/\/+$/, '');
   } catch {
-    return fallback;
+    return null;
   }
+}
+
+function hostedWopiHostForSession(fallback: string, requestOrigin: string): string {
+  return publicHttpsOrigin(requestOrigin) ?? publicHttpsOrigin(fallback) ?? fallback;
 }
 
 export async function detectCollabora(collaboraUrl: string): Promise<boolean> {
@@ -167,7 +177,8 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
       const disc = await loadDiscovery(opts.collaboraUrl);
       const urlsrc = disc.byExt.get(s.ext)?.urlsrc ?? disc.fallback;
       if (!urlsrc) throw new Error('No editor available for this file type.');
-      const wopiHost = hostedWopiHostForSession(s.origin, opts.wopiHost);
+      const requestOrigin = new URL(c.req.url).origin;
+      const wopiHost = hostedWopiHostForSession(opts.wopiHost, requestOrigin);
       const wopiSrc = `${wopiHost}/wopi/files/${s.id}`;
       const sep = urlsrc.endsWith('?') ? '' : urlsrc.includes('?') ? '&' : '?';
       const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${s.token}&access_token_ttl=0&lang=en-US`;

@@ -107,7 +107,8 @@ export default function ViewerScreen() {
   const isPdf = file.kind === 'pdf';
   const isOffice = OFFICE_KINDS.includes(file.kind);
   const isReadableText = file.kind === 'text' || file.kind === 'csv' || READABLE_EXTS.has(file.ext);
-  const editable = isOffice || file.kind === 'text' || file.kind === 'csv';
+  const editable = isPdf || isOffice || file.kind === 'text' || file.kind === 'csv';
+  const editRoute = isPdf ? `/pdf-editor?file=${encodeURIComponent(file.id)}&tool=annotate` : `/edit/${file.id}`;
   const shareSupported = canShareFiles();
   const imageBox = getContainedSize({
     source: imageSize,
@@ -131,7 +132,7 @@ export default function ViewerScreen() {
                 />
               ) : null}
               {editable ? (
-                <IconButton name="pencil-outline" onPress={() => router.push(`/edit/${file.id}`)} accessibilityLabel="Edit" />
+                <IconButton name="pencil-outline" onPress={() => router.push(editRoute as never)} accessibilityLabel="Edit" />
               ) : null}
               <IconButton name="download-outline" onPress={() => void downloadFile(file)} accessibilityLabel="Download" />
               <IconButton name="share-variant" onPress={() => void shareFile(file)} accessibilityLabel="Share" disabled={!shareSupported} />

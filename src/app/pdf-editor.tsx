@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -732,11 +732,13 @@ export default function PdfEditorScreen() {
   const theme = useTheme();
   const desktop = useIsDesktop();
   const { width } = useWindowDimensions();
-  const params = useLocalSearchParams<{ tool?: string }>();
+  const params = useLocalSearchParams<{ tool?: string; file?: string }>();
   const initialTool = normalizeTool(params.tool);
+  const routeFileId = Array.isArray(params.file) ? params.file[0] : params.file;
   const [activeTool, setActiveTool] = useState<EditorToolId>(initialTool);
   const catalogTool = findTool(activeTool);
   const isPremium = useAuth(selectIsPremium);
+  const routedFile = useLibrary((s) => (routeFileId ? s.files.find((item) => item.id === routeFileId) : undefined));
   const [file, setFile] = useState<FileItem | null>(null);
   const [pages, setPages] = useState<PreviewPage[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -800,6 +802,38 @@ export default function PdfEditorScreen() {
   const pageWidth = Math.max(280, Math.min(desktop ? width - 650 : width - 36, 760) * zoom);
   const canApply = Boolean(file && pages.length > 0 && !rendering && !renderError);
   const pageObjects = useMemo(() => objects.filter((object) => object.pageIndex === pageIndex), [objects, pageIndex]);
+  const loadedRouteFileRef = useRef<string | null>(null);
+
+  const pickFile = useCallback(async (picked: FileItem) => {
+    setFile(picked);
+    setPages([]);
+    setObjects([]);
+    setSelectedObjectId(null);
+    setPageIndex(0);
+    setRendering(true);
+    setProgress(0.08);
+    setRenderError(null);
+    try {
+      const bytes = await storage.readBytes(picked.storageKey);
+      let rendered: RenderedImage[];
+      try {
+        rendered = await withTimeout(
+          renderPdfToImages(new Uint8Array(bytes), 'jpg', 1.2, (p) => setProgress(Math.min(0.78, p * 0.78))),
+          4500,
+          'Browser renderer timed out.',
+        );
+      } catch {
+        setProgress(0.82);
+        rendered = await renderWithServer(picked);
+      }
+      setPages(rendered.map((image, index) => ({ index, uri: imageToUri(image) })));
+      setProgress(1);
+    } catch (e) {
+      setRenderError(e instanceof Error ? e.message : 'Could not render this PDF.');
+    } finally {
+      setRendering(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -814,6 +848,12 @@ export default function PdfEditorScreen() {
   useEffect(() => {
     setResultFile(null);
   }, [objects, quad]);
+
+  useEffect(() => {
+    if (!routedFile || routedFile.kind !== 'pdf' || loadedRouteFileRef.current === routedFile.id) return;
+    loadedRouteFileRef.current = routedFile.id;
+    void pickFile(routedFile);
+  }, [pickFile, routedFile]);
 
   useEffect(() => {
     if (!file) {
@@ -870,37 +910,6 @@ export default function PdfEditorScreen() {
       </SafeAreaView>
     );
   }
-
-  const pickFile = async (picked: FileItem) => {
-    setFile(picked);
-    setPages([]);
-    setObjects([]);
-    setSelectedObjectId(null);
-    setPageIndex(0);
-    setRendering(true);
-    setProgress(0.08);
-    setRenderError(null);
-    try {
-      const bytes = await storage.readBytes(picked.storageKey);
-      let rendered: RenderedImage[];
-      try {
-        rendered = await withTimeout(
-          renderPdfToImages(new Uint8Array(bytes), 'jpg', 1.2, (p) => setProgress(Math.min(0.78, p * 0.78))),
-          4500,
-          'Browser renderer timed out.',
-        );
-      } catch {
-        setProgress(0.82);
-        rendered = await renderWithServer(picked);
-      }
-      setPages(rendered.map((image, index) => ({ index, uri: imageToUri(image) })));
-      setProgress(1);
-    } catch (e) {
-      setRenderError(e instanceof Error ? e.message : 'Could not render this PDF.');
-    } finally {
-      setRendering(false);
-    }
-  };
 
   const selectEditorObject = (object: EditorObject) => {
     setSelectedObjectId(object.id);

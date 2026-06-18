@@ -47,9 +47,12 @@ import {
   cropPdfEdges,
   csvRowsToPdf,
   extractPages,
+  getPdfPageSize,
+  imageToPdfPage,
   imagesToPdf,
   mergePdfs,
   optimizePdf,
+  pageSizeDimensions,
   rotatePages,
   textToPdf,
   type CropEdges,
@@ -86,7 +89,7 @@ type FilterId =
 type Quality = 'low' | 'medium' | 'high' | 'original';
 type MarginKey = 'none' | 'small' | 'medium' | 'large';
 type ExportMode = 'merge' | 'separate';
-type PageSizeChoice = 'auto' | PageSizeKey;
+type PageSizeChoice = 'auto' | Exclude<PageSizeKey, 'fit'>;
 type OrientationChoice = 'auto' | Orientation;
 type Rotation = 0 | 90 | 180 | 270;
 type CropPointKey = 'tl' | 'tr' | 'br' | 'bl';
@@ -373,6 +376,19 @@ function orientationForPdf(choice: OrientationChoice): Orientation {
   return choice === 'landscape' ? 'landscape' : 'portrait';
 }
 
+function orientationForPage(choice: OrientationChoice, width: number, height: number): Orientation {
+  if (choice === 'landscape' || choice === 'portrait') return choice;
+  return width > height ? 'landscape' : 'portrait';
+}
+
+function outputPageBoxForRaster(sourceSize: { width: number; height: number }, choice: PageSizeChoice, orientation: OrientationChoice, margin: MarginKey) {
+  if (choice === 'auto') {
+    return { width: sourceSize.width, height: sourceSize.height, margin: 0 };
+  }
+  const [width, height] = pageSizeDimensions(choice, orientationForPage(orientation, sourceSize.width, sourceSize.height));
+  return { width, height, margin: marginPoints(margin) };
+}
+
 function parseDelimitedRows(text: string, delimiter: string) {
   if (!delimiter || delimiter === ',') return parseCsvRows(text);
   const escaped = delimiter === 'tab' ? '\t' : delimiter;
@@ -611,7 +627,7 @@ export default function ConvertToPdfScreen() {
   const [fileName, setFileName] = useState('Converted document');
   const [pageSize, setPageSize] = useState<PageSizeChoice>('auto');
   const [orientation, setOrientation] = useState<OrientationChoice>('auto');
-  const [margin, setMargin] = useState<MarginKey>('small');
+  const [margin, setMargin] = useState<MarginKey>('none');
   const [quality, setQuality] = useState<Quality>('high');
   const [exportMode, setExportMode] = useState<ExportMode>(profile === 'batch' ? 'separate' : 'merge');
   const [csvDelimiter, setCsvDelimiter] = useState(',');
@@ -836,10 +852,12 @@ export default function ConvertToPdfScreen() {
 
     const rendered = await renderPages(bytes);
     const edited = await editedPreviewImage(rasterPage, rendered[0].bytes);
-    return imagesToPdf([edited], {
-      pageSize: pageSizeForPdf(pageSize),
-      orientation: orientationForPdf(orientation),
-      margin: marginPoints(margin),
+    const sourceSize = await getPdfPageSize(bytes, 0);
+    const outputBox = outputPageBoxForRaster(sourceSize, pageSize, orientation, margin);
+    return imageToPdfPage(edited, {
+      width: outputBox.width,
+      height: outputBox.height,
+      margin: outputBox.margin,
       fit: 'contain',
     });
   };
