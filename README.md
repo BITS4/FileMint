@@ -180,15 +180,19 @@ starting the server. Office editing is **web-only** (the iframe editor); on nati
 text/CSV/Markdown editing works in-app and Office files open read-only.
 
 For hosted Collabora (Render/Docker image), the editor can only be embedded if
-Collabora's frame policy allows the public FileMint frontend. Set the Collabora
-service env var:
+Collabora is healthy and its frame policy allows the public FileMint frontend.
+Start with the smallest Render config first so `/hosting/discovery` returns XML:
 
 ```bash
-extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:net.frame_ancestors=file-mint.vercel.app:* filemint-docker.onrender.com:* filemint-office.onrender.com:*
+aliasgroup1=https://filemint-docker.onrender.com:443
+server_name=filemint-office.onrender.com
+DONT_GEN_SSL_CERT=1
+extra_params=--o:ssl.enable=false --o:ssl.termination=true
 ```
 
-If this is missing, FileMint will still offer an **Open Office editor** fallback
-in a new tab, but the embedded iframe will be blocked by the browser.
+If discovery is healthy but the iframe is blocked by the browser, add a frame
+policy after that. FileMint will still offer an **Open Office editor** fallback
+in a new tab whenever embedded editing is blocked.
 
 ---
 
