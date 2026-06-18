@@ -282,12 +282,19 @@ app.use('*', cors());
 // Collabora runs in Docker and comes/goes independently — poll it in the
 // background so /health reflects current availability without slowing down.
 let collaboraOnline = false;
-const refreshCollabora = () =>
+let collaboraRefreshInFlight = false;
+const refreshCollabora = () => {
+  if (collaboraRefreshInFlight) return;
+  collaboraRefreshInFlight = true;
   detectCollabora(COLLABORA_URL)
     .then((v) => {
       collaboraOnline = v;
     })
-    .catch(() => undefined);
+    .catch(() => undefined)
+    .finally(() => {
+      collaboraRefreshInFlight = false;
+    });
+};
 refreshCollabora();
 const collaboraTimer = setInterval(refreshCollabora, 30000);
 if (typeof collaboraTimer.unref === 'function') collaboraTimer.unref();

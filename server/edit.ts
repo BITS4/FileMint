@@ -40,7 +40,7 @@ interface FramePolicyProbe {
   error?: string;
 }
 
-let discoveryCache: { url: string; byExt: Map<string, DiscoveryAction>; fallback: string } | null = null;
+let discoveryCache: { url: string; byExt: Map<string, DiscoveryAction>; fallback: string; fetchedAt: string } | null = null;
 
 export interface CollaboraProbe {
   online: boolean;
@@ -61,11 +61,65 @@ function discoveryUrl(collaboraUrl: string): string {
   return new URL('hosting/discovery', `${collaboraUrl.replace(/\/+$/, '')}/`).toString();
 }
 
-async function loadDiscovery(collaboraUrl: string) {
-  if (discoveryCache && discoveryCache.url === collaboraUrl) return discoveryCache;
-  const res = await fetch(discoveryUrl(collaboraUrl));
-  if (!res.ok) throw new Error(`Collabora discovery failed (${res.status})`);
-  const xml = await res.text();
+function envNumber(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchDiscoveryXml(collaboraUrl: string, timeoutMs: number): Promise<string> {
+  const url = discoveryUrl(collaboraUrl);
+  const started = Date.now();
+  const deadline = started + timeoutMs;
+  let lastStatus: number | undefined;
+  let lastError = 'Collabora discovery failed.';
+
+  for (let attempt = 0; Date.now() < deadline; attempt += 1) {
+    const remaining = Math.max(1000, deadline - Date.now());
+    const requestTimeoutMs = Math.min(envNumber('COLLABORA_DISCOVERY_REQUEST_TIMEOUT_MS', 20000), remaining);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), requestTimeoutMs);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      lastStatus = res.status;
+      const text = await res.text();
+      if (res.ok && /<wopi-discovery\b/i.test(text)) {
+        lastCollaboraProbe = {
+          online: true,
+          url,
+          status: res.status,
+          durationMs: Date.now() - started,
+          checkedAt: new Date().toISOString(),
+        };
+        return text;
+      }
+      lastError = `Discovery response did not look like WOPI XML (${res.status}).`;
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : 'Collabora discovery failed.';
+    } finally {
+      clearTimeout(timer);
+    }
+
+    const retryMs = Math.min(8000, 1000 + attempt * 1500);
+    if (Date.now() + retryMs >= deadline) break;
+    await sleep(retryMs);
+  }
+
+  lastCollaboraProbe = {
+    online: false,
+    url,
+    status: lastStatus,
+    error: lastError,
+    durationMs: Date.now() - started,
+    checkedAt: new Date().toISOString(),
+  };
+  throw new Error(lastError);
+}
+
+function parseDiscovery(collaboraUrl: string, xml: string) {
   const byExt = new Map<string, DiscoveryAction>();
   let fallback = '';
   const actionRe = /<action\b[^>]*>/g;
@@ -86,8 +140,15 @@ async function loadDiscovery(collaboraUrl: string) {
       }
     }
   }
-  discoveryCache = { url: collaboraUrl, byExt, fallback };
+  discoveryCache = { url: collaboraUrl, byExt, fallback, fetchedAt: new Date().toISOString() };
   return discoveryCache;
+}
+
+async function loadDiscovery(collaboraUrl: string) {
+  if (discoveryCache && discoveryCache.url === collaboraUrl) return discoveryCache;
+  const timeoutMs = envNumber('COLLABORA_DISCOVERY_TIMEOUT_MS', 90000);
+  const xml = await fetchDiscoveryXml(collaboraUrl, timeoutMs);
+  return parseDiscovery(collaboraUrl, xml);
 }
 
 function isPrivateLanHost(hostname: string): boolean {
@@ -153,36 +214,13 @@ async function probeFramePolicy(url: string, origin: string): Promise<FramePolic
 }
 
 export async function detectCollabora(collaboraUrl: string): Promise<boolean> {
-  const started = Date.now();
-  const url = discoveryUrl(collaboraUrl);
-  const checkedAt = new Date().toISOString();
-  const timeoutMs = Math.max(4000, Number(process.env.COLLABORA_DETECT_TIMEOUT_MS ?? 60000) || 60000);
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { signal: ctrl.signal });
-    const xml = await res.text();
-    const online = res.ok && /<wopi-discovery\b/i.test(xml);
-    lastCollaboraProbe = {
-      online,
-      url,
-      status: res.status,
-      error: online ? undefined : `Discovery response did not look like WOPI XML (${res.status}).`,
-      durationMs: Date.now() - started,
-      checkedAt,
-    };
-    return online;
-  } catch (e) {
-    lastCollaboraProbe = {
-      online: false,
-      url,
-      error: e instanceof Error ? e.message : 'Collabora discovery failed.',
-      durationMs: Date.now() - started,
-      checkedAt,
-    };
+    const timeoutMs = envNumber('COLLABORA_DETECT_TIMEOUT_MS', 90000);
+    const xml = await fetchDiscoveryXml(collaboraUrl, timeoutMs);
+    parseDiscovery(collaboraUrl, xml);
+    return true;
+  } catch {
     return false;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -232,7 +270,7 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
       const raw = e instanceof Error ? e.message : '';
       const unreachable = /failed|fetch|ECONNREFUSED|discovery|timed out/i.test(raw);
       const msg = unreachable
-        ? `The Collabora editor isn't reachable at ${opts.collaboraUrl}. Start it in Docker (see the server README).`
+        ? `The Collabora editor at ${opts.collaboraUrl} is still waking up or temporarily unavailable. Please wait a minute and try Check again.`
         : raw || 'Editor unavailable.';
       return c.json({ error: msg }, 502);
     }
