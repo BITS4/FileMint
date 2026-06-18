@@ -184,7 +184,7 @@ Collabora's frame policy allows the public FileMint frontend. Set the Collabora
 service env var:
 
 ```bash
-extra_params=--o:ssl.enable=true --o:ssl.termination=true --o:net.frame_ancestors=file-mint.vercel.app:* filemint-docker.onrender.com:* filemint-office.onrender.com:*
+extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:net.frame_ancestors=file-mint.vercel.app:* filemint-docker.onrender.com:* filemint-office.onrender.com:*
 ```
 
 If this is missing, FileMint will still offer an **Open Office editor** fallback
