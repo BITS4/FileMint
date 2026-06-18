@@ -1286,6 +1286,8 @@ def transcript_rebuild_likely(lines: list[LineBox], grid_geometry: dict[str, Any
     layout_terms = ["student", "personal", "academic", "course", "grade", "average"]
     grade_marks = len(re.findall(r"\b(?:5/5|4/5|8/10|9/10|10/10)\b", text))
     term_score = sum(1 for term in layout_terms if term in text)
+    if grade_marks >= 4 and len(lines) >= 16:
+        return True
     return term_score >= 3 and (grade_marks >= 2 or ("course" in text and "grade" in text))
 
 
@@ -1782,7 +1784,7 @@ def collect_ocr_lines_region(
     try:
         previous_timeout = os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC")
         if FAST_HOSTED_OCR:
-            os.environ["FILEMINT_TESSERACT_TIMEOUT_SEC"] = previous_timeout or "15"
+            os.environ["FILEMINT_TESSERACT_TIMEOUT_SEC"] = previous_timeout or "24"
         lines = collect_ocr_lines(
             tmp.name,
             lang,
@@ -3094,9 +3096,14 @@ def ocr_to_docx_exact_visual(
         report["tablesRebuiltAsWord"] = rebuilt_table_pages if premium and table_detection else 0
         report["visualFragmentsPreserved"] = visual_fragments_preserved
         report["rulesRebuiltAsWord"] = rules_rebuilt
-        report["nonEditableVisualFallback"] = bool(report.get("hostedOcrTimedOut")) and total_editable_chars == 0
+        report["nonEditableVisualFallback"] = (
+            bool(report.get("hostedOcrTimedOut"))
+            and total_editable_chars == 0
+            and rebuilt_table_pages == 0
+            and exact_visual_fallback_pages > 0
+        )
         if premium:
-            if report.get("hostedOcrTimedOut"):
+            if report["nonEditableVisualFallback"]:
                 report["notes"].append(
                     "Hosted OCR did not finish within the server limit, so FileMint returned a valid visual DOCX fallback. Use a stronger backend instance for fully editable OCR on this scan."
                 )
