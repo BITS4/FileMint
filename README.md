@@ -192,7 +192,7 @@ collabora/code:24.04.12.3.1
 Start with the smallest Render config first so `/hosting/discovery` returns XML:
 
 ```bash
-aliasgroup1=https://filemint-docker.onrender.com:443
+aliasgroup1=https://filemint-docker.onrender.com:443,https://file-mint.vercel.app:443
 server_name=filemint-office.onrender.com
 DONT_GEN_SSL_CERT=1
 extra_params=--o:ssl.enable=false --o:ssl.termination=true
