@@ -399,7 +399,7 @@ app.post('/convert', async (c) => {
           ],
           600000,
         );
-        if (!existsSync(out)) throw new Error(`PDF → Word failed. ${res.stderr || res.stdout}`.slice(0, 400));
+        if (!existsSync(out)) throw new Error(`PDF → Word failed. ${res.stderr || res.stdout}`.slice(0, 1600));
         if (existsSync(reportPath)) {
           const report = await readFile(reportPath, 'utf8');
           reportHeader = Buffer.from(report, 'utf8').toString('base64url');
@@ -416,7 +416,7 @@ app.post('/convert', async (c) => {
           }),
           'utf8',
         ).toString('base64url');
-        if (!existsSync(out)) throw new Error(`PDF → Word failed. ${res.stderr || res.stdout}`.slice(0, 400));
+        if (!existsSync(out)) throw new Error(`PDF → Word failed. ${res.stderr || res.stdout}`.slice(0, 1600));
       } else {
         throw new Error('PDF → Word needs Python + pdf2docx. Install Python, then run: pip install pdf2docx');
       }

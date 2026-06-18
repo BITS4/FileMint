@@ -112,7 +112,7 @@ def quality_dpi(quality: str, default: int = 300) -> int:
         "original": 360,
     }.get(quality, default)
     if FAST_HOSTED_OCR:
-        return min(dpi, 180)
+        return min(dpi, 120)
     return dpi
 
 
