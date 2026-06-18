@@ -181,6 +181,14 @@ text/CSV/Markdown editing works in-app and Office files open read-only.
 
 For hosted Collabora (Render/Docker image), the editor can only be embedded if
 Collabora is healthy and its frame policy allows the public FileMint frontend.
+For embedded editing, avoid `collabora/code:latest` on hosts like Render because
+newer CODE builds can ignore custom CSP/frame-ancestor values. Use a pinned image
+that still applies the allow-list:
+
+```bash
+collabora/code:24.04.12.3.1
+```
+
 Start with the smallest Render config first so `/hosting/discovery` returns XML:
 
 ```bash
