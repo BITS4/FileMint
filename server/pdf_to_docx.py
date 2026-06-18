@@ -227,7 +227,11 @@ def resolve_ocr_language(requested: str, report: dict[str, Any]) -> str:
     installed = installed_tesseract_languages(tess)
     if raw == "auto":
         if installed:
-            chosen = [x for x in OCR_AUTO_LANGS if x in installed]
+            if FAST_HOSTED_OCR:
+                hosted_preferred = ["eng", "rus"]
+                chosen = [x for x in hosted_preferred if x in installed]
+            else:
+                chosen = [x for x in OCR_AUTO_LANGS if x in installed]
             if not chosen and "eng" in installed:
                 chosen = ["eng"]
             if not chosen:
