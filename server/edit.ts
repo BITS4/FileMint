@@ -156,7 +156,7 @@ export async function detectCollabora(collaboraUrl: string): Promise<boolean> {
   const started = Date.now();
   const url = discoveryUrl(collaboraUrl);
   const checkedAt = new Date().toISOString();
-  const timeoutMs = Math.max(4000, Number(process.env.COLLABORA_DETECT_TIMEOUT_MS ?? 15000) || 15000);
+  const timeoutMs = Math.max(4000, Number(process.env.COLLABORA_DETECT_TIMEOUT_MS ?? 60000) || 60000);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
