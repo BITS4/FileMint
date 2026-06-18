@@ -179,6 +179,17 @@ Networking: the **browser** reaches Collabora at `COLLABORA_URL` (default
 starting the server. Office editing is **web-only** (the iframe editor); on native,
 text/CSV/Markdown editing works in-app and Office files open read-only.
 
+For hosted Collabora (Render/Docker image), the editor can only be embedded if
+Collabora's frame policy allows the public FileMint frontend. Set the Collabora
+service env var:
+
+```bash
+extra_params=--o:ssl.enable=true --o:ssl.termination=true --o:net.frame_ancestors=file-mint.vercel.app:* filemint-docker.onrender.com:* filemint-office.onrender.com:*
+```
+
+If this is missing, FileMint will still offer an **Open Office editor** fallback
+in a new tab, but the embedded iframe will be blocked by the browser.
+
 ---
 
 ## What works where

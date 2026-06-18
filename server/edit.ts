@@ -34,6 +34,12 @@ interface DiscoveryAction {
   isDefault: boolean;
 }
 
+interface FramePolicyProbe {
+  allowed: boolean;
+  policy?: string;
+  error?: string;
+}
+
 let discoveryCache: { url: string; byExt: Map<string, DiscoveryAction>; fallback: string } | null = null;
 
 export interface CollaboraProbe {
@@ -114,6 +120,38 @@ function hostedWopiHostForSession(fallback: string, requestOrigin: string): stri
   return publicHttpsOrigin(requestOrigin) ?? publicHttpsOrigin(fallback) ?? fallback;
 }
 
+function framePolicyAllowsOrigin(policy: string | null, origin: string): boolean {
+  if (!policy) return true;
+  const frameAncestors = /(?:^|;)\s*frame-ancestors\s+([^;]+)/i.exec(policy)?.[1]?.toLowerCase();
+  if (!frameAncestors) return true;
+  if (frameAncestors.includes("'none'")) return false;
+  if (frameAncestors.includes('*')) return true;
+  try {
+    const url = new URL(origin);
+    const host = url.hostname.toLowerCase();
+    const originText = `${url.protocol}//${host}`.toLowerCase();
+    return frameAncestors
+      .split(/\s+/)
+      .some((source) => source.includes(originText) || source.includes(`${host}:`) || source === host);
+  } catch {
+    return false;
+  }
+}
+
+async function probeFramePolicy(url: string, origin: string): Promise<FramePolicyProbe> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4500);
+  try {
+    const res = await fetch(url, { method: 'HEAD', signal: ctrl.signal });
+    const policy = res.headers.get('content-security-policy') ?? undefined;
+    return { allowed: framePolicyAllowsOrigin(policy ?? null, origin), policy };
+  } catch (e) {
+    return { allowed: true, error: e instanceof Error ? e.message : 'Could not check frame policy.' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function detectCollabora(collaboraUrl: string): Promise<boolean> {
   const started = Date.now();
   const url = discoveryUrl(collaboraUrl);
@@ -182,7 +220,14 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
       const wopiSrc = `${wopiHost}/wopi/files/${s.id}`;
       const sep = urlsrc.endsWith('?') ? '' : urlsrc.includes('?') ? '&' : '?';
       const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${s.token}&access_token_ttl=0&lang=en-US`;
-      return c.json({ url, wopiHost });
+      const frame = await probeFramePolicy(url, s.origin);
+      return c.json({
+        url,
+        wopiHost,
+        frameAllowed: frame.allowed,
+        framePolicy: frame.policy,
+        frameError: frame.error,
+      });
     } catch (e) {
       const raw = e instanceof Error ? e.message : '';
       const unreachable = /failed|fetch|ECONNREFUSED|discovery|timed out/i.test(raw);

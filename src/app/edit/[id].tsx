@@ -6,7 +6,7 @@ import { CollaboraEditor, type CollaboraEditorHandle } from '@/components/viewer
 import { AppHeader, Button, EmptyState, Icon, Screen, Txt } from '@/components/ui';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { closeEdit, downloadEdited, getEditorUrl, getEditVersion, uploadForEdit } from '@/lib/api';
+import { closeEdit, downloadEdited, getEditorLaunch, getEditVersion, uploadForEdit, type EditorLaunch } from '@/lib/api';
 import { goBack } from '@/lib/nav';
 import { canShareFiles, downloadFile, shareFile } from '@/lib/share';
 import * as storage from '@/lib/storage';
@@ -25,7 +25,7 @@ export default function EditScreen() {
   const replaceFileBytes = useLibrary((s) => s.replaceFileBytes);
 
   const [text, setText] = useState<string | null>(null);
-  const [editorUrl, setEditorUrl] = useState<string | undefined>(undefined);
+  const [editorLaunch, setEditorLaunch] = useState<EditorLaunch | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -50,7 +50,7 @@ export default function EditScreen() {
     (async () => {
       try {
         setError(undefined);
-        setEditorUrl(undefined);
+        setEditorLaunch(undefined);
         const uri = await storage.getUri(file.storageKey);
         const origin = typeof window !== 'undefined' ? window.location.origin : '*';
         const s = await uploadForEdit(uri, file.name, file.mime, origin);
@@ -59,12 +59,12 @@ export default function EditScreen() {
           return;
         }
         session.current = { id: s.id, token: s.token };
-        const url = await getEditorUrl(s.id, s.token);
+        const launch = await getEditorLaunch(s.id, s.token);
         if (!alive) {
           void closeEdit(s.id, s.token);
           return;
         }
-        setEditorUrl(url);
+        setEditorLaunch(launch);
       } catch (e) {
         const s = session.current;
         if (s) {
@@ -135,8 +135,13 @@ export default function EditScreen() {
   const retryEditor = () => {
     setSaveError(undefined);
     setError(undefined);
-    setEditorUrl(undefined);
+    setEditorLaunch(undefined);
     setRetryKey((value) => value + 1);
+  };
+
+  const openHostedEditor = () => {
+    if (!editorLaunch?.url || Platform.OS !== 'web') return;
+    window.open(editorLaunch.url, '_blank', 'noopener,noreferrer');
   };
 
   if (!file) {
@@ -213,7 +218,7 @@ export default function EditScreen() {
               icon="content-save-outline"
               onPress={saveOffice}
               loading={busy}
-              disabled={!editorUrl || Boolean(error)}
+              disabled={!editorLaunch?.url || Boolean(error)}
             />
           }
         />
@@ -253,8 +258,28 @@ export default function EditScreen() {
               <Button title="Share" icon="share-variant" variant="secondary" onPress={() => void shareFile(file)} disabled={!shareSupported} full />
             </View>
           </View>
-        ) : editorUrl ? (
-          <CollaboraEditor ref={editorRef} url={editorUrl} />
+        ) : editorLaunch?.url && editorLaunch.frameAllowed ? (
+          <CollaboraEditor ref={editorRef} url={editorLaunch.url} />
+        ) : editorLaunch?.url ? (
+          <View style={{ flex: 1, justifyContent: 'center', padding: Spacing.xl }}>
+            <EmptyState
+              icon="open-in-new"
+              title="Open Office editor"
+              subtitle="The hosted Collabora service is online, but it does not allow this web app to embed it. Open it in a new tab, save there, then return and press Save & Close."
+              compact
+            />
+            <View style={{ gap: Spacing.sm, maxWidth: 560, alignSelf: 'center', width: '100%' }}>
+              <Button title="Open Office editor" icon="open-in-new" onPress={openHostedEditor} full />
+              <Button title="Check again" icon="refresh" variant="secondary" onPress={retryEditor} full />
+              <Button title="Download for Word" icon="download-outline" variant="secondary" onPress={() => void downloadFile(file)} full />
+              <Button title="Share" icon="share-variant" variant="secondary" onPress={() => void shareFile(file)} disabled={!shareSupported} full />
+              {editorLaunch.framePolicy ? (
+                <Txt variant="tiny" muted center>
+                  Collabora frame policy must include {typeof window !== 'undefined' ? window.location.origin : 'this app origin'}.
+                </Txt>
+              ) : null}
+            </View>
+          </View>
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator color={theme.primary} size="large" />

@@ -115,6 +115,8 @@ interface StudioPage {
   previewUri: string;
   previewWidth: number;
   previewHeight: number;
+  pageWidthPt: number;
+  pageHeightPt: number;
   included: boolean;
   rotation: Rotation;
   filter: FilterId;
@@ -387,6 +389,12 @@ function outputPageBoxForRaster(sourceSize: { width: number; height: number }, c
   }
   const [width, height] = pageSizeDimensions(choice, orientationForPage(orientation, sourceSize.width, sourceSize.height));
   return { width, height, margin: marginPoints(margin) };
+}
+
+function pageAspectRatio(page: StudioPage) {
+  const width = Number.isFinite(page.pageWidthPt) && page.pageWidthPt > 0 ? page.pageWidthPt : page.previewWidth;
+  const height = Number.isFinite(page.pageHeightPt) && page.pageHeightPt > 0 ? page.pageHeightPt : page.previewHeight;
+  return Math.max(0.12, width / Math.max(1, height));
 }
 
 function parseDelimitedRows(text: string, delimiter: string) {
@@ -692,8 +700,12 @@ export default function ConvertToPdfScreen() {
           setPrepareProgress((i + p * 0.8) / Math.max(1, nextFiles.length));
         });
         nextSources.push({ id: sourceId, file, pdfBytes: sourceBytes, pageCount: rendered.length, report });
+        const pageSizes = await Promise.all(
+          rendered.map((_, index) => getPdfPageSize(sourceBytes, index).catch(() => ({ width: 595.28, height: 841.89 }))),
+        );
         rendered.forEach((image, index) => {
           const { width, height } = pngSize(image.bytes);
+          const pageBox = pageSizes[index] ?? { width: width || 595.28, height: height || 841.89 };
           nextPages.push({
             id: uid('page_'),
             sourceId,
@@ -705,6 +717,8 @@ export default function ConvertToPdfScreen() {
             previewUri: dataUrl('image/png', image.bytes),
             previewWidth: width,
             previewHeight: height,
+            pageWidthPt: pageBox.width,
+            pageHeightPt: pageBox.height,
             included: true,
             rotation: 0,
             filter: 'original',
@@ -1031,7 +1045,7 @@ export default function ConvertToPdfScreen() {
             styles.previewStage,
             large && styles.previewStageFullscreen,
             {
-              aspectRatio: Math.max(0.12, selectedPage.previewWidth / Math.max(1, selectedPage.previewHeight)),
+              aspectRatio: pageAspectRatio(selectedPage),
               transform: [{ rotate: `${selectedPage.rotation}deg` }],
             },
             !selectedPage.included && { opacity: 0.36 },

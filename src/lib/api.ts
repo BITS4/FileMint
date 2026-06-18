@@ -361,6 +361,13 @@ export interface EditSession {
   fileName: string;
 }
 
+export interface EditorLaunch {
+  url: string;
+  frameAllowed: boolean;
+  framePolicy?: string;
+  frameError?: string;
+}
+
 export async function uploadForEdit(fileUri: string, fileName: string, mime: string | undefined, origin: string): Promise<EditSession> {
   const form = new FormData();
   await appendFilePart(form, fileUri, fileName, mime);
@@ -379,11 +386,26 @@ export async function uploadForEdit(fileUri: string, fileName: string, mime: str
   return (await res.json()) as EditSession;
 }
 
-export async function getEditorUrl(id: string, token: string): Promise<string> {
+export async function getEditorLaunch(id: string, token: string): Promise<EditorLaunch> {
   const res = await fetch(`${baseUrl()}/edit/url/${id}?access_token=${encodeURIComponent(token)}`);
-  const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+  const data = (await res.json().catch(() => ({}))) as {
+    url?: string;
+    error?: string;
+    frameAllowed?: boolean;
+    framePolicy?: string;
+    frameError?: string;
+  };
   if (!res.ok || !data.url) throw new Error(data.error ?? 'The editor (Collabora) is unavailable. Is it running in Docker?');
-  return data.url;
+  return {
+    url: data.url,
+    frameAllowed: data.frameAllowed !== false,
+    framePolicy: data.framePolicy,
+    frameError: data.frameError,
+  };
+}
+
+export async function getEditorUrl(id: string, token: string): Promise<string> {
+  return (await getEditorLaunch(id, token)).url;
 }
 
 export async function getEditVersion(id: string, token: string): Promise<number> {
