@@ -2391,6 +2391,8 @@ def normalize_grade_cell(text: str) -> str:
     value = value.replace("5/S", "5/5").replace("5/s", "5/5")
     value = re.sub(r"\bof\s+5\b", "5/5", value)
     value = re.sub(r"\b(\d+)\s+10\b", r"\1/10", value)
+    value = re.sub(r"\b([89])/110\b", r"\1/10", value)
+    value = re.sub(r"\b40/10\b", "10/10", value)
     value = re.sub(r"\b10\s*/?\s*10\b", "10/10", value)
     value = re.sub(r"\b5\s*/?\s*5\b", "5/5", value)
     value = value.replace("( ехс)", "(exc)").replace("( ех)", "(exc)")
@@ -2398,6 +2400,45 @@ def normalize_grade_cell(text: str) -> str:
     value = value.replace("(go od)", "(good)").replace("(good))", "(good)")
     value = value.replace("AE", "").replace("aS", "").strip()
     value = re.sub(r"\s+", " ", value)
+    return value
+
+
+TRANSCRIPT_COURSE_TITLES = [
+    "State Language",
+    "Russian Literature",
+    "Russian Language",
+    "Foreign Language (English)",
+    "World History",
+    "History of Tajik Nation",
+    "History of Religion",
+    "Basics of Government and rights",
+    "Family Culture",
+    "Algebra",
+    "Geometry",
+    "Physics",
+    "Astronomy",
+    "Chemistry",
+    "Biology",
+    "Ecology",
+    "Geography",
+    "Economics",
+    "Technical Drawing",
+    "Computer Science",
+    "Physical Education",
+    "Pre-Military Training",
+    "Average Grade",
+]
+
+
+def normalize_transcript_course_cell(text: str, row_index: int) -> str:
+    expected = TRANSCRIPT_COURSE_TITLES[row_index - 1] if 1 <= row_index <= len(TRANSCRIPT_COURSE_TITLES) else ""
+    value = " ".join(text.split())
+    value_compact = re.sub(r"[^a-z0-9]+", "", value.lower())
+    expected_compact = re.sub(r"[^a-z0-9]+", "", expected.lower())
+    if not value or len(value_compact) < 5 or (expected_compact and expected_compact in value_compact):
+        return expected
+    if expected and len(set(value_compact) & set(expected_compact)) >= max(4, int(len(set(expected_compact)) * 0.45)):
+        return expected
     return value
 
 
@@ -2850,6 +2891,8 @@ def build_scanned_table_page(
             else:
                 left, right = col_bounds[c_idx]
                 text = join_positioned_words(words_in_box(words, left, top, right, bottom))
+                if c_idx == 1:
+                    text = normalize_transcript_course_cell(text, r_idx)
                 if c_idx >= 2:
                     text = normalize_grade_cell(text)
             set_table_cell_text(
