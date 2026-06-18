@@ -112,7 +112,7 @@ def quality_dpi(quality: str, default: int = 300) -> int:
         "original": 360,
     }.get(quality, default)
     if FAST_HOSTED_OCR:
-        return min(dpi, 120)
+        return min(dpi, 72)
     return dpi
 
 
@@ -228,7 +228,7 @@ def resolve_ocr_language(requested: str, report: dict[str, Any]) -> str:
     if raw == "auto":
         if installed:
             if FAST_HOSTED_OCR:
-                hosted_preferred = ["eng", "rus"]
+                hosted_preferred = ["eng"]
                 chosen = [x for x in hosted_preferred if x in installed]
             else:
                 chosen = [x for x in OCR_AUTO_LANGS if x in installed]
@@ -759,7 +759,7 @@ def run_tesseract_tsv(image: str, lang: str, psm: str = "11") -> str:
     tessdata_dir = tessdata_dir_for_lang(lang)
     if tessdata_dir:
         cmd[3:3] = ["--tessdata-dir", tessdata_dir]
-    timeout = int(os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC", "120" if FAST_HOSTED_OCR else "180"))
+    timeout = int(os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC", "60" if FAST_HOSTED_OCR else "180"))
     try:
         r = subprocess.run(
             cmd,
@@ -790,7 +790,7 @@ def ocr_language_candidates(lang: str) -> list[str]:
     if FAST_HOSTED_OCR:
         preferred = ["eng", "rus", "tgk", "fas", "ara", "chi_sim", "chi_tra", "kor"]
         singles = [p for p in preferred if p in parts] + [p for p in parts if p not in preferred]
-        return [c for i, c in enumerate(singles or ["eng"]) if c and c not in (singles or ["eng"])[:i]]
+        return [(singles or ["eng"])[0]]
     part_set = set(parts)
     candidates = [unique_lang(parts)]
     if "eng" in part_set and ("chi_sim" in part_set or "chi_tra" in part_set):
@@ -1607,6 +1607,16 @@ def collect_ocr_lines(
             except Exception as e:
                 errors.append(f"{candidate}: {e}")
         if not best_lang:
+            if FAST_HOSTED_OCR:
+                report["hostedOcrTimedOut"] = True
+                warning = (
+                    "Hosted OCR timed out before editable text reconstruction could finish. "
+                    "FileMint returned a visual DOCX fallback instead of failing."
+                )
+                if warning not in report.setdefault("warnings", []):
+                    report["warnings"].append(warning)
+                report["ocrPasses"].append(f"psm-{psm}/timeout [{'; '.join(errors)}]")
+                continue
             raise RuntimeError("; ".join(errors) or "Tesseract OCR failed.")
         report["ocrPasses"].append(f"psm-{psm}/{best_lang}:{len(parsed)} [{'; '.join(pass_notes)}]")
         for line in parsed:
@@ -2679,6 +2689,19 @@ def ocr_to_docx_exact_visual(
                 ["6"] if FAST_HOSTED_OCR else ["11"],
                 report,
             )
+            if FAST_HOSTED_OCR and not primary_lines:
+                append_exact_visual_page(
+                    out,
+                    page_index + 1,
+                    scan_png,
+                    [],
+                    page.rect.width,
+                    page.rect.height,
+                    hidden_text=True,
+                )
+                exact_visual_fallback_pages += 1
+                previous_page_reserved = True
+                continue
             dense_scan = premium and table_detection and dense_table_scan_likely(primary_lines)
             dense_table = dense_scan and transcript_scan_likely(primary_lines)
             generic_dense_scan = dense_scan and not dense_table
@@ -2777,14 +2800,20 @@ def ocr_to_docx_exact_visual(
         report["ocrTextCandidates"] = total_candidates
         report["textCoverageEstimate"] = round((total_editable_boxes / max(1, total_candidates)) * 100)
         report["visualObjectsPreserved"] = report.get("pagesConverted", 0)
-        report["hiddenTextLayer"] = (pages_with_text > 0 and not visible_text) or exact_visual_fallback_pages > 0
+        report["hiddenTextLayer"] = (pages_with_text > 0 and not visible_text) or (
+            exact_visual_fallback_pages > 0 and pages_with_text > 0
+        )
         report["visibleEditableTextLayer"] = pages_with_text > exact_visual_fallback_pages and visible_text
         report["tablesRebuiltAsWord"] = rebuilt_table_pages if premium and table_detection else 0
         report["visualFragmentsPreserved"] = visual_fragments_preserved
         report["rulesRebuiltAsWord"] = rules_rebuilt
-        report["nonEditableVisualFallback"] = False
+        report["nonEditableVisualFallback"] = bool(report.get("hostedOcrTimedOut")) and total_editable_chars == 0
         if premium:
-            if rebuilt_table_pages:
+            if report.get("hostedOcrTimedOut"):
+                report["notes"].append(
+                    "Hosted OCR did not finish within the server limit, so FileMint returned a valid visual DOCX fallback. Use a stronger backend instance for fully editable OCR on this scan."
+                )
+            elif rebuilt_table_pages:
                 report["notes"].append(
                     "Premium table scan mode rebuilt detected transcript/table regions as editable Word table cells."
                 )
@@ -2810,9 +2839,14 @@ def ocr_to_docx_exact_visual(
                 "Some low-confidence OCR regions were kept as image content to preserve seals, signatures or unclear text."
             )
         if exact_visual_fallback_pages:
-            report["warnings"].append(
-                f"{exact_visual_fallback_pages} dense non-template scanned page(s) were preserved as exact page images with OCR text hidden behind them to avoid visual corruption."
-            )
+            if report.get("hostedOcrTimedOut") and pages_with_text == 0:
+                report["warnings"].append(
+                    f"{exact_visual_fallback_pages} scanned page(s) were preserved as exact page images because hosted OCR timed out."
+                )
+            else:
+                report["warnings"].append(
+                    f"{exact_visual_fallback_pages} dense non-template scanned page(s) were preserved as exact page images with OCR text hidden behind them to avoid visual corruption."
+                )
         if total_skipped_low_conf:
             report["warnings"].append(
                 f"{total_skipped_low_conf} OCR text candidates were too uncertain to rebuild as editable text."
@@ -3194,7 +3228,13 @@ def main() -> None:
 
         ensure_output(a.output)
         stats = merge_output_stats(report, a.output)
-        if requested_mode != "image" and int(stats.get("outputEditableCharacters", 0) or 0) == 0 and int(stats.get("outputTables", 0) or 0) == 0:
+        hosted_timeout_fallback = bool(report.get("hostedOcrTimedOut"))
+        if (
+            requested_mode != "image"
+            and not hosted_timeout_fallback
+            and int(stats.get("outputEditableCharacters", 0) or 0) == 0
+            and int(stats.get("outputTables", 0) or 0) == 0
+        ):
             repair_empty_editable_output(
                 a.input,
                 a.output,
@@ -3206,7 +3246,13 @@ def main() -> None:
             )
             ensure_output(a.output)
             stats = merge_output_stats(report, a.output)
-        if requested_mode != "image" and int(stats.get("outputEditableCharacters", 0) or 0) == 0 and int(stats.get("outputTables", 0) or 0) == 0:
+        hosted_timeout_fallback = bool(report.get("hostedOcrTimedOut"))
+        if (
+            requested_mode != "image"
+            and not hosted_timeout_fallback
+            and int(stats.get("outputEditableCharacters", 0) or 0) == 0
+            and int(stats.get("outputTables", 0) or 0) == 0
+        ):
             raise RuntimeError("DOCX output contains no editable text or tables. OCR may need to be installed or a clearer source PDF is required.")
     except Exception as e:
         report["warnings"].append(str(e))
