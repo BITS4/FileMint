@@ -70,6 +70,26 @@ async function loadDiscovery(collaboraUrl: string) {
   return discoveryCache;
 }
 
+function isPrivateLanHost(hostname: string): boolean {
+  return /^(10|127)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(hostname) || hostname.endsWith('.local');
+}
+
+function hostedWopiHostForSession(origin: string, fallback: string): string {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== 'https:') return fallback;
+    if (!url.hostname || url.hostname === 'localhost' || url.hostname === '127.0.0.1' || isPrivateLanHost(url.hostname)) {
+      return fallback;
+    }
+    url.pathname = '';
+    url.search = '';
+    url.hash = '';
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    return fallback;
+  }
+}
+
 export async function detectCollabora(collaboraUrl: string): Promise<boolean> {
   const started = Date.now();
   const url = discoveryUrl(collaboraUrl);
@@ -133,10 +153,11 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
       const disc = await loadDiscovery(opts.collaboraUrl);
       const urlsrc = disc.byExt.get(s.ext) ?? disc.fallback;
       if (!urlsrc) throw new Error('No editor available for this file type.');
-      const wopiSrc = `${opts.wopiHost}/wopi/files/${s.id}`;
+      const wopiHost = hostedWopiHostForSession(s.origin, opts.wopiHost);
+      const wopiSrc = `${wopiHost}/wopi/files/${s.id}`;
       const sep = urlsrc.endsWith('?') ? '' : urlsrc.includes('?') ? '&' : '?';
       const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${s.token}&lang=en-US`;
-      return c.json({ url });
+      return c.json({ url, wopiHost });
     } catch (e) {
       const raw = e instanceof Error ? e.message : '';
       const unreachable = /failed|fetch|ECONNREFUSED|discovery|timed out/i.test(raw);
