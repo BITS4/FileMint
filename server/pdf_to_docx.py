@@ -38,6 +38,7 @@ OCR_AUTO_DOWNLOAD_LANGS = ["chi_sim", "kor"]
 LOCAL_TESSDATA_DIR = os.path.join(os.path.dirname(__file__), "tessdata")
 TESSDATA_FAST_BASE = "https://github.com/tesseract-ocr/tessdata_fast/raw/main"
 DOWNLOADABLE_TESSDATA = {"fas", "ara", "chi_sim", "chi_tra", "kor"}
+FAST_HOSTED_OCR = os.environ.get("FILEMINT_FAST_HOSTED_OCR", "").strip().lower() in {"1", "true", "yes", "on"} or os.environ.get("RENDER", "").strip().lower() == "true"
 LANG_ALIASES = {
     "": "auto",
     "auto": "auto",
@@ -104,12 +105,15 @@ def clean_choice(value: str | None, allowed: set[str], default: str) -> str:
 
 
 def quality_dpi(quality: str, default: int = 300) -> int:
-    return {
+    dpi = {
         "low": 160,
         "medium": 220,
         "high": default,
         "original": 360,
     }.get(quality, default)
+    if FAST_HOSTED_OCR:
+        return min(dpi, 180)
+    return dpi
 
 
 def effective_ocr_request(lang: str, auto_detect: bool, report: dict[str, Any]) -> str:
@@ -213,9 +217,13 @@ def resolve_ocr_language(requested: str, report: dict[str, Any]) -> str:
 
     raw = LANG_ALIASES.get((requested or "auto").strip().lower(), requested.strip().lower())
     if raw == "auto":
-        ensure_project_tessdata_many(OCR_AUTO_DOWNLOAD_LANGS, report)
+        if not FAST_HOSTED_OCR:
+            ensure_project_tessdata_many(OCR_AUTO_DOWNLOAD_LANGS, report)
+        else:
+            report["notes"].append("Hosted OCR fast mode used installed language packs only.")
     else:
-        ensure_project_tessdata_many([p for p in re.split(r"[,+\s]+", raw) if p], report)
+        if not FAST_HOSTED_OCR:
+            ensure_project_tessdata_many([p for p in re.split(r"[,+\s]+", raw) if p], report)
     installed = installed_tesseract_languages(tess)
     if raw == "auto":
         if installed:
@@ -747,14 +755,19 @@ def run_tesseract_tsv(image: str, lang: str, psm: str = "11") -> str:
     tessdata_dir = tessdata_dir_for_lang(lang)
     if tessdata_dir:
         cmd[3:3] = ["--tessdata-dir", tessdata_dir]
-    r = subprocess.run(
-        cmd,
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="ignore",
-    )
+    timeout = int(os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC", "90" if FAST_HOSTED_OCR else "180"))
+    try:
+        r = subprocess.run(
+            cmd,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="ignore",
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"Tesseract OCR timed out after {timeout}s.")
     if r.returncode != 0:
         raise RuntimeError((r.stderr or r.stdout or "Tesseract OCR failed.").strip())
     return r.stdout
@@ -770,6 +783,8 @@ def unique_lang(parts: list[str]) -> str:
 
 def ocr_language_candidates(lang: str) -> list[str]:
     parts = [p for p in re.split(r"[,+\s]+", lang) if p]
+    if FAST_HOSTED_OCR:
+        return [unique_lang(parts)] if parts else ["eng"]
     part_set = set(parts)
     candidates = [unique_lang(parts)]
     if "eng" in part_set and ("chi_sim" in part_set or "chi_tra" in part_set):
@@ -1962,7 +1977,7 @@ def to_docx_scan_text_layer(
                     pix.height,
                     page.rect.width,
                     page.rect.height,
-                    ["11"],
+                    ["6"] if FAST_HOSTED_OCR else ["11"],
                     report,
                 )
                 if table_detection and premium and dense_table_scan_likely(primary_ocr_lines) and transcript_scan_likely(primary_ocr_lines):
@@ -1972,7 +1987,7 @@ def to_docx_scan_text_layer(
                 if native_chars < 200 and primary_ocr_lines:
                     lines = primary_ocr_lines
                     source = "ocr-fallback"
-                    if premium:
+                    if premium and not FAST_HOSTED_OCR:
                         extra_lines = collect_ocr_lines(
                             scan_png,
                             lang,
@@ -2655,7 +2670,7 @@ def ocr_to_docx_exact_visual(
                 pix.height,
                 page.rect.width,
                 page.rect.height,
-                ["11"],
+                ["6"] if FAST_HOSTED_OCR else ["11"],
                 report,
             )
             dense_scan = premium and table_detection and dense_table_scan_likely(primary_lines)
@@ -2665,7 +2680,7 @@ def ocr_to_docx_exact_visual(
                 scanned_tables = max(scanned_tables, 1)
                 rebuilt_table_pages += 1
                 lines = primary_lines
-            if premium and not dense_table:
+            if premium and not dense_table and not FAST_HOSTED_OCR:
                 extra_lines = collect_ocr_lines(
                     scan_png,
                     lang,

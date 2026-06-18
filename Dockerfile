@@ -3,6 +3,7 @@ FROM node:24-bookworm-slim
 ENV NODE_ENV=production \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
     PYTHONUNBUFFERED=1 \
+    FILEMINT_FAST_HOSTED_OCR=1 \
     DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
