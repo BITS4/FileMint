@@ -190,6 +190,15 @@ DONT_GEN_SSL_CERT=1
 extra_params=--o:ssl.enable=false --o:ssl.termination=true
 ```
 
+On container hosts that do not allow Linux capabilities/chroot jails (Render free
+image services can behave this way), add the compatibility flags below. Without
+them Collabora may fail with `Capabilities are not set for the coolforkit program`
+and Render will show `502` because no HTTP port becomes healthy:
+
+```bash
+extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:security.capabilities=false --o:mount_jail_tree=false
+```
+
 If discovery is healthy but the iframe is blocked by the browser, add a frame
 policy after that. FileMint will still offer an **Open Office editor** fallback
 in a new tab whenever embedded editing is blocked.
