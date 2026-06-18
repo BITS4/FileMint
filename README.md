@@ -211,7 +211,7 @@ If discovery is healthy but the iframe is blocked by the browser, add a frame
 policy after that:
 
 ```bash
-extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:security.capabilities=false --o:mount_jail_tree=false --o:net.frame_ancestors=filemint-office.onrender.com:* file-mint.vercel.app:* filemint-docker.onrender.com:*
+extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:security.capabilities=false --o:mount_jail_tree=false --o:net.frame_ancestors=https://file-mint.vercel.app
 ```
 
 FileMint will still offer an **Open Office editor** fallback in a new tab
