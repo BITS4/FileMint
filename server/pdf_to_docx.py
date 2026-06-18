@@ -112,7 +112,7 @@ def quality_dpi(quality: str, default: int = 300) -> int:
         "original": 360,
     }.get(quality, default)
     if FAST_HOSTED_OCR:
-        return min(dpi, 72)
+        return min(dpi, 96)
     return dpi
 
 
@@ -673,6 +673,7 @@ def parse_tsv(tsv: str, page_width_px: float, page_height_px: float, page_width_
     tsv = tsv.replace("\f", "\n")
     rows = list(csv.DictReader(tsv.splitlines(), delimiter="\t"))
     grouped: dict[tuple[int, int, int], list[WordBox]] = {}
+    all_words: list[WordBox] = []
     for row in rows:
         try:
             if int(row.get("level", "0")) != 5:
@@ -696,6 +697,7 @@ def parse_tsv(tsv: str, page_width_px: float, page_height_px: float, page_width_
                 par=int(row.get("par_num") or 0),
                 line=int(row.get("line_num") or 0),
             )
+            all_words.append(word)
             grouped.setdefault((word.block, word.par, word.line), []).append(word)
         except Exception:
             continue
@@ -725,7 +727,66 @@ def parse_tsv(tsv: str, page_width_px: float, page_height_px: float, page_width_
                 segments=segment_line(words),
             )
         )
+    if all_words and (len(lines) < 8 or max((len(line.words) for line in lines), default=0) > 45):
+        rebuilt = rebuild_rows_from_word_geometry(all_words, page_width_px, page_height_px, page_width_pt, page_height_pt)
+        if len(rebuilt) > len(lines) * 2:
+            return rebuilt
     return sorted(lines, key=lambda l: (l.top, l.left))
+
+
+def rebuild_rows_from_word_geometry(
+    words: list[WordBox],
+    page_width_px: float,
+    page_height_px: float,
+    page_width_pt: float,
+    page_height_pt: float,
+) -> list[LineBox]:
+    rows: list[list[WordBox]] = []
+    for word in sorted(words, key=lambda w: (w.top + w.height / 2, w.left)):
+        if word.width <= 0 or word.height <= 0:
+            continue
+        center = word.top + word.height / 2
+        placed = False
+        for row in rows:
+            row_center = sum(w.top + w.height / 2 for w in row) / max(1, len(row))
+            row_height = median([w.height for w in row if w.height > 0]) or word.height
+            if abs(center - row_center) <= max(5.0, min(18.0, row_height * 0.62)):
+                row.append(word)
+                placed = True
+                break
+        if not placed:
+            rows.append([word])
+
+    line_boxes: list[LineBox] = []
+    for row in rows:
+        row = sorted(row, key=lambda w: w.left)
+        if not row:
+            continue
+        left = min(w.left for w in row)
+        top = min(w.top for w in row)
+        right = max(w.left + w.width for w in row)
+        bottom = max(w.top + w.height for w in row)
+        confs = [w.conf for w in row if w.conf >= 0]
+        text = normalize_ocr_text(" ".join(w.text for w in row))
+        if not text:
+            continue
+        line_boxes.append(
+            LineBox(
+                text=text,
+                words=row,
+                left=left,
+                top=top,
+                width=right - left,
+                height=bottom - top,
+                conf=sum(confs) / len(confs) if confs else -1,
+                page_width_px=page_width_px,
+                page_height_px=page_height_px,
+                page_width_pt=page_width_pt,
+                page_height_pt=page_height_pt,
+                segments=segment_line(row),
+            )
+        )
+    return sorted(line_boxes, key=lambda l: (l.top, l.left))
 
 
 def segment_line(words: list[WordBox]) -> list[tuple[float, float, str]]:
@@ -1152,6 +1213,11 @@ def is_duplicate_word_line(candidate: LineBox, existing: list[LineBox]) -> bool:
 
 
 def dense_table_scan_likely(lines: list[LineBox]) -> bool:
+    total_words = sum(len(line.words) for line in lines)
+    segmented_rows = sum(1 for line in lines if len(line.segments) >= 3)
+    numeric_grade_lines = sum(1 for line in lines if re.search(r"\d+/\d+", line.text))
+    if len(lines) >= 24 and total_words >= 80 and (segmented_rows >= 10 or numeric_grade_lines >= 6):
+        return True
     if len(lines) < 80:
         return False
     y_positions = sorted(line.top for line in lines if line.height > 0)
@@ -1163,7 +1229,6 @@ def dense_table_scan_likely(lines: list[LineBox]) -> bool:
         if last_y is not None and y - last_y < 42:
             close_rows += 1
         last_y = y
-    numeric_grade_lines = sum(1 for line in lines if re.search(r"\d+/\d+", line.text))
     return close_rows >= 35 or numeric_grade_lines >= 8
 
 

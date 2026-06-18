@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/wopi/:path*",
+      "destination": "https://filemint-docker.onrender.com/wopi/:path*"
+    }
+  ]
+}
