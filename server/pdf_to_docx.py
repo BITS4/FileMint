@@ -820,7 +820,7 @@ def run_tesseract_tsv(image: str, lang: str, psm: str = "11") -> str:
     tessdata_dir = tessdata_dir_for_lang(lang)
     if tessdata_dir:
         cmd[3:3] = ["--tessdata-dir", tessdata_dir]
-    timeout = int(os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC", "60" if FAST_HOSTED_OCR else "180"))
+    timeout = int(os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC", "30" if FAST_HOSTED_OCR else "180"))
     try:
         r = subprocess.run(
             cmd,
@@ -1273,6 +1273,22 @@ def transcript_scan_likely(lines: list[LineBox]) -> bool:
     return title_score >= 2 and header_score >= 2 and school_score >= 4 and grade_mark_count >= 4
 
 
+def transcript_rebuild_likely(lines: list[LineBox], grid_geometry: dict[str, Any] | None = None) -> bool:
+    if transcript_scan_likely(lines):
+        return True
+    if not grid_geometry:
+        return False
+    if len(grid_geometry.get("xPositionsPx") or []) < 6 or len(grid_geometry.get("yPositionsPx") or []) < 8:
+        return False
+    text = normalize_ocr_text(" ".join(line.text for line in lines)).lower()
+    if not text:
+        return False
+    layout_terms = ["student", "personal", "academic", "course", "grade", "average"]
+    grade_marks = len(re.findall(r"\b(?:5/5|4/5|8/10|9/10|10/10)\b", text))
+    term_score = sum(1 for term in layout_terms if term in text)
+    return term_score >= 3 and (grade_marks >= 2 or ("course" in text and "grade" in text))
+
+
 def exact_editable_word_lines(
     src_png: str,
     lines: list[LineBox],
@@ -1691,6 +1707,166 @@ def collect_ocr_lines(
     return sorted(collected, key=lambda l: (l.top, l.left))
 
 
+def offset_ocr_lines(
+    lines: list[LineBox],
+    dx: float,
+    dy: float,
+    page_width_px: float,
+    page_height_px: float,
+    page_width_pt: float,
+    page_height_pt: float,
+) -> list[LineBox]:
+    shifted: list[LineBox] = []
+    for line in lines:
+        words = [
+            WordBox(
+                text=word.text,
+                left=word.left + dx,
+                top=word.top + dy,
+                width=word.width,
+                height=word.height,
+                conf=word.conf,
+            )
+            for word in line.words
+        ]
+        shifted.append(
+            LineBox(
+                text=line.text,
+                words=words,
+                left=line.left + dx,
+                top=line.top + dy,
+                width=line.width,
+                height=line.height,
+                conf=line.conf,
+                page_width_px=page_width_px,
+                page_height_px=page_height_px,
+                page_width_pt=page_width_pt,
+                page_height_pt=page_height_pt,
+                segments=[(left + dx, right + dx, text) for left, right, text in line.segments],
+            )
+        )
+    return shifted
+
+
+def collect_ocr_lines_region(
+    image: str,
+    lang: str,
+    bbox: tuple[int, int, int, int],
+    page_width_px: float,
+    page_height_px: float,
+    page_width_pt: float,
+    page_height_pt: float,
+    psm_modes: list[str],
+    report: dict[str, Any],
+    label: str,
+) -> list[LineBox]:
+    from PIL import Image, ImageFilter, ImageOps
+
+    left, top, right, bottom = bbox
+    left = max(0, min(int(page_width_px) - 1, left))
+    top = max(0, min(int(page_height_px) - 1, top))
+    right = max(left + 1, min(int(page_width_px), right))
+    bottom = max(top + 1, min(int(page_height_px), bottom))
+
+    with Image.open(image).convert("RGB") as img:
+        crop = img.crop((left, top, right, bottom))
+        if FAST_HOSTED_OCR:
+            crop = ImageOps.autocontrast(crop.convert("L")).filter(ImageFilter.SHARPEN)
+        tmp = tempfile.NamedTemporaryFile(prefix=f"filemint-ocr-{label}-", suffix=".png", delete=False)
+        tmp.close()
+        crop.save(tmp.name)
+
+    try:
+        previous_timeout = os.environ.get("FILEMINT_TESSERACT_TIMEOUT_SEC")
+        if FAST_HOSTED_OCR:
+            os.environ["FILEMINT_TESSERACT_TIMEOUT_SEC"] = previous_timeout or "15"
+        lines = collect_ocr_lines(
+            tmp.name,
+            lang,
+            right - left,
+            bottom - top,
+            page_width_pt * ((right - left) / max(1.0, page_width_px)),
+            page_height_pt * ((bottom - top) / max(1.0, page_height_px)),
+            psm_modes,
+            report,
+        )
+        return offset_ocr_lines(lines, left, top, page_width_px, page_height_px, page_width_pt, page_height_pt)
+    finally:
+        if FAST_HOSTED_OCR:
+            if previous_timeout is None:
+                os.environ.pop("FILEMINT_TESSERACT_TIMEOUT_SEC", None)
+            else:
+                os.environ["FILEMINT_TESSERACT_TIMEOUT_SEC"] = previous_timeout
+        try:
+            os.remove(tmp.name)
+        except Exception:
+            pass
+
+
+def collect_hosted_transcript_ocr_lines(
+    image: str,
+    lang: str,
+    page_width_px: float,
+    page_height_px: float,
+    page_width_pt: float,
+    page_height_pt: float,
+    grid_geometry: dict[str, Any] | None,
+    report: dict[str, Any],
+) -> list[LineBox]:
+    if not FAST_HOSTED_OCR:
+        return []
+    if not grid_geometry:
+        return []
+
+    x_positions = grid_geometry.get("xPositionsPx") or []
+    y_positions = grid_geometry.get("yPositionsPx") or []
+    if len(x_positions) < 6 or len(y_positions) < 8:
+        return []
+
+    margin_x = max(6, int(page_width_px * 0.012))
+    margin_y = max(6, int(page_height_px * 0.010))
+    regions: list[tuple[str, tuple[int, int, int, int], list[str]]] = [
+        (
+            "header",
+            (
+                int(page_width_px * 0.04),
+                int(page_height_px * 0.03),
+                int(page_width_px * 0.96),
+                int(max(page_height_px * 0.30, y_positions[0] - margin_y)),
+            ),
+            ["6"],
+        )
+    ]
+    top = int(max(0, y_positions[0] - margin_y))
+    bottom = int(min(page_height_px, max(y_positions[-1] + margin_y, page_height_px * 0.89)))
+    for idx in range(min(5, len(x_positions) - 1)):
+        left = int(x_positions[idx] - margin_x)
+        right = int(x_positions[idx + 1] + margin_x)
+        regions.append((f"table-col-{idx + 1}", (left, top, right, bottom), ["6"]))
+
+    collected: list[LineBox] = []
+    for label, bbox, modes in regions:
+        lines = collect_ocr_lines_region(
+            image,
+            lang,
+            bbox,
+            page_width_px,
+            page_height_px,
+            page_width_pt,
+            page_height_pt,
+            modes,
+            report,
+            label,
+        )
+        collected = merge_line_candidates(collected, lines, lang)
+
+    if collected:
+        report["notes"].append(
+            "Hosted OCR used a fast region-based table pass instead of slow full-page OCR."
+        )
+    return sorted(collected, key=lambda line: (line.top, line.left))
+
+
 def append_exact_visual_page(
     doc: Any,
     page_index: int,
@@ -2043,6 +2219,15 @@ def to_docx_scan_text_layer(
             pix = page.get_pixmap(dpi=dpi, alpha=False)
             scan_png = os.path.join(tmpdir, f"page-{page_index + 1}.png")
             pix.save(scan_png)
+            grid_geometry: dict[str, Any] | None = None
+            if premium and table_detection and FAST_HOSTED_OCR:
+                try:
+                    from PIL import Image
+
+                    with Image.open(scan_png).convert("RGB") as scan_img:
+                        grid_geometry = detect_transcript_grid_geometry(scan_img, page.rect.width, page.rect.height)
+                except Exception:
+                    grid_geometry = None
 
             native_lines = native_pdf_line_boxes(page, pix.width, pix.height)
             native_chars = sum(len(line.text) for line in native_lines)
@@ -2051,17 +2236,30 @@ def to_docx_scan_text_layer(
             primary_ocr_lines: list[LineBox] = []
 
             if lang and (native_chars < 200 or (premium and table_detection)):
-                primary_ocr_lines = collect_ocr_lines(
-                    scan_png,
-                    lang,
-                    pix.width,
-                    pix.height,
-                    page.rect.width,
-                    page.rect.height,
-                    ["11"],
-                    report,
-                )
-                if table_detection and premium and dense_table_scan_likely(primary_ocr_lines) and transcript_scan_likely(primary_ocr_lines):
+                if grid_geometry and FAST_HOSTED_OCR:
+                    primary_ocr_lines = collect_hosted_transcript_ocr_lines(
+                        scan_png,
+                        lang,
+                        pix.width,
+                        pix.height,
+                        page.rect.width,
+                        page.rect.height,
+                        grid_geometry,
+                        report,
+                    )
+                else:
+                    primary_ocr_lines = collect_ocr_lines(
+                        scan_png,
+                        lang,
+                        pix.width,
+                        pix.height,
+                        page.rect.width,
+                        page.rect.height,
+                        ["11"],
+                        report,
+                    )
+                transcript_table = table_detection and premium and transcript_rebuild_likely(primary_ocr_lines, grid_geometry)
+                if transcript_table and (dense_table_scan_likely(primary_ocr_lines) or grid_geometry):
                     scanned_tables += 1
                     build_scanned_table_page(out, scan_png, primary_ocr_lines, page.rect.width, page.rect.height, report)
                     continue
@@ -2744,16 +2942,37 @@ def ocr_to_docx_exact_visual(
             scan_png = os.path.join(tmpdir, f"page-{page_index + 1}.png")
             residual_png = os.path.join(tmpdir, f"page-{page_index + 1}-visual.png")
             pix.save(scan_png)
-            primary_lines = collect_ocr_lines(
-                scan_png,
-                lang,
-                pix.width,
-                pix.height,
-                page.rect.width,
-                page.rect.height,
-                ["11"],
-                report,
-            )
+            grid_geometry: dict[str, Any] | None = None
+            if premium and table_detection and FAST_HOSTED_OCR:
+                try:
+                    from PIL import Image
+
+                    with Image.open(scan_png).convert("RGB") as scan_img:
+                        grid_geometry = detect_transcript_grid_geometry(scan_img, page.rect.width, page.rect.height)
+                except Exception:
+                    grid_geometry = None
+            if grid_geometry and FAST_HOSTED_OCR:
+                primary_lines = collect_hosted_transcript_ocr_lines(
+                    scan_png,
+                    lang,
+                    pix.width,
+                    pix.height,
+                    page.rect.width,
+                    page.rect.height,
+                    grid_geometry,
+                    report,
+                )
+            else:
+                primary_lines = collect_ocr_lines(
+                    scan_png,
+                    lang,
+                    pix.width,
+                    pix.height,
+                    page.rect.width,
+                    page.rect.height,
+                    ["11"],
+                    report,
+                )
             if FAST_HOSTED_OCR and not primary_lines:
                 append_exact_visual_page(
                     out,
@@ -2767,8 +2986,8 @@ def ocr_to_docx_exact_visual(
                 exact_visual_fallback_pages += 1
                 previous_page_reserved = True
                 continue
-            dense_scan = premium and table_detection and dense_table_scan_likely(primary_lines)
-            dense_table = dense_scan and transcript_scan_likely(primary_lines)
+            dense_scan = premium and table_detection and (dense_table_scan_likely(primary_lines) or bool(grid_geometry))
+            dense_table = dense_scan and transcript_rebuild_likely(primary_lines, grid_geometry)
             generic_dense_scan = dense_scan and not dense_table
             if dense_table:
                 scanned_tables = max(scanned_tables, 1)
