@@ -219,6 +219,18 @@ If the editor loads but shows `Failed to establish socket connection`, confirm
 the hosted office service is using the 26.x image above. That error means the
 browser reached Collabora, but the reverse proxy rejected the editor WebSocket.
 
+Render free services only provide 512 MB of RAM. Collabora can exceed that when
+it starts or when multiple documents are opened, so use a low-memory profile if
+you are testing on the free instance:
+
+```bash
+extra_params=--o:ssl.enable=false --o:ssl.termination=true --o:security.capabilities=false --o:mount_jail_tree=false --o:net.frame_ancestors=https://file-mint.vercel.app --o:num_prespawn_children=1 --o:per_document.max_concurrency=1 --o:serverside_config.max_idle_subforkits=1 --o:serverside_config.idle_timeout_secs=60 --o:per_document.idle_timeout_secs=300 --o:memproportion=65 --o:logging.level=warning --o:logging.level_startup=warning
+```
+
+This is still a test profile: for reliable public editing, run `filemint-office`
+on an instance with at least 2 GB RAM. Otherwise Render may still restart it when
+large DOCX/PPTX/XLSX files are opened.
+
 FileMint will still offer an **Open Office editor** fallback in a new tab
 whenever embedded editing is blocked.
 
