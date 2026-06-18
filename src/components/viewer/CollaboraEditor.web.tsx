@@ -48,14 +48,28 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
   const readyRef = useRef(false);
   const hadEditsRef = useRef(false);
   const pendingSaveRef = useRef<PendingSave | null>(null);
+  const iframeName = useMemo(() => `filemint-collabora-${Math.random().toString(36).slice(2)}`, [url]);
+
+  const launch = useMemo(() => {
+    try {
+      const parsed = new URL(url);
+      const accessToken = parsed.searchParams.get('access_token') ?? '';
+      const accessTokenTtl = parsed.searchParams.get('access_token_ttl') ?? '0';
+      parsed.searchParams.delete('access_token');
+      parsed.searchParams.delete('access_token_ttl');
+      return { action: parsed.toString(), accessToken, accessTokenTtl };
+    } catch {
+      return { action: url, accessToken: '', accessTokenTtl: '0' };
+    }
+  }, [url]);
 
   const targetOrigin = useMemo(() => {
     try {
-      return new URL(url).origin;
+      return new URL(launch.action).origin;
     } catch {
       return '*';
     }
-  }, [url]);
+  }, [launch.action]);
 
   const post = useCallback(
     (message: CollaboraMessage) => {
@@ -96,6 +110,32 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
     hadEditsRef.current = false;
     pendingSaveRef.current = null;
   }, [url]);
+
+  useEffect(() => {
+    const frame = iframeRef.current;
+    if (!frame) return;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = launch.action;
+    form.target = iframeName;
+    form.style.display = 'none';
+
+    const token = document.createElement('input');
+    token.type = 'hidden';
+    token.name = 'access_token';
+    token.value = launch.accessToken;
+    form.appendChild(token);
+
+    const ttl = document.createElement('input');
+    ttl.type = 'hidden';
+    ttl.name = 'access_token_ttl';
+    ttl.value = launch.accessTokenTtl;
+    form.appendChild(ttl);
+
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+  }, [iframeName, launch]);
 
   useEffect(() => {
     return () => {
@@ -184,7 +224,8 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
   return (
     <iframe
       ref={iframeRef}
-      src={url}
+      name={iframeName}
+      src="about:blank"
       title="Document editor"
       style={{ border: 'none', width: '100%', height: '100%', background: '#fff' }}
       allow="clipboard-read; clipboard-write"

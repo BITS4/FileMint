@@ -28,7 +28,13 @@ interface EditSession {
 
 const sessions = new Map<string, EditSession>();
 
-let discoveryCache: { url: string; byExt: Map<string, string>; fallback: string } | null = null;
+interface DiscoveryAction {
+  urlsrc: string;
+  name: string;
+  isDefault: boolean;
+}
+
+let discoveryCache: { url: string; byExt: Map<string, DiscoveryAction>; fallback: string } | null = null;
 
 export interface CollaboraProbe {
   online: boolean;
@@ -54,7 +60,7 @@ async function loadDiscovery(collaboraUrl: string) {
   const res = await fetch(discoveryUrl(collaboraUrl));
   if (!res.ok) throw new Error(`Collabora discovery failed (${res.status})`);
   const xml = await res.text();
-  const byExt = new Map<string, string>();
+  const byExt = new Map<string, DiscoveryAction>();
   let fallback = '';
   const actionRe = /<action\b[^>]*>/g;
   let m: RegExpExecArray | null;
@@ -62,9 +68,17 @@ async function loadDiscovery(collaboraUrl: string) {
     const tag = m[0];
     const urlsrc = /\burlsrc="([^"]*)"/.exec(tag)?.[1];
     const ext = /\bext="([^"]*)"/.exec(tag)?.[1];
+    const name = /\bname="([^"]*)"/.exec(tag)?.[1]?.toLowerCase() ?? '';
+    const isDefault = /\bdefault="true"/i.test(tag);
     if (!urlsrc) continue;
     if (!fallback) fallback = urlsrc;
-    if (ext) byExt.set(ext.toLowerCase(), urlsrc);
+    if (ext) {
+      const key = ext.toLowerCase();
+      const current = byExt.get(key);
+      if (!current || name === 'edit' || (isDefault && current.name !== 'edit')) {
+        byExt.set(key, { urlsrc, name, isDefault });
+      }
+    }
   }
   discoveryCache = { url: collaboraUrl, byExt, fallback };
   return discoveryCache;
@@ -151,12 +165,12 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
     if (!authed(c.req.query('access_token'), s)) return c.json({ error: 'Unauthorized.' }, 401);
     try {
       const disc = await loadDiscovery(opts.collaboraUrl);
-      const urlsrc = disc.byExt.get(s.ext) ?? disc.fallback;
+      const urlsrc = disc.byExt.get(s.ext)?.urlsrc ?? disc.fallback;
       if (!urlsrc) throw new Error('No editor available for this file type.');
       const wopiHost = hostedWopiHostForSession(s.origin, opts.wopiHost);
       const wopiSrc = `${wopiHost}/wopi/files/${s.id}`;
       const sep = urlsrc.endsWith('?') ? '' : urlsrc.includes('?') ? '&' : '?';
-      const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${s.token}&lang=en-US`;
+      const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${s.token}&access_token_ttl=0&lang=en-US`;
       return c.json({ url, wopiHost });
     } catch (e) {
       const raw = e instanceof Error ? e.message : '';
@@ -211,6 +225,11 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
       ReadOnly: false,
       SupportsUpdate: true,
       SupportsLocks: false,
+      SupportsGetLock: false,
+      SupportsExtendedLockLength: false,
+      SupportsUserInfo: false,
+      SupportsRename: false,
+      SupportsDeleteFile: false,
       UserCanNotWriteRelative: true,
       Version: `v${s.version}`,
       LastModifiedTime: new Date().toISOString(),
