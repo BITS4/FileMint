@@ -24,7 +24,8 @@ export function SectionHeader({ title, actionLabel, onAction }: SectionHeaderPro
           onPress={() => {
             haptics.tap();
             onAction();
-          }}>
+          }}
+        >
           <Txt variant="label" style={{ color: theme.primary }}>
             {actionLabel}
           </Txt>

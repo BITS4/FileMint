@@ -40,7 +40,12 @@ interface FramePolicyProbe {
   error?: string;
 }
 
-let discoveryCache: { url: string; byExt: Map<string, DiscoveryAction>; fallback: string; fetchedAt: string } | null = null;
+let discoveryCache: {
+  url: string;
+  byExt: Map<string, DiscoveryAction>;
+  fallback: string;
+  fetchedAt: string;
+} | null = null;
 
 export interface CollaboraProbe {
   online: boolean;
@@ -192,8 +197,9 @@ function framePolicyAllowsOrigin(policy: string | null, origin: string): boolean
     const url = new URL(origin);
     const host = url.hostname.toLowerCase();
     const originText = `${url.protocol}//${host}`.toLowerCase();
-    return sources
-      .some((source) => source.includes(originText) || source.includes(`${host}:`) || source === host);
+    return sources.some(
+      (source) => source.includes(originText) || source.includes(`${host}:`) || source === host,
+    );
   } catch {
     return false;
   }
@@ -240,7 +246,16 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
     const fileName = (basename(file.name || 'document') || 'document').replace(/[^\w.\- ]+/g, '_');
     const filePath = join(dir, fileName);
     await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
-    sessions.set(id, { id, token, dir, filePath, fileName, ext: extname(fileName).slice(1).toLowerCase(), version: 1, origin });
+    sessions.set(id, {
+      id,
+      token,
+      dir,
+      filePath,
+      fileName,
+      ext: extname(fileName).slice(1).toLowerCase(),
+      version: 1,
+      origin,
+    });
     return c.json({ id, token, fileName });
   });
 

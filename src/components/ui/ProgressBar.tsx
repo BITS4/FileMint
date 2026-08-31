@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 
-import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export interface ProgressBarProps {
@@ -43,7 +42,8 @@ export function ProgressBar({ progress = 0, indeterminate, height = 8, color }: 
   return (
     <View
       style={[styles.track, { height, borderRadius: height, backgroundColor: theme.backgroundSelected }]}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
       {indeterminate ? (
         <Animated.View
           style={[

@@ -54,7 +54,10 @@ export function TextDocumentView({ file, night }: TextDocumentViewProps) {
 
   if (file.kind === 'csv') {
     return (
-      <ScrollView style={[styles.root, { backgroundColor: night ? '#0B1117' : '#525659' }]} contentContainerStyle={styles.wrap}>
+      <ScrollView
+        style={[styles.root, { backgroundColor: night ? '#0B1117' : '#525659' }]}
+        contentContainerStyle={styles.wrap}
+      >
         <View style={[styles.page, { backgroundColor: pageColor }]}>
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
             <Txt variant="label" weight="800" style={{ color: ink }} numberOfLines={1}>
@@ -69,7 +72,10 @@ export function TextDocumentView({ file, night }: TextDocumentViewProps) {
               {rows.map((row, r) => (
                 <View key={r} style={styles.tableRow}>
                   {row.map((cell, c) => (
-                    <View key={`${r}-${c}`} style={[styles.cell, r === 0 && styles.headCell, { borderColor: theme.border }]}>
+                    <View
+                      key={`${r}-${c}`}
+                      style={[styles.cell, r === 0 && styles.headCell, { borderColor: theme.border }]}
+                    >
                       <Txt variant="tiny" weight={r === 0 ? '800' : '500'} style={{ color: '#111827' }}>
                         {cell}
                       </Txt>
@@ -101,7 +107,10 @@ export function TextDocumentView({ file, night }: TextDocumentViewProps) {
   }
 
   return (
-    <ScrollView style={[styles.root, { backgroundColor: night ? '#0B1117' : '#525659' }]} contentContainerStyle={styles.wrap}>
+    <ScrollView
+      style={[styles.root, { backgroundColor: night ? '#0B1117' : '#525659' }]}
+      contentContainerStyle={styles.wrap}
+    >
       <View style={[styles.page, { backgroundColor: pageColor }]}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Txt variant="label" weight="800" style={{ color: ink }} numberOfLines={1}>

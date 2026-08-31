@@ -91,8 +91,6 @@ export function formatCsvAsText(csv: string): string {
     Math.min(40, Math.max(1, ...rows.map((r) => (r[c] ?? '').trim().length))),
   );
   return rows
-    .map((r) =>
-      Array.from({ length: cols }, (_, c) => (r[c] ?? '').trim().padEnd(widths[c] + 2)).join(''),
-    )
+    .map((r) => Array.from({ length: cols }, (_, c) => (r[c] ?? '').trim().padEnd(widths[c] + 2)).join(''))
     .join('\n');
 }

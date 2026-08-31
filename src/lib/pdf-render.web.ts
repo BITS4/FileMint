@@ -45,9 +45,14 @@ export async function extractPdfText(bytes: Uint8Array, onProgress?: (p: number)
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    text += content.items
-      .map((it: unknown) => (typeof it === 'object' && it !== null && 'str' in it ? String((it as { str?: string }).str ?? '') : ''))
-      .join(' ') + '\n\n';
+    text +=
+      content.items
+        .map((it: unknown) =>
+          typeof it === 'object' && it !== null && 'str' in it
+            ? String((it as { str?: string }).str ?? '')
+            : '',
+        )
+        .join(' ') + '\n\n';
     onProgress?.(i / doc.numPages);
   }
   return text.trim();

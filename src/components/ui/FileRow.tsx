@@ -42,7 +42,8 @@ export function FileRow({ file, onPress, onMore, onShare }: FileRowProps) {
           backgroundColor: pressed ? theme.backgroundElement : desktop ? theme.card : 'transparent',
           borderColor: desktop ? theme.border : 'transparent',
         },
-      ]}>
+      ]}
+    >
       <Thumbnail file={file} size={desktop ? 54 : 50} />
       <View style={styles.body}>
         <Txt variant="body" weight="600" numberOfLines={1}>
@@ -56,8 +57,12 @@ export function FileRow({ file, onPress, onMore, onShare }: FileRowProps) {
         </View>
       </View>
       {file.favorite ? <Icon name="star" size={16} color={theme.warning} /> : null}
-      {onShare ? <IconButton name="share-variant" size={18} color={theme.textSecondary} onPress={onShare} /> : null}
-      {onMore ? <IconButton name="dots-vertical" size={20} color={theme.textSecondary} onPress={onMore} /> : null}
+      {onShare ? (
+        <IconButton name="share-variant" size={18} color={theme.textSecondary} onPress={onShare} />
+      ) : null}
+      {onMore ? (
+        <IconButton name="dots-vertical" size={20} color={theme.textSecondary} onPress={onMore} />
+      ) : null}
     </Pressable>
   );
 }

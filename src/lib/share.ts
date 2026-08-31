@@ -41,7 +41,9 @@ export async function shareFile(file: FileItem): Promise<void> {
         await nav.share({ title: file.name, text: file.name, files: [webFile] });
         return;
       }
-      unavailable('This browser cannot share files directly. Use Download to save the file, then share it from your device.');
+      unavailable(
+        'This browser cannot share files directly. Use Download to save the file, then share it from your device.',
+      );
       return;
     }
 

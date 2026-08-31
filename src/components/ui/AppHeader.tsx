@@ -22,7 +22,13 @@ export function AppHeader({ title, subtitle, showBack, onBack, right, large }: A
     <View style={[styles.row, large && styles.large]}>
       <View style={styles.left}>
         {showBack ? (
-          <IconButton name="chevron-left" size={28} onPress={handleBack} accessibilityLabel="Back" style={styles.back} />
+          <IconButton
+            name="chevron-left"
+            size={28}
+            onPress={handleBack}
+            accessibilityLabel="Back"
+            style={styles.back}
+          />
         ) : null}
         <View style={styles.titles}>
           {title ? (

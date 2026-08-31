@@ -19,7 +19,10 @@ export default function FeedbackScreen() {
     // No backend inbox in this build — acknowledge locally so the flow is real.
     await new Promise((r) => setTimeout(r, 500));
     setSending(false);
-    await confirm(isFeature ? 'Feature requested' : 'Feedback sent', 'Thanks! Your message has been recorded on this device.');
+    await confirm(
+      isFeature ? 'Feature requested' : 'Feedback sent',
+      'Thanks! Your message has been recorded on this device.',
+    );
     goBack();
   };
 
@@ -39,7 +42,14 @@ export default function FeedbackScreen() {
         multiline
       />
       <View style={{ marginTop: Spacing.xl }}>
-        <Button title={isFeature ? 'Submit request' : 'Send feedback'} icon="send-outline" onPress={submit} loading={sending} disabled={!text.trim()} full />
+        <Button
+          title={isFeature ? 'Submit request' : 'Send feedback'}
+          icon="send-outline"
+          onPress={submit}
+          loading={sending}
+          disabled={!text.trim()}
+          full
+        />
       </View>
     </Screen>
   );

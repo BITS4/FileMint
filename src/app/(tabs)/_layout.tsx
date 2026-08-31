@@ -37,7 +37,10 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...(props as unknown as TabBarProps)} />}>
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        tabBar={(props) => <TabBar {...(props as unknown as TabBarProps)} />}
+      >
         <Tabs.Screen name="index" options={{ title: 'Home' }} />
         <Tabs.Screen name="files" options={{ title: 'Files' }} />
         <Tabs.Screen name="convert" options={{ title: 'Convert' }} />

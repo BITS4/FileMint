@@ -41,7 +41,8 @@ export function FeatureTile({ title, subtitle, icon, accent, onPress, badge, loc
           transform: [{ scale: pressed ? 0.985 : 1 }],
         },
         !desktop && elevation(1),
-      ]}>
+      ]}
+    >
       <View style={[styles.accentLine, { backgroundColor: color }]} />
       {badge ? (
         <View style={styles.badge}>

@@ -44,12 +44,18 @@ export interface InputImage {
   ext: string;
 }
 
-export function pageSizeDimensions(size: Exclude<PageSizeKey, 'fit'>, orientation: Orientation): [number, number] {
+export function pageSizeDimensions(
+  size: Exclude<PageSizeKey, 'fit'>,
+  orientation: Orientation,
+): [number, number] {
   const [a, b] = PAGE_SIZES[size];
   return orientation === 'landscape' ? [b, a] : [a, b];
 }
 
-export async function getPdfPageSize(bytes: Uint8Array, pageIndex = 0): Promise<{ width: number; height: number }> {
+export async function getPdfPageSize(
+  bytes: Uint8Array,
+  pageIndex = 0,
+): Promise<{ width: number; height: number }> {
   const doc = await load(bytes);
   if (doc.getPageCount() === 0) return { width: PAGE_SIZES.a4[0], height: PAGE_SIZES.a4[1] };
   const page = doc.getPage(Math.max(0, Math.min(pageIndex, doc.getPageCount() - 1)));
@@ -277,13 +283,7 @@ export async function addPageNumbers(bytes: Uint8Array, opts: PageNumberOptions)
 }
 
 export type StampPosition =
-  | 'top-left'
-  | 'top-center'
-  | 'top-right'
-  | 'center'
-  | 'bottom-left'
-  | 'bottom-center'
-  | 'bottom-right';
+  'top-left' | 'top-center' | 'top-right' | 'center' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 
 export interface AddTextOptions {
   pageIndex: number;
@@ -316,7 +316,13 @@ export async function addTextToPage(bytes: Uint8Array, opts: AddTextOptions): Pr
   else if (opts.position.startsWith('bottom')) y = m;
   else y = (height - opts.fontSize) / 2;
 
-  page.drawText(opts.text, { x, y, size: opts.fontSize, font, color: rgb(opts.color.r, opts.color.g, opts.color.b) });
+  page.drawText(opts.text, {
+    x,
+    y,
+    size: opts.fontSize,
+    font,
+    color: rgb(opts.color.r, opts.color.g, opts.color.b),
+  });
   return doc.save();
 }
 
@@ -418,8 +424,8 @@ export async function cropPdfEdges(
     if (targets && !targets.has(index)) return;
     const { width, height } = page.getSize();
     const toPoints = (value: number | undefined, axis: number) => {
-      const clean = Math.max(0, Number.isFinite(value ?? 0) ? value ?? 0 : 0);
-      return unit === 'percent' ? axis * Math.min(clean, 95) / 100 : clean;
+      const clean = Math.max(0, Number.isFinite(value ?? 0) ? (value ?? 0) : 0);
+      return unit === 'percent' ? (axis * Math.min(clean, 95)) / 100 : clean;
     };
     const left = toPoints(edges.left, width);
     const right = toPoints(edges.right, width);
@@ -477,7 +483,16 @@ export interface PdfEditorExportOptions {
   rotation?: number;
 }
 
-export type PdfEditorObjectType = 'text' | 'watermark' | 'stamp' | 'signature' | 'doodle' | 'highlight' | 'annotate' | 'redact' | 'form-field';
+export type PdfEditorObjectType =
+  | 'text'
+  | 'watermark'
+  | 'stamp'
+  | 'signature'
+  | 'doodle'
+  | 'highlight'
+  | 'annotate'
+  | 'redact'
+  | 'form-field';
 
 export interface PdfEditorObjectExport {
   type: PdfEditorObjectType;
@@ -552,7 +567,14 @@ function pagePoint(page: PDFPage, point: { x: number; y: number }) {
   };
 }
 
-function drawPdfLine(page: PDFPage, start: { x: number; y: number }, end: { x: number; y: number }, color: ReturnType<typeof rgb>, opacity: number, thickness: number) {
+function drawPdfLine(
+  page: PDFPage,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  color: ReturnType<typeof rgb>,
+  opacity: number,
+  thickness: number,
+) {
   page.drawLine({ start, end, color, opacity, thickness, lineCap: LineCapStyle.Round });
 }
 
@@ -568,7 +590,13 @@ function pdfSvgPathFromPoints(page: PDFPage, points: { x: number; y: number }[])
     .join(' ');
 }
 
-function drawPdfDoodlePath(page: PDFPage, points: { x: number; y: number }[], color: ReturnType<typeof rgb>, opacity: number, thickness: number) {
+function drawPdfDoodlePath(
+  page: PDFPage,
+  points: { x: number; y: number }[],
+  color: ReturnType<typeof rgb>,
+  opacity: number,
+  thickness: number,
+) {
   const path = pdfSvgPathFromPoints(page, points);
   if (!path) return;
   page.drawSvgPath(path, {
@@ -627,7 +655,14 @@ function parseImageDataUrl(value: string | undefined) {
   };
 }
 
-function drawPdfArrowHead(page: PDFPage, start: { x: number; y: number }, end: { x: number; y: number }, color: ReturnType<typeof rgb>, opacity: number, thickness: number) {
+function drawPdfArrowHead(
+  page: PDFPage,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  color: ReturnType<typeof rgb>,
+  opacity: number,
+  thickness: number,
+) {
   const angle = Math.atan2(end.y - start.y, end.x - start.x);
   const size = Math.max(10, Math.min(28, Math.hypot(end.x - start.x, end.y - start.y) * 0.16));
   const spread = Math.PI / 7;
@@ -711,7 +746,13 @@ function drawDoodle(page: PDFPage, color: ReturnType<typeof rgb>, opacity: numbe
   }
 }
 
-function drawStamp(page: PDFPage, text: string, color: ReturnType<typeof rgb>, opacity: number, rotation: number) {
+function drawStamp(
+  page: PDFPage,
+  text: string,
+  color: ReturnType<typeof rgb>,
+  opacity: number,
+  rotation: number,
+) {
   const rect = pageRect(page, 0.24, 0.55, 0.48, 0.11);
   page.drawRectangle({
     ...rect,
@@ -803,8 +844,18 @@ function drawPremiumStamp(
   const small = safePdfText((detail || 'VERIFIED').toUpperCase()).slice(0, 36);
   const labelFont = boldFont;
   const detailFont = regularFont ?? boldFont;
-  const labelSize = Math.max(10, Math.min(34, rect.height * (shape === 'seal' ? 0.24 : 0.32), (rect.width / Math.max(4, label.length)) * 1.65));
-  const detailSize = Math.max(6, Math.min(12, rect.height * 0.14, (rect.width / Math.max(6, small.length)) * 1.45));
+  const labelSize = Math.max(
+    10,
+    Math.min(
+      34,
+      rect.height * (shape === 'seal' ? 0.24 : 0.32),
+      (rect.width / Math.max(4, label.length)) * 1.65,
+    ),
+  );
+  const detailSize = Math.max(
+    6,
+    Math.min(12, rect.height * 0.14, (rect.width / Math.max(6, small.length)) * 1.45),
+  );
   const labelWidth = labelFont?.widthOfTextAtSize(label, labelSize) ?? label.length * labelSize * 0.55;
   const detailWidth = detailFont?.widthOfTextAtSize(small, detailSize) ?? small.length * detailSize * 0.5;
   const centerX = rect.x + rect.width / 2;
@@ -833,7 +884,13 @@ function drawPremiumStamp(
   }
 }
 
-function drawSignature(page: PDFPage, text: string, color: ReturnType<typeof rgb>, opacity: number, rotation: number) {
+function drawSignature(
+  page: PDFPage,
+  text: string,
+  color: ReturnType<typeof rgb>,
+  opacity: number,
+  rotation: number,
+) {
   const rect = pageRect(page, 0.42, 0.7, 0.34, 0.1);
   page.drawText(safePdfText(text || 'Signature'), {
     x: rect.x,
@@ -852,10 +909,16 @@ function drawSignature(page: PDFPage, text: string, color: ReturnType<typeof rgb
   });
 }
 
-function drawWatermark(page: PDFPage, text: string, color: ReturnType<typeof rgb>, opacity: number, rotation: number) {
+function drawWatermark(
+  page: PDFPage,
+  text: string,
+  color: ReturnType<typeof rgb>,
+  opacity: number,
+  rotation: number,
+) {
   const size = page.getSize();
   const clean = safePdfText(text || 'CONFIDENTIAL');
-  const fontSize = Math.min(64, Math.max(30, size.width / Math.max(5, clean.length) * 1.6));
+  const fontSize = Math.min(64, Math.max(30, (size.width / Math.max(5, clean.length)) * 1.6));
   page.drawText(clean, {
     x: size.width * 0.18,
     y: size.height * 0.46,
@@ -1019,14 +1082,18 @@ function drawRedactionPreview(page: PDFPage, label: string, color: ReturnType<ty
  * Redaction here is a visual fallback only. Production redaction uses the
  * server-side PyMuPDF route so hidden text is removed.
  */
-export async function applyPdfEditorTool(bytes: Uint8Array, opts: PdfEditorExportOptions): Promise<Uint8Array> {
+export async function applyPdfEditorTool(
+  bytes: Uint8Array,
+  opts: PdfEditorExportOptions,
+): Promise<Uint8Array> {
   const doc = await load(bytes);
   const targets = validTargets(doc, opts.targetPages);
   const color = colorFromHex(opts.color, opts.tool === 'redact' ? '#000000' : '#2BD9A8');
   const opacity = Math.max(0.05, Math.min(1, opts.opacity ?? 0.86));
   const thickness = Math.max(1, Math.min(18, opts.thickness ?? 4));
-  const rotation = Number.isFinite(opts.rotation ?? 0) ? opts.rotation ?? 0 : 0;
-  const pageNumberFont = opts.tool === 'add-page-numbers' ? await doc.embedFont(StandardFonts.Helvetica) : null;
+  const rotation = Number.isFinite(opts.rotation ?? 0) ? (opts.rotation ?? 0) : 0;
+  const pageNumberFont =
+    opts.tool === 'add-page-numbers' ? await doc.embedFont(StandardFonts.Helvetica) : null;
 
   if (opts.tool === 'flatten') {
     try {
@@ -1044,17 +1111,38 @@ export async function applyPdfEditorTool(bytes: Uint8Array, opts: PdfEditorExpor
     if (opts.tool === 'doodle') drawDoodle(page, color, opacity, thickness);
     if (opts.tool === 'highlight') {
       const rect = pageRect(page, 0.18, 0.36, 0.56, 0.052);
-      page.drawRectangle({ ...rect, color: colorFromHex(opts.color, '#F7C948'), opacity: Math.min(0.55, opacity) });
-      page.drawLine({ start: { x: rect.x, y: rect.y - 3 }, end: { x: rect.x + rect.width, y: rect.y - 3 }, color: colorFromHex(opts.color, '#F7C948'), opacity, thickness: 1.6 });
+      page.drawRectangle({
+        ...rect,
+        color: colorFromHex(opts.color, '#F7C948'),
+        opacity: Math.min(0.55, opacity),
+      });
+      page.drawLine({
+        start: { x: rect.x, y: rect.y - 3 },
+        end: { x: rect.x + rect.width, y: rect.y - 3 },
+        color: colorFromHex(opts.color, '#F7C948'),
+        opacity,
+        thickness: 1.6,
+      });
     }
-    if (opts.tool === 'add-stamp') drawStamp(page, opts.stampText ?? opts.text ?? 'APPROVED', color, opacity, rotation || -12);
-    if (opts.tool === 'add-signature') drawSignature(page, opts.signatureText ?? opts.text ?? 'Signature', color, opacity, rotation || -8);
-    if (opts.tool === 'add-watermark') drawWatermark(page, opts.text ?? 'CONFIDENTIAL', color, Math.min(0.55, opacity), rotation || -34);
-    if (opts.tool === 'annotate') drawAnnotation(page, opts.annotationText ?? opts.text ?? 'Review note', color, opacity);
-    if (opts.tool === 'redact') drawRedactionPreview(page, opts.redactLabel ?? 'Redacted', colorFromHex(opts.color, '#000000'));
+    if (opts.tool === 'add-stamp')
+      drawStamp(page, opts.stampText ?? opts.text ?? 'APPROVED', color, opacity, rotation || -12);
+    if (opts.tool === 'add-signature')
+      drawSignature(page, opts.signatureText ?? opts.text ?? 'Signature', color, opacity, rotation || -8);
+    if (opts.tool === 'add-watermark')
+      drawWatermark(page, opts.text ?? 'CONFIDENTIAL', color, Math.min(0.55, opacity), rotation || -34);
+    if (opts.tool === 'annotate')
+      drawAnnotation(page, opts.annotationText ?? opts.text ?? 'Review note', color, opacity);
+    if (opts.tool === 'redact')
+      drawRedactionPreview(page, opts.redactLabel ?? 'Redacted', colorFromHex(opts.color, '#000000'));
     if (opts.tool === 'add-text') {
       const rect = pageRect(page, 0.19, 0.3, 0.44, 0.08);
-      page.drawText(safePdfText(opts.text ?? 'Editable text'), { x: rect.x, y: rect.y + rect.height / 2, size: 14, color, opacity });
+      page.drawText(safePdfText(opts.text ?? 'Editable text'), {
+        x: rect.x,
+        y: rect.y + rect.height / 2,
+        size: 14,
+        color,
+        opacity,
+      });
     }
     if (opts.tool === 'add-page-numbers' && pageNumberFont) {
       const size = page.getSize();
@@ -1076,7 +1164,10 @@ export async function applyPdfEditorTool(bytes: Uint8Array, opts: PdfEditorExpor
   return doc.save({ useObjectStreams: true });
 }
 
-export async function applyPdfEditorObjects(bytes: Uint8Array, objects: PdfEditorObjectExport[]): Promise<Uint8Array> {
+export async function applyPdfEditorObjects(
+  bytes: Uint8Array,
+  objects: PdfEditorObjectExport[],
+): Promise<Uint8Array> {
   if (!objects.length) return bytes;
   const doc = await load(bytes);
   const regularFont = await doc.embedFont(StandardFonts.Helvetica);
@@ -1089,10 +1180,13 @@ export async function applyPdfEditorObjects(bytes: Uint8Array, objects: PdfEdito
   for (const object of objects) {
     if (!Number.isInteger(object.pageIndex) || object.pageIndex < 0 || object.pageIndex > maxPage) continue;
     const page = doc.getPage(object.pageIndex);
-    const color = colorFromHex(object.color, object.type === 'redact' ? '#000000' : object.type === 'highlight' ? '#F7C948' : '#2BD9A8');
+    const color = colorFromHex(
+      object.color,
+      object.type === 'redact' ? '#000000' : object.type === 'highlight' ? '#F7C948' : '#2BD9A8',
+    );
     const opacity = Math.max(0.05, Math.min(1, object.opacity ?? 0.86));
     const thickness = Math.max(1, Math.min(24, object.thickness ?? 4));
-    const rotation = Number.isFinite(object.rotation ?? 0) ? object.rotation ?? 0 : 0;
+    const rotation = Number.isFinite(object.rotation ?? 0) ? (object.rotation ?? 0) : 0;
 
     if (object.type === 'doodle') {
       const points = object.points ?? [];
@@ -1161,7 +1255,15 @@ export async function applyPdfEditorObjects(bytes: Uint8Array, objects: PdfEdito
         borderOpacity: opacity,
         borderWidth: 1.2,
       });
-      drawTextLines(page, object.text ?? 'Review note', rect, regularFont, Math.max(8, Math.min(13, rect.height * 0.16)), rgb(0.08, 0.08, 0.06), 1);
+      drawTextLines(
+        page,
+        object.text ?? 'Review note',
+        rect,
+        regularFont,
+        Math.max(8, Math.min(13, rect.height * 0.16)),
+        rgb(0.08, 0.08, 0.06),
+        1,
+      );
       if (object.annotationMode === 'callout') {
         page.drawLine({
           start: { x: rect.x + rect.width * 0.16, y: rect.y },
@@ -1210,7 +1312,11 @@ export async function applyPdfEditorObjects(bytes: Uint8Array, objects: PdfEdito
 
     if (object.type === 'signature') {
       if (object.signatureMode === 'draw') {
-        const paths = object.signaturePaths?.length ? object.signaturePaths : object.signaturePoints?.length ? [object.signaturePoints] : [];
+        const paths = object.signaturePaths?.length
+          ? object.signaturePaths
+          : object.signaturePoints?.length
+            ? [object.signaturePoints]
+            : [];
         drawPdfSignaturePaths(page, rect, paths, color, opacity, thickness, rotation);
         continue;
       }
@@ -1265,7 +1371,14 @@ export async function applyPdfEditorObjects(bytes: Uint8Array, objects: PdfEdito
     }
 
     if (object.type === 'text') {
-      const textFont = object.bold && object.italic ? boldItalicFont : object.bold ? boldFont : object.italic ? italicFont : regularFont;
+      const textFont =
+        object.bold && object.italic
+          ? boldItalicFont
+          : object.bold
+            ? boldFont
+            : object.italic
+              ? italicFont
+              : regularFont;
       drawTextLines(
         page,
         object.text ?? 'Editable text',
@@ -1416,7 +1529,10 @@ export async function csvRowsToPdf(rows: string[][], title = 'Table'): Promise<U
 
   const drawRow = (row: string[], index: number) => {
     const wrapped = Array.from({ length: cols }, (_, c) => wrapCell(row[c] ?? '', widths[c]));
-    const height = Math.max(rowMinHeight, Math.max(...wrapped.map((lines) => lines.length)) * lineHeight + 10);
+    const height = Math.max(
+      rowMinHeight,
+      Math.max(...wrapped.map((lines) => lines.length)) * lineHeight + 10,
+    );
     if (y - height < margin) addPage();
     const header = index === 0;
     const fill = header ? rgb(0.88, 0.94, 1) : index % 2 === 0 ? rgb(0.98, 0.99, 1) : rgb(1, 1, 1);
@@ -1433,7 +1549,13 @@ export async function csvRowsToPdf(rows: string[][], title = 'Table'): Promise<U
       });
       const f = header ? bold : font;
       wrapped[c].forEach((line, i) => {
-        page.drawText(line, { x: x + 4, y: y - 14 - i * lineHeight, size: fontSize, font: f, color: rgb(0.08, 0.09, 0.12) });
+        page.drawText(line, {
+          x: x + 4,
+          y: y - 14 - i * lineHeight,
+          size: fontSize,
+          font: f,
+          color: rgb(0.08, 0.09, 0.12),
+        });
       });
       x += widths[c];
     }

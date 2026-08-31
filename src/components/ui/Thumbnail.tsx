@@ -37,11 +37,17 @@ export function Thumbnail({ file, size = 50, radius = Radius.sm, fill }: Thumbna
   }, [file.storageKey, file.kind]);
 
   const box = fill
-    ? ({ width: '100%' as const, aspectRatio: 1, borderRadius: radius })
-    : ({ width: size, height: size, borderRadius: radius });
+    ? { width: '100%' as const, aspectRatio: 1, borderRadius: radius }
+    : { width: size, height: size, borderRadius: radius };
 
   if (file.kind === 'image' && uri) {
-    return <Image source={{ uri }} style={[box, { backgroundColor: theme.backgroundElement }]} resizeMode="cover" />;
+    return (
+      <Image
+        source={{ uri }}
+        style={[box, { backgroundColor: theme.backgroundElement }]}
+        resizeMode="cover"
+      />
+    );
   }
 
   const iconSize = fill ? 40 : size * 0.5;

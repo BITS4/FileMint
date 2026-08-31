@@ -21,7 +21,8 @@ export function Badge({ label, color, variant = 'soft', small }: BadgeProps) {
         styles.badge,
         small && styles.small,
         { backgroundColor: bg, borderColor: color, borderWidth: variant === 'outline' ? 1 : 0 },
-      ]}>
+      ]}
+    >
       <Txt variant="tiny" style={{ color: fg, letterSpacing: 0.4 }}>
         {label}
       </Txt>

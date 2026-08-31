@@ -57,8 +57,6 @@ export interface ToolOperation {
   run?: (ctx: OperationContext) => Promise<RunResult>;
 }
 
-const OFFICE_KINDS: FileKind[] = ['word', 'excel', 'ppt'];
-
 const num = (v: FieldValues, k: string, d: number) => {
   const x = v[k];
   const n = typeof x === 'string' ? parseFloat(x) : NaN;
@@ -80,7 +78,9 @@ const WM_COLORS: Record<string, { r: number; g: number; b: number }> = {
 async function ensureServerCapability(capability: keyof ServerCapabilities, label: string) {
   const status = await checkServer();
   if (!status.online) {
-    throw new Error(`Can't reach the conversion server at ${getServerBaseUrl()}. Start it with "npm run server", then set the same address in Settings.`);
+    throw new Error(
+      `Can't reach the conversion server at ${getServerBaseUrl()}. Start it with "npm run server", then set the same address in Settings.`,
+    );
   }
   if (!status.capabilities[capability]) {
     throw new Error(
@@ -121,16 +121,6 @@ function officeToPdf(libraryKinds: FileKind[], deviceTypes: string[]): ToolOpera
     pickTitle: 'Select a document',
     serverCapability: 'libreoffice',
     run: ({ file, onProgress }) => backendConvert(file!, 'convert', { target: 'pdf' }, 'pdf', onProgress),
-  };
-}
-
-function pdfToFormat(targetExt: string, capability: keyof ServerCapabilities = 'libreoffice'): ToolOperation {
-  return {
-    mode: 'process',
-    libraryKinds: ['pdf'],
-    deviceTypes: 'application/pdf',
-    serverCapability: capability,
-    run: ({ file, onProgress }) => backendConvert(file!, 'convert', { target: targetExt }, targetExt, onProgress),
   };
 }
 
@@ -177,7 +167,11 @@ interface RenderedServerImage {
   ext: 'png' | 'jpg';
 }
 
-async function backendRenderPdfImages(file: FileItem, format: 'png' | 'jpg', onProgress: (p: number) => void) {
+async function backendRenderPdfImages(
+  file: FileItem,
+  format: 'png' | 'jpg',
+  onProgress: (p: number) => void,
+) {
   await ensureServerCapability('pdfUtility', 'PDF page rendering');
   onProgress(0.12);
   const uri = await storage.getUri(file.storageKey);
@@ -254,7 +248,12 @@ function pdfExportTo(targetExt: 'xlsx' | 'pptx' | 'html'): ToolOperation {
       OCR_LANGUAGE_FIELD,
       isXlsx
         ? { key: 'tableDetection', label: 'Detect editable tables', type: 'switch', default: true }
-        : { key: 'textLayer', label: targetExt === 'pptx' ? 'Add editable text layer' : 'Add selectable text layer', type: 'switch', default: true },
+        : {
+            key: 'textLayer',
+            label: targetExt === 'pptx' ? 'Add editable text layer' : 'Add selectable text layer',
+            type: 'switch',
+            default: true,
+          },
     ],
     run: ({ file, values, onProgress }) =>
       backendConvert(
@@ -274,8 +273,18 @@ function pdfExportTo(targetExt: 'xlsx' | 'pptx' | 'html'): ToolOperation {
 
 const OPERATIONS: Record<string, ToolOperation> = {
   // --- view / open
-  'import-pdf': { mode: 'open', libraryKinds: ['pdf'], deviceTypes: 'application/pdf', pickTitle: 'Import a PDF' },
-  'open-pdf': { mode: 'open', libraryKinds: ['pdf'], deviceTypes: 'application/pdf', pickTitle: 'Open a PDF' },
+  'import-pdf': {
+    mode: 'open',
+    libraryKinds: ['pdf'],
+    deviceTypes: 'application/pdf',
+    pickTitle: 'Import a PDF',
+  },
+  'open-pdf': {
+    mode: 'open',
+    libraryKinds: ['pdf'],
+    deviceTypes: 'application/pdf',
+    pickTitle: 'Open a PDF',
+  },
   'open-document': {
     mode: 'open',
     libraryKinds: ['pdf', 'image', 'word', 'excel', 'ppt', 'text', 'csv', 'other'],
@@ -298,7 +307,14 @@ const OPERATIONS: Record<string, ToolOperation> = {
       if (!content.trim()) throw new Error('Enter some text first.');
       onProgress(0.4);
       const pdf = await textToPdf(content, { title: str(values, 'name', 'Note') });
-      return save({ bytes: pdf, name: withExt(str(values, 'name', 'Note'), 'pdf'), ext: 'pdf', kind: 'pdf', mime: 'application/pdf', source: 'created' });
+      return save({
+        bytes: pdf,
+        name: withExt(str(values, 'name', 'Note'), 'pdf'),
+        ext: 'pdf',
+        kind: 'pdf',
+        mime: 'application/pdf',
+        source: 'created',
+      });
     },
   },
 
@@ -314,7 +330,14 @@ const OPERATIONS: Record<string, ToolOperation> = {
       const rows = parseCsvRows(decodeUtf8(bytes));
       if (!rows.length) throw new Error('No CSV rows were found.');
       const pdf = await csvRowsToPdf(rows, baseName(file!.name));
-      return save({ bytes: pdf, name: `${baseName(file!.name)}.pdf`, ext: 'pdf', kind: 'pdf', mime: 'application/pdf', source: 'convert' });
+      return save({
+        bytes: pdf,
+        name: `${baseName(file!.name)}.pdf`,
+        ext: 'pdf',
+        kind: 'pdf',
+        mime: 'application/pdf',
+        source: 'convert',
+      });
     },
   },
 
@@ -325,21 +348,39 @@ const OPERATIONS: Record<string, ToolOperation> = {
     deviceTypes: 'application/pdf',
     fields: [
       { key: 'text', label: 'Watermark text', type: 'text', default: 'CONFIDENTIAL' },
-      { key: 'color', label: 'Color', type: 'select', default: 'gray', options: [
-        { label: 'Gray', value: 'gray' },
-        { label: 'Red', value: 'red' },
-        { label: 'Blue', value: 'blue' },
-        { label: 'Green', value: 'green' },
-      ] },
-      { key: 'opacity', label: 'Opacity', type: 'select', default: '0.2', options: [
-        { label: 'Light', value: '0.12' },
-        { label: 'Medium', value: '0.2' },
-        { label: 'Strong', value: '0.38' },
-      ] },
-      { key: 'rotation', label: 'Angle', type: 'select', default: '45', options: [
-        { label: 'Diagonal', value: '45' },
-        { label: 'Horizontal', value: '0' },
-      ] },
+      {
+        key: 'color',
+        label: 'Color',
+        type: 'select',
+        default: 'gray',
+        options: [
+          { label: 'Gray', value: 'gray' },
+          { label: 'Red', value: 'red' },
+          { label: 'Blue', value: 'blue' },
+          { label: 'Green', value: 'green' },
+        ],
+      },
+      {
+        key: 'opacity',
+        label: 'Opacity',
+        type: 'select',
+        default: '0.2',
+        options: [
+          { label: 'Light', value: '0.12' },
+          { label: 'Medium', value: '0.2' },
+          { label: 'Strong', value: '0.38' },
+        ],
+      },
+      {
+        key: 'rotation',
+        label: 'Angle',
+        type: 'select',
+        default: '45',
+        options: [
+          { label: 'Diagonal', value: '45' },
+          { label: 'Horizontal', value: '0' },
+        ],
+      },
       { key: 'fontSize', label: 'Size', type: 'number', default: '54' },
     ],
     run: async ({ file, values, onProgress }) => {
@@ -352,7 +393,14 @@ const OPERATIONS: Record<string, ToolOperation> = {
         rotation: num(values, 'rotation', 45),
         fontSize: num(values, 'fontSize', 54),
       });
-      return save({ bytes: out, name: `${baseName(file!.name)} watermarked.pdf`, ext: 'pdf', kind: 'pdf', mime: 'application/pdf', source: 'created' });
+      return save({
+        bytes: out,
+        name: `${baseName(file!.name)} watermarked.pdf`,
+        ext: 'pdf',
+        kind: 'pdf',
+        mime: 'application/pdf',
+        source: 'created',
+      });
     },
   },
 
@@ -361,16 +409,28 @@ const OPERATIONS: Record<string, ToolOperation> = {
     libraryKinds: ['pdf'],
     deviceTypes: 'application/pdf',
     fields: [
-      { key: 'position', label: 'Position', type: 'select', default: 'bottom-center', options: [
-        { label: 'Bottom center', value: 'bottom-center' },
-        { label: 'Bottom right', value: 'bottom-right' },
-        { label: 'Top right', value: 'top-right' },
-      ] },
-      { key: 'format', label: 'Style', type: 'select', default: '{n}', options: [
-        { label: '1', value: '{n}' },
-        { label: '1 / N', value: '{n} / {total}' },
-        { label: 'Page 1', value: 'Page {n}' },
-      ] },
+      {
+        key: 'position',
+        label: 'Position',
+        type: 'select',
+        default: 'bottom-center',
+        options: [
+          { label: 'Bottom center', value: 'bottom-center' },
+          { label: 'Bottom right', value: 'bottom-right' },
+          { label: 'Top right', value: 'top-right' },
+        ],
+      },
+      {
+        key: 'format',
+        label: 'Style',
+        type: 'select',
+        default: '{n}',
+        options: [
+          { label: '1', value: '{n}' },
+          { label: '1 / N', value: '{n} / {total}' },
+          { label: 'Page 1', value: 'Page {n}' },
+        ],
+      },
       { key: 'startAt', label: 'Start at', type: 'number', default: '1' },
       { key: 'fontSize', label: 'Size', type: 'number', default: '12' },
     ],
@@ -384,7 +444,14 @@ const OPERATIONS: Record<string, ToolOperation> = {
         fontSize: num(values, 'fontSize', 12),
         margin: 28,
       });
-      return save({ bytes: out, name: `${baseName(file!.name)} numbered.pdf`, ext: 'pdf', kind: 'pdf', mime: 'application/pdf', source: 'created' });
+      return save({
+        bytes: out,
+        name: `${baseName(file!.name)} numbered.pdf`,
+        ext: 'pdf',
+        kind: 'pdf',
+        mime: 'application/pdf',
+        source: 'created',
+      });
     },
   },
 
@@ -397,7 +464,14 @@ const OPERATIONS: Record<string, ToolOperation> = {
       const bytes = await storage.readBytes(file!.storageKey);
       onProgress(0.4);
       const out = await flattenForms(bytes);
-      return save({ bytes: out, name: `${baseName(file!.name)} flattened.pdf`, ext: 'pdf', kind: 'pdf', mime: 'application/pdf', source: 'created' });
+      return save({
+        bytes: out,
+        name: `${baseName(file!.name)} flattened.pdf`,
+        ext: 'pdf',
+        kind: 'pdf',
+        mime: 'application/pdf',
+        source: 'created',
+      });
     },
   },
 
@@ -405,12 +479,27 @@ const OPERATIONS: Record<string, ToolOperation> = {
     mode: 'process',
     libraryKinds: ['pdf'],
     deviceTypes: 'application/pdf',
-    fields: [{ key: 'margin', label: 'Trim from each edge (pt)', type: 'number', default: '24', hint: '72 points = 1 inch' }],
+    fields: [
+      {
+        key: 'margin',
+        label: 'Trim from each edge (pt)',
+        type: 'number',
+        default: '24',
+        hint: '72 points = 1 inch',
+      },
+    ],
     run: async ({ file, values, onProgress }) => {
       const bytes = await storage.readBytes(file!.storageKey);
       onProgress(0.4);
       const out = await cropPdf(bytes, num(values, 'margin', 24));
-      return save({ bytes: out, name: `${baseName(file!.name)} cropped.pdf`, ext: 'pdf', kind: 'pdf', mime: 'application/pdf', source: 'created' });
+      return save({
+        bytes: out,
+        name: `${baseName(file!.name)} cropped.pdf`,
+        ext: 'pdf',
+        kind: 'pdf',
+        mime: 'application/pdf',
+        source: 'created',
+      });
     },
   },
 
@@ -423,7 +512,14 @@ const OPERATIONS: Record<string, ToolOperation> = {
         const bytes = await storage.readBytes(file!.storageKey);
         const text = await extractPdfText(bytes, (p) => onProgress(p * 0.8));
         if (text.trim()) {
-          return save({ bytes: encodeUtf8(text), name: `${baseName(file!.name)}.txt`, ext: 'txt', kind: 'text', mime: 'text/plain', source: 'convert' });
+          return save({
+            bytes: encodeUtf8(text),
+            name: `${baseName(file!.name)}.txt`,
+            ext: 'txt',
+            kind: 'text',
+            mime: 'text/plain',
+            source: 'convert',
+          });
         }
       } catch {
         // Fall through to the server fallback below.
@@ -436,9 +532,21 @@ const OPERATIONS: Record<string, ToolOperation> = {
   'pdf-to-png': pdfToImages('png'),
 
   // --- backend conversions
-  'docx-to-pdf': officeToPdf(['word'], ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']),
-  'pptx-to-pdf': officeToPdf(['ppt'], ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.ms-powerpoint']),
-  'xlsx-to-pdf': officeToPdf(['excel'], ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel']),
+  'docx-to-pdf': officeToPdf(
+    ['word'],
+    ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'],
+  ),
+  'pptx-to-pdf': officeToPdf(
+    ['ppt'],
+    [
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/vnd.ms-powerpoint',
+    ],
+  ),
+  'xlsx-to-pdf': officeToPdf(
+    ['excel'],
+    ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'],
+  ),
   'pdf-to-pptx': pdfExportTo('pptx'),
   'pdf-to-xlsx': pdfExportTo('xlsx'),
   'pdf-to-html': pdfExportTo('html'),
@@ -483,7 +591,12 @@ const OPERATIONS: Record<string, ToolOperation> = {
       { key: 'autoDetectLanguage', label: 'Auto-detect OCR language', type: 'switch', default: true },
       { key: 'preserveLayout', label: 'Preserve exact layout', type: 'switch', default: true },
       { key: 'tableDetection', label: 'Detect editable tables', type: 'switch', default: true },
-      { key: 'keepVisualObjects', label: 'Keep images, stamps and signatures', type: 'switch', default: true },
+      {
+        key: 'keepVisualObjects',
+        label: 'Keep images, stamps and signatures',
+        type: 'switch',
+        default: true,
+      },
       {
         key: 'visualObjectFormat',
         label: 'Non-editable object format',
@@ -595,7 +708,12 @@ const OPERATIONS: Record<string, ToolOperation> = {
     deviceTypes: 'application/pdf',
     serverCapability: 'qpdf',
     fields: [
-      { key: 'ownerPassword', label: 'Owner password', type: 'password', placeholder: 'Protects the restrictions' },
+      {
+        key: 'ownerPassword',
+        label: 'Owner password',
+        type: 'password',
+        placeholder: 'Protects the restrictions',
+      },
       { key: 'allowPrint', label: 'Allow printing', type: 'switch', default: true },
       { key: 'allowCopy', label: 'Allow copying text', type: 'switch', default: false },
     ],

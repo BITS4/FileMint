@@ -51,7 +51,13 @@ export function PickFile({
       </Txt>
       <View style={styles.actions}>
         <Button title="Import from device" icon="upload" onPress={importDevice} full />
-        <Button title="Choose from FileMint" icon="folder-outline" variant="secondary" onPress={() => setSheet(true)} full />
+        <Button
+          title="Choose from FileMint"
+          icon="folder-outline"
+          variant="secondary"
+          onPress={() => setSheet(true)}
+          full
+        />
       </View>
       <LibrarySheet
         visible={sheet}
@@ -67,7 +73,14 @@ export function PickFile({
 }
 
 const styles = StyleSheet.create({
-  icon: { width: 72, height: 72, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  icon: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
   subtitle: { maxWidth: 320, marginBottom: Spacing.sm },
   actions: { width: '100%', gap: Spacing.sm },
 });

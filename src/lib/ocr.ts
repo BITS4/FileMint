@@ -4,6 +4,12 @@
  */
 export const ocrAvailable = false;
 
-export async function recognizeImage(_src: string, _lang: string, _onProgress?: (p: number) => void): Promise<string> {
-  throw new Error('On-device OCR runs in the FileMint web app. For scanned PDFs, use “Searchable PDF” (server).');
+export async function recognizeImage(
+  _src: string,
+  _lang: string,
+  _onProgress?: (p: number) => void,
+): Promise<string> {
+  throw new Error(
+    'On-device OCR runs in the FileMint web app. For scanned PDFs, use “Searchable PDF” (server).',
+  );
 }

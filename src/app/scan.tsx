@@ -25,7 +25,13 @@ export default function ScanScreen() {
   const [busy, setBusy] = useState(false);
 
   const title =
-    mode === 'id' ? 'Scan ID Card' : mode === 'passport' ? 'Scan Passport' : mode === 'batch' ? 'Batch Scan' : 'Smart Scan';
+    mode === 'id'
+      ? 'Scan ID Card'
+      : mode === 'passport'
+        ? 'Scan Passport'
+        : mode === 'batch'
+          ? 'Batch Scan'
+          : 'Smart Scan';
   const framed = mode === 'id' || mode === 'passport';
 
   const capture = async () => {
@@ -119,7 +125,11 @@ export default function ScanScreen() {
         {pages.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
             {pages.map((p) => (
-              <Pressable key={p.id} onPress={() => setPages((prev) => prev.filter((f) => f.id !== p.id))} style={styles.thumb}>
+              <Pressable
+                key={p.id}
+                onPress={() => setPages((prev) => prev.filter((f) => f.id !== p.id))}
+                style={styles.thumb}
+              >
                 <Thumbnail file={p} size={56} radius={Radius.sm} />
                 <View style={styles.thumbRemove}>
                   <Icon name="close" size={12} color="#fff" />
@@ -135,12 +145,22 @@ export default function ScanScreen() {
 
         <View style={styles.controls}>
           <View style={styles.sideSlot} />
-          <Pressable onPress={capture} disabled={busy} style={[styles.shutter, { borderColor: theme.primary }]}>
+          <Pressable
+            onPress={capture}
+            disabled={busy}
+            style={[styles.shutter, { borderColor: theme.primary }]}
+          >
             <View style={[styles.shutterInner, { backgroundColor: theme.primary }]} />
           </Pressable>
           <View style={styles.sideSlot}>
             {pages.length > 0 ? (
-              <Button title={`PDF (${pages.length})`} onPress={create} loading={busy} size="sm" icon="check" />
+              <Button
+                title={`PDF (${pages.length})`}
+                onPress={create}
+                loading={busy}
+                size="sm"
+                icon="check"
+              />
             ) : null}
           </View>
         </View>
@@ -152,18 +172,66 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm, backgroundColor: 'rgba(0,0,0,0.35)' },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
   iconBtn: { width: 28, alignItems: 'flex-start' },
-  frameWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  frameWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   frame: { width: '82%', aspectRatio: 1.586, borderWidth: 3, borderRadius: Radius.lg, borderStyle: 'dashed' },
   frameHint: { color: '#fff', marginTop: Spacing.md, textShadowColor: '#000', textShadowRadius: 4 },
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingTop: Spacing.md, backgroundColor: 'rgba(0,0,0,0.4)' },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingTop: Spacing.md,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
   strip: { gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
   thumb: { borderRadius: Radius.sm },
-  thumbRemove: { position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#FF5C5C', alignItems: 'center', justifyContent: 'center' },
+  thumbRemove: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FF5C5C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tip: { color: '#fff', textAlign: 'center', marginBottom: Spacing.md, opacity: 0.85 },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.xl },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+  },
   sideSlot: { width: 96, alignItems: 'center' },
-  shutter: { width: 72, height: 72, borderRadius: 36, borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
+  shutter: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   shutterInner: { width: 54, height: 54, borderRadius: 27 },
 });

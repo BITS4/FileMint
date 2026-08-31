@@ -32,11 +32,18 @@ export function FileActionsSheet({ file, onClose, variant = 'active' }: FileActi
       ];
     }
     const editable = ['pdf', 'text', 'csv', 'word', 'excel', 'ppt'].includes(f.kind);
-    const editRoute = f.kind === 'pdf' ? `/pdf-editor?file=${encodeURIComponent(f.id)}&tool=annotate` : `/edit/${f.id}`;
+    const editRoute =
+      f.kind === 'pdf' ? `/pdf-editor?file=${encodeURIComponent(f.id)}&tool=annotate` : `/edit/${f.id}`;
     return [
       { label: 'Open', icon: 'eye-outline', onPress: () => router.push(`/viewer/${f.id}`) },
       ...(editable
-        ? [{ label: 'Edit', icon: 'pencil-outline', onPress: () => router.push(editRoute as never) } as SheetAction]
+        ? [
+            {
+              label: 'Edit',
+              icon: 'pencil-outline',
+              onPress: () => router.push(editRoute as never),
+            } as SheetAction,
+          ]
         : []),
       { label: 'Share', icon: 'share-variant', disabled: !shareSupported, onPress: () => void shareFile(f) },
       { label: 'Download', icon: 'download-outline', onPress: () => void downloadFile(f) },
@@ -47,7 +54,12 @@ export function FileActionsSheet({ file, onClose, variant = 'active' }: FileActi
         onPress: () => lib.toggleFavorite(f.id),
       },
       { label: 'Duplicate', icon: 'content-copy', onPress: () => void lib.duplicateFile(f.id) },
-      { label: 'Move to Trash', icon: 'trash-can-outline', destructive: true, onPress: () => lib.trashFile(f.id) },
+      {
+        label: 'Move to Trash',
+        icon: 'trash-can-outline',
+        destructive: true,
+        onPress: () => lib.trashFile(f.id),
+      },
     ];
   };
 

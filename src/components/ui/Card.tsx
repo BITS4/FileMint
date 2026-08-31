@@ -28,7 +28,8 @@ export function Card({ children, onPress, style, padded = true, elevated }: Card
           haptics.tap();
           onPress();
         }}
-        style={({ pressed }) => [...base, { opacity: pressed ? 0.85 : 1 }, style as ViewStyle]}>
+        style={({ pressed }) => [...base, { opacity: pressed ? 0.85 : 1 }, style as ViewStyle]}
+      >
         {children}
       </Pressable>
     );

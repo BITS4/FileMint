@@ -26,7 +26,8 @@ export function Fab({ onPress, bottom, icon = 'plus' }: FabProps) {
         styles.fab,
         elevation(2) as ViewStyle,
         { backgroundColor: theme.primary, bottom, transform: [{ scale: pressed ? 0.94 : 1 }] },
-      ]}>
+      ]}
+    >
       <Icon name={icon} size={30} color={theme.primaryText} />
     </Pressable>
   );

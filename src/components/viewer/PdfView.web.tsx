@@ -21,7 +21,14 @@ function clonePdfBytes(bytes: Uint8Array) {
 }
 
 function isPdf(bytes: Uint8Array) {
-  return bytes.length >= 5 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2d;
+  return (
+    bytes.length >= 5 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46 &&
+    bytes[4] === 0x2d
+  );
 }
 
 /** Web PDF rendering via PDF.js. Mobile browsers often refuse inline PDF iframes. */
@@ -40,16 +47,23 @@ export function PdfView({ storageKey, night }: PdfViewProps) {
     setState({ kind: 'loading', label: 'Loading PDF...' });
     (async () => {
       try {
-        const [data, fileUri] = await Promise.all([storage.readBytes(storageKey), storage.getUri(storageKey)]);
+        const [data, fileUri] = await Promise.all([
+          storage.readBytes(storageKey),
+          storage.getUri(storageKey),
+        ]);
         if (!alive) return;
         if (!isPdf(data)) {
-          setState({ kind: 'error', message: 'This saved file is not a valid PDF. Convert it again with the latest FileMint server.' });
+          setState({
+            kind: 'error',
+            message: 'This saved file is not a valid PDF. Convert it again with the latest FileMint server.',
+          });
           return;
         }
         setBytes(data);
         setUri(fileUri);
       } catch (e) {
-        if (alive) setState({ kind: 'error', message: e instanceof Error ? e.message : 'Could not load this PDF.' });
+        if (alive)
+          setState({ kind: 'error', message: e instanceof Error ? e.message : 'Could not load this PDF.' });
       }
     })();
     return () => {
@@ -135,7 +149,8 @@ export function PdfView({ storageKey, night }: PdfViewProps) {
           if (!context) throw new Error('Canvas rendering is not available in this browser.');
           await page.render({ canvasContext: context, viewport, canvas } as never).promise;
           renderedAnyPage = true;
-          if (pageNumber === 1) setState({ kind: 'ready', label: `Rendering ${pageCount} page${pageCount === 1 ? '' : 's'}...` });
+          if (pageNumber === 1)
+            setState({ kind: 'ready', label: `Rendering ${pageCount} page${pageCount === 1 ? '' : 's'}...` });
           else setState({ kind: 'ready', label: `Rendered ${pageNumber} of ${pageCount} pages` });
         }
 
@@ -144,7 +159,11 @@ export function PdfView({ storageKey, night }: PdfViewProps) {
       } catch (e) {
         if (!cancelled) {
           target.innerHTML = '';
-          setState(uri ? { kind: 'native', label: 'Using browser PDF preview...' } : { kind: 'error', message: e instanceof Error ? e.message : 'Could not render this PDF.' });
+          setState(
+            uri
+              ? { kind: 'native', label: 'Using browser PDF preview...' }
+              : { kind: 'error', message: e instanceof Error ? e.message : 'Could not render this PDF.' },
+          );
         }
       } finally {
         window.clearTimeout(fallbackTimer);
@@ -170,7 +189,8 @@ export function PdfView({ storageKey, night }: PdfViewProps) {
         overflow: 'auto',
         background: night ? '#111827' : '#2C3138',
         boxSizing: 'border-box',
-      }}>
+      }}
+    >
       <div
         ref={pagesRef}
         style={{
@@ -208,7 +228,8 @@ export function PdfView({ storageKey, night }: PdfViewProps) {
             fontFamily: 'system-ui, sans-serif',
             fontSize: 14,
             textAlign: 'center',
-          }}>
+          }}
+        >
           {state.kind === 'error' ? state.message : state.label}
         </div>
       ) : null}
@@ -225,7 +246,8 @@ export function PdfView({ storageKey, night }: PdfViewProps) {
             fontFamily: 'system-ui, sans-serif',
             fontSize: 12,
             pointerEvents: 'none',
-          }}>
+          }}
+        >
           {state.label}
         </div>
       ) : null}

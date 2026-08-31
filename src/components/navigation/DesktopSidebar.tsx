@@ -43,7 +43,8 @@ export function DesktopSidebar({ onCreate }: DesktopSidebarProps) {
           backgroundColor: theme.backgroundElevated,
           borderRightColor: theme.border,
         },
-      ]}>
+      ]}
+    >
       <View style={styles.brandRow}>
         <View style={[styles.brandMark, { backgroundColor: theme.primary }]}>
           <Icon name="file-document-multiple" size={24} color={theme.primaryText} />
@@ -56,7 +57,12 @@ export function DesktopSidebar({ onCreate }: DesktopSidebarProps) {
             {files} {files === 1 ? 'file' : 'files'}
           </Txt>
         </View>
-        <IconButton name="magnify" variant="surface" onPress={() => router.push('/search')} accessibilityLabel="Search" />
+        <IconButton
+          name="magnify"
+          variant="surface"
+          onPress={() => router.push('/search')}
+          accessibilityLabel="Search"
+        />
       </View>
 
       <Button title="New / Import" icon="plus" onPress={onCreate} full style={styles.createButton} />
@@ -76,12 +82,26 @@ export function DesktopSidebar({ onCreate }: DesktopSidebarProps) {
               style={({ pressed }) => [
                 styles.navItem,
                 {
-                  backgroundColor: active ? theme.primaryMuted : pressed ? theme.backgroundElement : 'transparent',
+                  backgroundColor: active
+                    ? theme.primaryMuted
+                    : pressed
+                      ? theme.backgroundElement
+                      : 'transparent',
                   borderColor: active ? withAlpha(theme.primary, 0.38) : 'transparent',
                 },
-              ]}>
-              <View style={[styles.navIcon, { backgroundColor: active ? withAlpha(theme.primary, 0.16) : theme.backgroundElement }]}>
-                <Icon name={active ? item.activeIcon : item.icon} size={21} color={active ? theme.primary : theme.textSecondary} />
+              ]}
+            >
+              <View
+                style={[
+                  styles.navIcon,
+                  { backgroundColor: active ? withAlpha(theme.primary, 0.16) : theme.backgroundElement },
+                ]}
+              >
+                <Icon
+                  name={active ? item.activeIcon : item.icon}
+                  size={21}
+                  color={active ? theme.primary : theme.textSecondary}
+                />
               </View>
               <Txt variant="label" weight="700" style={{ color: active ? theme.text : theme.textSecondary }}>
                 {item.label}
@@ -92,7 +112,9 @@ export function DesktopSidebar({ onCreate }: DesktopSidebarProps) {
       </View>
 
       <View style={styles.bottom}>
-        <View style={[styles.statusCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+        <View
+          style={[styles.statusCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+        >
           <View style={[styles.statusDot, { backgroundColor: Accents.teal }]} />
           <View style={{ flex: 1 }}>
             <Txt variant="label" numberOfLines={1}>
@@ -109,7 +131,8 @@ export function DesktopSidebar({ onCreate }: DesktopSidebarProps) {
           style={({ pressed }) => [
             styles.settings,
             { backgroundColor: pressed ? theme.backgroundElement : 'transparent' },
-          ]}>
+          ]}
+        >
           <Icon name="cog-outline" size={20} color={theme.textSecondary} />
           <Txt variant="label" muted>
             Settings

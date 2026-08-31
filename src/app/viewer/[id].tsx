@@ -66,7 +66,6 @@ export default function ViewerScreen() {
 
   useEffect(() => {
     if (file) touch(file.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file?.id]);
 
   useEffect(() => {
@@ -86,7 +85,6 @@ export default function ViewerScreen() {
         })
         .catch(() => undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file?.id]);
 
   if (!file) {
@@ -108,7 +106,9 @@ export default function ViewerScreen() {
   const isOffice = OFFICE_KINDS.includes(file.kind);
   const isReadableText = file.kind === 'text' || file.kind === 'csv' || READABLE_EXTS.has(file.ext);
   const editable = isPdf || isOffice || file.kind === 'text' || file.kind === 'csv';
-  const editRoute = isPdf ? `/pdf-editor?file=${encodeURIComponent(file.id)}&tool=annotate` : `/edit/${file.id}`;
+  const editRoute = isPdf
+    ? `/pdf-editor?file=${encodeURIComponent(file.id)}&tool=annotate`
+    : `/edit/${file.id}`;
   const shareSupported = canShareFiles();
   const imageBox = getContainedSize({
     source: imageSize,
@@ -132,11 +132,28 @@ export default function ViewerScreen() {
                 />
               ) : null}
               {editable ? (
-                <IconButton name="pencil-outline" onPress={() => router.push(editRoute as never)} accessibilityLabel="Edit" />
+                <IconButton
+                  name="pencil-outline"
+                  onPress={() => router.push(editRoute as never)}
+                  accessibilityLabel="Edit"
+                />
               ) : null}
-              <IconButton name="download-outline" onPress={() => void downloadFile(file)} accessibilityLabel="Download" />
-              <IconButton name="share-variant" onPress={() => void shareFile(file)} accessibilityLabel="Share" disabled={!shareSupported} />
-              <IconButton name="dots-vertical" onPress={() => setShowActions(true)} accessibilityLabel="More" />
+              <IconButton
+                name="download-outline"
+                onPress={() => void downloadFile(file)}
+                accessibilityLabel="Download"
+              />
+              <IconButton
+                name="share-variant"
+                onPress={() => void shareFile(file)}
+                accessibilityLabel="Share"
+                disabled={!shareSupported}
+              />
+              <IconButton
+                name="dots-vertical"
+                onPress={() => setShowActions(true)}
+                accessibilityLabel="More"
+              />
             </>
           }
         />
@@ -153,7 +170,8 @@ export default function ViewerScreen() {
             contentContainerStyle={styles.imageWrap}
             maximumZoomScale={4}
             minimumZoomScale={1}
-            centerContent>
+            centerContent
+          >
             <Image source={{ uri: imageUri }} style={[styles.image, imageBox]} resizeMode="contain" />
           </ScrollView>
         ) : isReadableText ? (
@@ -166,8 +184,21 @@ export default function ViewerScreen() {
               subtitle={`FileMint cannot preview ${file.ext.toUpperCase()} files directly. Open it in another app.`}
             />
             <View style={{ gap: Spacing.sm, marginTop: Spacing.lg }}>
-              <Button title="Download" icon="download-outline" variant="secondary" onPress={() => void downloadFile(file)} full />
-              <Button title="Share" icon="share-variant" variant="secondary" onPress={() => void shareFile(file)} disabled={!shareSupported} full />
+              <Button
+                title="Download"
+                icon="download-outline"
+                variant="secondary"
+                onPress={() => void downloadFile(file)}
+                full
+              />
+              <Button
+                title="Share"
+                icon="share-variant"
+                variant="secondary"
+                onPress={() => void shareFile(file)}
+                disabled={!shareSupported}
+                full
+              />
             </View>
           </View>
         )}

@@ -638,7 +638,8 @@ export const TOOLS: ToolDef[] = TOOL_DEFS.map((tool) =>
     ? {
         ...tool,
         premium: true,
-        premiumReason: 'Premium unlocks higher quality processing, advanced editing, and priority server workflows for this tool.',
+        premiumReason:
+          'Premium unlocks higher quality processing, advanced editing, and priority server workflows for this tool.',
       }
     : tool,
 );

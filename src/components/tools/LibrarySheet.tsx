@@ -19,7 +19,14 @@ export interface LibrarySheetProps {
   excludeIds?: string[];
 }
 
-export function LibrarySheet({ visible, onClose, kinds, onPick, title = 'Choose from FileMint', excludeIds }: LibrarySheetProps) {
+export function LibrarySheet({
+  visible,
+  onClose,
+  kinds,
+  onPick,
+  title = 'Choose from FileMint',
+  excludeIds,
+}: LibrarySheetProps) {
   const theme = useTheme();
   const files = useLibrary(useShallow(selectActiveFiles));
   const filtered = files.filter(
@@ -29,14 +36,23 @@ export function LibrarySheet({ visible, onClose, kinds, onPick, title = 'Choose 
   return (
     <Sheet visible={visible} onClose={onClose} title={title}>
       {filtered.length === 0 ? (
-        <EmptyState icon="folder-open-outline" title="No files here" subtitle="Import a file first, then pick it here." compact />
+        <EmptyState
+          icon="folder-open-outline"
+          title="No files here"
+          subtitle="Import a file first, then pick it here."
+          compact
+        />
       ) : (
         <View style={{ paddingBottom: Spacing.sm }}>
           {filtered.map((file) => (
             <Pressable
               key={file.id}
               onPress={() => onPick(file)}
-              style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.backgroundElement : 'transparent' }]}>
+              style={({ pressed }) => [
+                styles.row,
+                { backgroundColor: pressed ? theme.backgroundElement : 'transparent' },
+              ]}
+            >
               <Thumbnail file={file} size={42} />
               <View style={{ flex: 1 }}>
                 <Txt variant="body" weight="600" numberOfLines={1}>

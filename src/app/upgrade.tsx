@@ -13,10 +13,39 @@ import { useTheme } from '@/hooks/use-theme';
 import { selectIsLoggedIn, selectIsPremium, useAuth } from '@/store/useAuth';
 
 const FALLBACK_PLANS: PremiumPlan[] = [
-  { id: 'week', name: '1 Week Plan', shortName: '1 Week', price: '$0.99', amountCents: 99, durationLabel: '7 days' },
-  { id: 'month', name: '1 Month Plan', shortName: '1 Month', price: '$4.99', amountCents: 499, durationLabel: '1 month' },
-  { id: 'year', name: '1 Year Plan', shortName: '1 Year', price: '$49.99', amountCents: 4999, durationLabel: '1 year', bestValue: true },
-  { id: 'forever', name: 'Forever Plan', shortName: 'Forever', price: '$199.99', amountCents: 19999, durationLabel: 'lifetime access' },
+  {
+    id: 'week',
+    name: '1 Week Plan',
+    shortName: '1 Week',
+    price: '$0.99',
+    amountCents: 99,
+    durationLabel: '7 days',
+  },
+  {
+    id: 'month',
+    name: '1 Month Plan',
+    shortName: '1 Month',
+    price: '$4.99',
+    amountCents: 499,
+    durationLabel: '1 month',
+  },
+  {
+    id: 'year',
+    name: '1 Year Plan',
+    shortName: '1 Year',
+    price: '$49.99',
+    amountCents: 4999,
+    durationLabel: '1 year',
+    bestValue: true,
+  },
+  {
+    id: 'forever',
+    name: 'Forever Plan',
+    shortName: 'Forever',
+    price: '$199.99',
+    amountCents: 19999,
+    durationLabel: 'lifetime access',
+  },
 ];
 
 const BENEFITS = [
@@ -31,7 +60,12 @@ const BENEFITS = [
 export default function UpgradeScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const params = useLocalSearchParams<{ redirect?: string; lockedTool?: string; checkout?: string; session_id?: string }>();
+  const params = useLocalSearchParams<{
+    redirect?: string;
+    lockedTool?: string;
+    checkout?: string;
+    session_id?: string;
+  }>();
   const user = useAuth((s) => s.user);
   const plansFromStore = useAuth((s) => s.plans);
   const loading = useAuth((s) => s.loading);
@@ -73,11 +107,17 @@ export default function UpgradeScreen() {
         Alert.alert('Premium unlocked', 'Stripe confirmed your payment. Your Premium plan is active now.');
         router.replace(redirect as never);
       })
-      .catch((e) => Alert.alert('Payment confirmation failed', e instanceof Error ? e.message : 'Could not confirm this Stripe checkout.'))
+      .catch((e) =>
+        Alert.alert(
+          'Payment confirmation failed',
+          e instanceof Error ? e.message : 'Could not confirm this Stripe checkout.',
+        ),
+      )
       .finally(() => setConfirmingSession(false));
   }, [confirmCheckout, confirmingSession, isLoggedIn, params.checkout, params.session_id, redirect, router]);
 
-  const authRoute = (path: '/auth/login' | '/auth/signup') => `${path}?redirect=${encodeURIComponent(`/upgrade?redirect=${encodeURIComponent(redirect)}${lockedTool ? `&lockedTool=${encodeURIComponent(lockedTool.id)}` : ''}`)}`;
+  const authRoute = (path: '/auth/login' | '/auth/signup') =>
+    `${path}?redirect=${encodeURIComponent(`/upgrade?redirect=${encodeURIComponent(redirect)}${lockedTool ? `&lockedTool=${encodeURIComponent(lockedTool.id)}` : ''}`)}`;
 
   const continueToPayment = async () => {
     if (!isLoggedIn) {
@@ -85,7 +125,9 @@ export default function UpgradeScreen() {
       return;
     }
     if (!user?.emailVerified) {
-      router.push(`/auth/verify?email=${encodeURIComponent(user?.email ?? '')}&redirect=${encodeURIComponent('/upgrade')}` as never);
+      router.push(
+        `/auth/verify?email=${encodeURIComponent(user?.email ?? '')}&redirect=${encodeURIComponent('/upgrade')}` as never,
+      );
       return;
     }
     try {
@@ -114,7 +156,12 @@ export default function UpgradeScreen() {
     }
     try {
       const restored = await restorePurchases();
-      Alert.alert(restored ? 'Premium restored' : 'No active purchase', restored ? 'Your Premium access is active.' : 'No active Premium purchase was found for this account.');
+      Alert.alert(
+        restored ? 'Premium restored' : 'No active purchase',
+        restored
+          ? 'Your Premium access is active.'
+          : 'No active Premium purchase was found for this account.',
+      );
     } catch (e) {
       Alert.alert('Restore failed', e instanceof Error ? e.message : 'Could not restore purchases.');
     }
@@ -140,7 +187,9 @@ export default function UpgradeScreen() {
           Upgrade to Premium
         </Txt>
         <Txt variant="caption" muted center style={styles.heroCopy}>
-          {lockedTool ? `${lockedTool.title} is a Premium tool. Upgrade once and keep the workflow moving.` : 'Unlock the full FileMint conversion and PDF editing studio.'}
+          {lockedTool
+            ? `${lockedTool.title} is a Premium tool. Upgrade once and keep the workflow moving.`
+            : 'Unlock the full FileMint conversion and PDF editing studio.'}
         </Txt>
       </View>
 
@@ -150,7 +199,11 @@ export default function UpgradeScreen() {
           <View style={{ flex: 1 }}>
             <Txt variant="h3">Premium is active</Txt>
             <Txt variant="caption" muted>
-              {user?.lifetimePremium ? 'Lifetime Premium' : user?.premiumExpiresAt ? `Expires ${new Date(user.premiumExpiresAt).toLocaleDateString()}` : 'Active plan'}
+              {user?.lifetimePremium
+                ? 'Lifetime Premium'
+                : user?.premiumExpiresAt
+                  ? `Expires ${new Date(user.premiumExpiresAt).toLocaleDateString()}`
+                  : 'Active plan'}
             </Txt>
           </View>
           <Button title="Continue" size="sm" onPress={() => router.replace(redirect as never)} />
@@ -170,7 +223,12 @@ export default function UpgradeScreen() {
 
       <View style={styles.planGrid}>
         {plans.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} selected={selected === plan.id} onPress={() => setSelected(plan.id)} />
+          <PlanCard
+            key={plan.id}
+            plan={plan}
+            selected={selected === plan.id}
+            onPress={() => setSelected(plan.id)}
+          />
         ))}
       </View>
 
@@ -186,25 +244,64 @@ export default function UpgradeScreen() {
       <View style={styles.actions}>
         {!isLoggedIn ? (
           <View style={styles.authActions}>
-            <Button title="Log in to upgrade" icon="login" onPress={() => router.push(authRoute('/auth/login') as never)} style={{ flex: 1 }} />
-            <Button title="Sign up" icon="account-plus-outline" variant="secondary" onPress={() => router.push(authRoute('/auth/signup') as never)} style={{ flex: 1 }} />
+            <Button
+              title="Log in to upgrade"
+              icon="login"
+              onPress={() => router.push(authRoute('/auth/login') as never)}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title="Sign up"
+              icon="account-plus-outline"
+              variant="secondary"
+              onPress={() => router.push(authRoute('/auth/signup') as never)}
+              style={{ flex: 1 }}
+            />
           </View>
         ) : (
-          <Button title="Pay with card" icon="credit-card-check-outline" size="lg" full loading={loading || confirmingSession} disabled={isPremium} onPress={continueToPayment} />
+          <Button
+            title="Pay with card"
+            icon="credit-card-check-outline"
+            size="lg"
+            full
+            loading={loading || confirmingSession}
+            disabled={isPremium}
+            onPress={continueToPayment}
+          />
         )}
         <View style={styles.secondaryActions}>
-          <Button title="Restore purchase" icon="restore" variant="secondary" onPress={restore} style={{ flex: 1 }} />
-          <Button title="Manage subscription" icon="cog-outline" variant="secondary" onPress={manage} style={{ flex: 1 }} />
+          <Button
+            title="Restore purchase"
+            icon="restore"
+            variant="secondary"
+            onPress={restore}
+            style={{ flex: 1 }}
+          />
+          <Button
+            title="Manage subscription"
+            icon="cog-outline"
+            variant="secondary"
+            onPress={manage}
+            style={{ flex: 1 }}
+          />
         </View>
         <Button title="Maybe Later" variant="ghost" onPress={goBack} />
         <View style={styles.legal}>
-          <Txt variant="tiny" muted onPress={() => void WebBrowser.openBrowserAsync('https://example.com/terms')}>
+          <Txt
+            variant="tiny"
+            muted
+            onPress={() => void WebBrowser.openBrowserAsync('https://example.com/terms')}
+          >
             Terms
           </Txt>
           <Txt variant="tiny" muted>
             |
           </Txt>
-          <Txt variant="tiny" muted onPress={() => void WebBrowser.openBrowserAsync('https://example.com/privacy')}>
+          <Txt
+            variant="tiny"
+            muted
+            onPress={() => void WebBrowser.openBrowserAsync('https://example.com/privacy')}
+          >
             Privacy
           </Txt>
         </View>
@@ -213,7 +310,15 @@ export default function UpgradeScreen() {
   );
 }
 
-function PlanCard({ plan, selected, onPress }: { plan: PremiumPlan; selected: boolean; onPress: () => void }) {
+function PlanCard({
+  plan,
+  selected,
+  onPress,
+}: {
+  plan: PremiumPlan;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const theme = useTheme();
   return (
     <Pressable
@@ -226,7 +331,8 @@ function PlanCard({ plan, selected, onPress }: { plan: PremiumPlan; selected: bo
           borderColor: selected ? theme.primary : theme.border,
           transform: [{ scale: pressed ? 0.99 : 1 }],
         },
-      ]}>
+      ]}
+    >
       <View style={styles.planTop}>
         <Txt variant="h3">{plan.shortName}</Txt>
         {plan.bestValue ? <Badge label="Best value" color={Accents.amber} variant="soft" small /> : null}
@@ -236,7 +342,11 @@ function PlanCard({ plan, selected, onPress }: { plan: PremiumPlan; selected: bo
         {plan.durationLabel}
       </Txt>
       <View style={styles.radioRow}>
-        <Icon name={selected ? 'radiobox-marked' : 'radiobox-blank'} size={20} color={selected ? theme.primary : theme.textMuted} />
+        <Icon
+          name={selected ? 'radiobox-marked' : 'radiobox-blank'}
+          size={20}
+          color={selected ? theme.primary : theme.textMuted}
+        />
         <Txt variant="tiny" muted>
           {selected ? 'Selected' : 'Choose plan'}
         </Txt>
@@ -254,12 +364,33 @@ const styles = StyleSheet.create({
   benefits: { gap: Spacing.md, marginBottom: Spacing.lg },
   benefit: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   planGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
-  plan: { flexGrow: 1, flexBasis: 190, minHeight: 154, borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm },
+  plan: {
+    flexGrow: 1,
+    flexBasis: 190,
+    minHeight: 154,
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
   planTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   radioRow: { marginTop: 'auto', flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md, marginTop: Spacing.md },
+  error: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+  },
   actions: { marginTop: Spacing.xl, gap: Spacing.md },
   authActions: { flexDirection: 'row', gap: Spacing.md, flexWrap: 'wrap' },
   secondaryActions: { flexDirection: 'row', gap: Spacing.md, flexWrap: 'wrap' },
-  legal: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
+  legal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
 });

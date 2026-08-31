@@ -32,7 +32,11 @@ export function ToolRow({ tool, onPress }: ToolRowProps) {
         haptics.tap();
         onPress();
       }}
-      style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.backgroundElement : 'transparent' }]}>
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: pressed ? theme.backgroundElement : 'transparent' },
+      ]}
+    >
       <View style={[styles.chip, { backgroundColor: withAlpha(color, 0.16) }]}>
         <Icon name={tool.icon} size={22} color={color} />
       </View>

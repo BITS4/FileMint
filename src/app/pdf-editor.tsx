@@ -17,7 +17,16 @@ import Svg, { Circle, G, Line, Path, Polygon } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PickFile } from '@/components/tools/PickFile';
-import { Button, Icon, IconButton, ProgressBar, Segmented, TextField, Txt, type SegmentedOption } from '@/components/ui';
+import {
+  Button,
+  Icon,
+  IconButton,
+  ProgressBar,
+  Segmented,
+  TextField,
+  Txt,
+  type SegmentedOption,
+} from '@/components/ui';
 import { findTool } from '@/constants/tools';
 import { Accents, Radius, Spacing } from '@/constants/theme';
 import { useIsDesktop } from '@/hooks/use-breakpoint';
@@ -28,7 +37,13 @@ import { dataUrl } from '@/lib/base64';
 import { withAlpha } from '@/lib/color';
 import { confirm } from '@/lib/confirm';
 import { baseName } from '@/lib/format';
-import { applyPdfEditorObjects, applyPdfEditorTool, cropPdfEdges, type PdfEditorObjectExport, type PdfEditorTool } from '@/lib/pdf';
+import {
+  applyPdfEditorObjects,
+  applyPdfEditorTool,
+  cropPdfEdges,
+  type PdfEditorObjectExport,
+  type PdfEditorTool,
+} from '@/lib/pdf';
 import { renderPdfToImages, type RenderedImage } from '@/lib/pdf-render';
 import { pickImages } from '@/lib/pick';
 import { canShareFiles, downloadFile, shareFile } from '@/lib/share';
@@ -93,7 +108,16 @@ interface EditorOptions {
   annotationMode: 'note' | 'callout' | 'shape';
 }
 
-type EditorObjectType = 'text' | 'watermark' | 'stamp' | 'signature' | 'doodle' | 'highlight' | 'annotate' | 'redact' | 'form-field';
+type EditorObjectType =
+  | 'text'
+  | 'watermark'
+  | 'stamp'
+  | 'signature'
+  | 'doodle'
+  | 'highlight'
+  | 'annotate'
+  | 'redact'
+  | 'form-field';
 
 interface EditorPoint {
   x: number;
@@ -153,18 +177,90 @@ interface ToolMeta {
 }
 
 const EDITOR_TOOLS: Record<EditorToolId, ToolMeta> = {
-  'crop-pdf': { id: 'crop-pdf', title: 'Crop PDF', subtitle: 'Precise page crop and perspective correction', icon: 'crop', accent: 'amber' },
-  'add-page-numbers': { id: 'add-page-numbers', title: 'Page Numbers', subtitle: 'Place page labels with full style control', icon: 'format-list-numbered', accent: 'indigo' },
-  'add-watermark': { id: 'add-watermark', title: 'Add Watermark', subtitle: 'Text and image watermarks with live placement', icon: 'watermark', accent: 'sky' },
-  flatten: { id: 'flatten', title: 'Flatten PDF', subtitle: 'Bake selected objects into page content', icon: 'layers-outline', accent: 'slate' },
-  'add-text': { id: 'add-text', title: 'Add Text', subtitle: 'Place editable text boxes on the page', icon: 'format-text', accent: 'green' },
-  'add-signature': { id: 'add-signature', title: 'Add Signature', subtitle: 'Draw, type, upload, and place signatures', icon: 'draw', accent: 'rose' },
-  doodle: { id: 'doodle', title: 'Doodle / Draw', subtitle: 'Freehand pens, shapes, arrows, and eraser', icon: 'pencil-outline', accent: 'pink' },
-  highlight: { id: 'highlight', title: 'Highlight', subtitle: 'Highlight text or scanned areas', icon: 'marker', accent: 'yellow' },
-  'add-stamp': { id: 'add-stamp', title: 'Add Stamp', subtitle: 'Built-in and custom document stamps', icon: 'stamper', accent: 'orange' },
-  annotate: { id: 'annotate', title: 'Annotate', subtitle: 'Comments, callouts, shapes, and inspector', icon: 'comment-edit-outline', accent: 'violet' },
-  redact: { id: 'redact', title: 'Redact', subtitle: 'Search and draw permanent redaction areas', icon: 'marker-cancel', accent: 'slate' },
-  'fill-forms': { id: 'fill-forms', title: 'Fill Forms', subtitle: 'Detected field navigation and form toolbar', icon: 'form-select', accent: 'blue' },
+  'crop-pdf': {
+    id: 'crop-pdf',
+    title: 'Crop PDF',
+    subtitle: 'Precise page crop and perspective correction',
+    icon: 'crop',
+    accent: 'amber',
+  },
+  'add-page-numbers': {
+    id: 'add-page-numbers',
+    title: 'Page Numbers',
+    subtitle: 'Place page labels with full style control',
+    icon: 'format-list-numbered',
+    accent: 'indigo',
+  },
+  'add-watermark': {
+    id: 'add-watermark',
+    title: 'Add Watermark',
+    subtitle: 'Text and image watermarks with live placement',
+    icon: 'watermark',
+    accent: 'sky',
+  },
+  flatten: {
+    id: 'flatten',
+    title: 'Flatten PDF',
+    subtitle: 'Bake selected objects into page content',
+    icon: 'layers-outline',
+    accent: 'slate',
+  },
+  'add-text': {
+    id: 'add-text',
+    title: 'Add Text',
+    subtitle: 'Place editable text boxes on the page',
+    icon: 'format-text',
+    accent: 'green',
+  },
+  'add-signature': {
+    id: 'add-signature',
+    title: 'Add Signature',
+    subtitle: 'Draw, type, upload, and place signatures',
+    icon: 'draw',
+    accent: 'rose',
+  },
+  doodle: {
+    id: 'doodle',
+    title: 'Doodle / Draw',
+    subtitle: 'Freehand pens, shapes, arrows, and eraser',
+    icon: 'pencil-outline',
+    accent: 'pink',
+  },
+  highlight: {
+    id: 'highlight',
+    title: 'Highlight',
+    subtitle: 'Highlight text or scanned areas',
+    icon: 'marker',
+    accent: 'yellow',
+  },
+  'add-stamp': {
+    id: 'add-stamp',
+    title: 'Add Stamp',
+    subtitle: 'Built-in and custom document stamps',
+    icon: 'stamper',
+    accent: 'orange',
+  },
+  annotate: {
+    id: 'annotate',
+    title: 'Annotate',
+    subtitle: 'Comments, callouts, shapes, and inspector',
+    icon: 'comment-edit-outline',
+    accent: 'violet',
+  },
+  redact: {
+    id: 'redact',
+    title: 'Redact',
+    subtitle: 'Search and draw permanent redaction areas',
+    icon: 'marker-cancel',
+    accent: 'slate',
+  },
+  'fill-forms': {
+    id: 'fill-forms',
+    title: 'Fill Forms',
+    subtitle: 'Detected field navigation and form toolbar',
+    icon: 'form-select',
+    accent: 'blue',
+  },
 };
 
 const TOOL_IDS = Object.keys(EDITOR_TOOLS) as EditorToolId[];
@@ -291,11 +387,51 @@ const FORM_FIELD_PRESETS: Array<{
   width: number;
   height: number;
 }> = [
-  { kind: 'text', label: 'Text field', icon: 'form-textbox', placeholder: 'Type here', value: '', width: 0.42, height: 0.055 },
-  { kind: 'checkbox', label: 'Checkbox', icon: 'checkbox-marked-outline', placeholder: 'Checkbox', value: '', width: 0.09, height: 0.045 },
-  { kind: 'date', label: 'Date', icon: 'calendar-month-outline', placeholder: 'Date', value: new Date().toISOString().slice(0, 10), width: 0.26, height: 0.055 },
-  { kind: 'signature', label: 'Signature', icon: 'draw', placeholder: 'Signature', value: 'Signature', width: 0.34, height: 0.08 },
-  { kind: 'initials', label: 'Initials', icon: 'signature-freehand', placeholder: 'Initials', value: 'Initials', width: 0.18, height: 0.055 },
+  {
+    kind: 'text',
+    label: 'Text field',
+    icon: 'form-textbox',
+    placeholder: 'Type here',
+    value: '',
+    width: 0.42,
+    height: 0.055,
+  },
+  {
+    kind: 'checkbox',
+    label: 'Checkbox',
+    icon: 'checkbox-marked-outline',
+    placeholder: 'Checkbox',
+    value: '',
+    width: 0.09,
+    height: 0.045,
+  },
+  {
+    kind: 'date',
+    label: 'Date',
+    icon: 'calendar-month-outline',
+    placeholder: 'Date',
+    value: new Date().toISOString().slice(0, 10),
+    width: 0.26,
+    height: 0.055,
+  },
+  {
+    kind: 'signature',
+    label: 'Signature',
+    icon: 'draw',
+    placeholder: 'Signature',
+    value: 'Signature',
+    width: 0.34,
+    height: 0.08,
+  },
+  {
+    kind: 'initials',
+    label: 'Initials',
+    icon: 'signature-freehand',
+    placeholder: 'Initials',
+    value: 'Initials',
+    width: 0.18,
+    height: 0.055,
+  },
 ];
 const ANNOTATE_COLOR_SWATCHES = [
   '#F7C948',
@@ -380,7 +516,19 @@ function redactionAreas(targetPages: number[]) {
 }
 
 function canUsePdfEditorTool(tool: EditorToolId): tool is PdfEditorTool {
-  return ['doodle', 'highlight', 'add-stamp', 'add-signature', 'flatten', 'add-watermark', 'annotate', 'redact', 'add-text', 'add-page-numbers', 'fill-forms'].includes(tool);
+  return [
+    'doodle',
+    'highlight',
+    'add-stamp',
+    'add-signature',
+    'flatten',
+    'add-watermark',
+    'annotate',
+    'redact',
+    'add-text',
+    'add-page-numbers',
+    'fill-forms',
+  ].includes(tool);
 }
 
 function editorObjectTypeForTool(tool: EditorToolId): EditorObjectType | null {
@@ -418,7 +566,10 @@ function clampEditorObject(object: EditorObject): EditorObject {
 }
 
 function objectTextForType(type: EditorObjectType, options: EditorOptions) {
-  if (type === 'stamp') return options.stampMode === 'upload' ? options.stampImageName || 'Uploaded stamp' : options.stampText || 'APPROVED';
+  if (type === 'stamp')
+    return options.stampMode === 'upload'
+      ? options.stampImageName || 'Uploaded stamp'
+      : options.stampText || 'APPROVED';
   if (type === 'signature') {
     if (options.signatureMode === 'draw') return 'Drawn signature';
     if (options.signatureMode === 'upload') return options.signatureImageName || 'Uploaded signature';
@@ -431,7 +582,11 @@ function objectTextForType(type: EditorObjectType, options: EditorOptions) {
   return options.text || 'Editable text';
 }
 
-function defaultObjectForTool(tool: EditorToolId, pageIndex: number, options: EditorOptions): EditorObject | null {
+function defaultObjectForTool(
+  tool: EditorToolId,
+  pageIndex: number,
+  options: EditorOptions,
+): EditorObject | null {
   const type = editorObjectTypeForTool(tool);
   if (!type || type === 'doodle') return null;
   const base = {
@@ -440,14 +595,24 @@ function defaultObjectForTool(tool: EditorToolId, pageIndex: number, options: Ed
     type,
     color: tool === 'highlight' ? '#F7C948' : tool === 'redact' ? '#000000' : options.color || '#2BD9A8',
     opacity: parsePositiveNumber(options.opacity, 0.86, 0.05, 1),
-    thickness: parsePositiveNumber(options.thickness, type === 'signature' && options.signatureMode === 'draw' ? 2 : 4, 1, 24),
+    thickness: parsePositiveNumber(
+      options.thickness,
+      type === 'signature' && options.signatureMode === 'draw' ? 2 : 4,
+      1,
+      24,
+    ),
     fontSize:
       type === 'text'
         ? parsePositiveNumber(options.fontSize, 14, 6, 96)
         : type === 'signature'
           ? parsePositiveNumber(options.signatureFontSize, 24, 8, 96)
           : undefined,
-    rotation: parsePositiveNumber(options.rotation, type === 'watermark' ? -34 : type === 'stamp' ? -12 : type === 'signature' ? -8 : 0, -180, 180),
+    rotation: parsePositiveNumber(
+      options.rotation,
+      type === 'watermark' ? -34 : type === 'stamp' ? -12 : type === 'signature' ? -8 : 0,
+      -180,
+      180,
+    ),
     text: objectTextForType(type, options),
     bold: type === 'text' ? options.bold : false,
     italic: type === 'text' ? options.italic : false,
@@ -471,8 +636,12 @@ function defaultObjectForTool(tool: EditorToolId, pageIndex: number, options: Ed
     formRequired: type === 'form-field' ? options.formRequired : undefined,
     annotationMode: type === 'annotate' ? options.annotationMode : undefined,
   };
-  const formPreset = FORM_FIELD_PRESETS.find((preset) => preset.kind === options.formFieldKind) ?? FORM_FIELD_PRESETS[0];
-  const rects: Record<Exclude<EditorObjectType, 'doodle'>, Pick<EditorObject, 'x' | 'y' | 'width' | 'height'>> = {
+  const formPreset =
+    FORM_FIELD_PRESETS.find((preset) => preset.kind === options.formFieldKind) ?? FORM_FIELD_PRESETS[0];
+  const rects: Record<
+    Exclude<EditorObjectType, 'doodle'>,
+    Pick<EditorObject, 'x' | 'y' | 'width' | 'height'>
+  > = {
     text: { x: 0.19, y: 0.3, width: 0.44, height: 0.08 },
     watermark: { x: 0.1, y: 0.42, width: 0.8, height: 0.12 },
     stamp: { x: 0.24, y: 0.55, width: 0.48, height: 0.11 },
@@ -492,7 +661,12 @@ function syncObjectFromOptions(object: EditorObject, options: EditorOptions): Ed
   return clampEditorObject({
     ...object,
     text: objectTextForType(object.type, options),
-    color: object.type === 'highlight' ? options.color || '#F7C948' : object.type === 'redact' ? '#000000' : options.color || object.color,
+    color:
+      object.type === 'highlight'
+        ? options.color || '#F7C948'
+        : object.type === 'redact'
+          ? '#000000'
+          : options.color || object.color,
     opacity: parsePositiveNumber(options.opacity, object.opacity, 0.05, 1),
     thickness: parsePositiveNumber(options.thickness, object.thickness, 1, 24),
     fontSize:
@@ -515,7 +689,8 @@ function syncObjectFromOptions(object: EditorObject, options: EditorOptions): Ed
     signatureMode: object.type === 'signature' ? options.signatureMode : object.signatureMode,
     signaturePoints: object.type === 'signature' ? options.signaturePoints : object.signaturePoints,
     signaturePaths: object.type === 'signature' ? options.signaturePaths : object.signaturePaths,
-    signatureImageDataUrl: object.type === 'signature' ? options.signatureImageDataUrl : object.signatureImageDataUrl,
+    signatureImageDataUrl:
+      object.type === 'signature' ? options.signatureImageDataUrl : object.signatureImageDataUrl,
     signatureImageName: object.type === 'signature' ? options.signatureImageName : object.signatureImageName,
     formFieldKind: object.type === 'form-field' ? options.formFieldKind : object.formFieldKind,
     formValue: object.type === 'form-field' ? options.formValue : object.formValue,
@@ -610,7 +785,8 @@ function splitSegmentAroundPoint(a: EditorPoint, b: EditorPoint, point: EditorPo
 
 function doodleTouchesPoint(object: EditorObject, point: EditorPoint, radius: number) {
   const points = object.points ?? [];
-  if (points.some((candidate) => Math.hypot(candidate.x - point.x, candidate.y - point.y) <= radius)) return true;
+  if (points.some((candidate) => Math.hypot(candidate.x - point.x, candidate.y - point.y) <= radius))
+    return true;
   for (let i = 0; i < points.length - 1; i++) {
     if (distanceToSegment(point, points[i], points[i + 1]) <= radius) return true;
   }
@@ -738,7 +914,9 @@ export default function PdfEditorScreen() {
   const [activeTool, setActiveTool] = useState<EditorToolId>(initialTool);
   const catalogTool = findTool(activeTool);
   const isPremium = useAuth(selectIsPremium);
-  const routedFile = useLibrary((s) => (routeFileId ? s.files.find((item) => item.id === routeFileId) : undefined));
+  const routedFile = useLibrary((s) =>
+    routeFileId ? s.files.find((item) => item.id === routeFileId) : undefined,
+  );
   const [file, setFile] = useState<FileItem | null>(null);
   const [pages, setPages] = useState<PreviewPage[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -801,7 +979,10 @@ export default function PdfEditorScreen() {
   const pageCount = Math.max(1, pages.length);
   const pageWidth = Math.max(280, Math.min(desktop ? width - 650 : width - 36, 760) * zoom);
   const canApply = Boolean(file && pages.length > 0 && !rendering && !renderError);
-  const pageObjects = useMemo(() => objects.filter((object) => object.pageIndex === pageIndex), [objects, pageIndex]);
+  const pageObjects = useMemo(
+    () => objects.filter((object) => object.pageIndex === pageIndex),
+    [objects, pageIndex],
+  );
   const loadedRouteFileRef = useRef<string | null>(null);
 
   const pickFile = useCallback(async (picked: FileItem) => {
@@ -885,14 +1066,22 @@ export default function PdfEditorScreen() {
   useEffect(() => {
     if (!selectedObjectId) return;
     setObjects((prev) =>
-      prev.map((object) => (object.id === selectedObjectId ? syncObjectFromOptions(object, editorOptions) : object)),
+      prev.map((object) =>
+        object.id === selectedObjectId ? syncObjectFromOptions(object, editorOptions) : object,
+      ),
     );
   }, [editorOptions, selectedObjectId]);
 
   if (catalogTool?.premium && !isPremium) {
-    const upgradeRoute = premiumUpgradeRoute(catalogTool, `/pdf-editor?tool=${encodeURIComponent(activeTool)}`);
+    const upgradeRoute = premiumUpgradeRoute(
+      catalogTool,
+      `/pdf-editor?tool=${encodeURIComponent(activeTool)}`,
+    );
     return (
-      <SafeAreaView style={[styles.root, styles.lockedRoot, { backgroundColor: theme.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.root, styles.lockedRoot, { backgroundColor: theme.background }]}
+        edges={['top']}
+      >
         <View style={[styles.lockedCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={[styles.bigIcon, { backgroundColor: withAlpha(Accents.amber, 0.18) }]}>
             <Icon name="crown-outline" size={36} color={Accents.amber} />
@@ -903,8 +1092,19 @@ export default function PdfEditorScreen() {
           <Txt variant="caption" muted center>
             {catalogTool.premiumReason ?? `${catalogTool.title} is included with FileMint Premium.`}
           </Txt>
-          <Button title="Upgrade Now" icon="crown-outline" full onPress={() => router.push(upgradeRoute as never)} />
-          <Button title="View Plans" icon="credit-card-outline" variant="secondary" full onPress={() => router.push(upgradeRoute as never)} />
+          <Button
+            title="Upgrade Now"
+            icon="crown-outline"
+            full
+            onPress={() => router.push(upgradeRoute as never)}
+          />
+          <Button
+            title="View Plans"
+            icon="credit-card-outline"
+            variant="secondary"
+            full
+            onPress={() => router.push(upgradeRoute as never)}
+          />
           <Button title="Maybe Later" variant="ghost" full onPress={() => router.back()} />
         </View>
       </SafeAreaView>
@@ -915,43 +1115,69 @@ export default function PdfEditorScreen() {
     setSelectedObjectId(object.id);
     setEditorOptions((prev) => ({
       ...prev,
-      text: object.type === 'text' || object.type === 'watermark' ? object.text ?? prev.text : prev.text,
-      stampText: object.type === 'stamp' ? object.text ?? prev.stampText : prev.stampText,
-      stampDetail: object.type === 'stamp' ? object.stampDetail ?? prev.stampDetail : prev.stampDetail,
-      stampMode: object.type === 'stamp' ? object.stampMode ?? prev.stampMode : prev.stampMode,
-      stampShape: object.type === 'stamp' ? object.stampShape ?? prev.stampShape : prev.stampShape,
-      stampStyle: object.type === 'stamp' ? object.stampStyle ?? prev.stampStyle : prev.stampStyle,
-      stampImageDataUrl: object.type === 'stamp' ? object.stampImageDataUrl ?? prev.stampImageDataUrl : prev.stampImageDataUrl,
-      stampImageName: object.type === 'stamp' ? object.stampImageName ?? prev.stampImageName : prev.stampImageName,
+      text: object.type === 'text' || object.type === 'watermark' ? (object.text ?? prev.text) : prev.text,
+      stampText: object.type === 'stamp' ? (object.text ?? prev.stampText) : prev.stampText,
+      stampDetail: object.type === 'stamp' ? (object.stampDetail ?? prev.stampDetail) : prev.stampDetail,
+      stampMode: object.type === 'stamp' ? (object.stampMode ?? prev.stampMode) : prev.stampMode,
+      stampShape: object.type === 'stamp' ? (object.stampShape ?? prev.stampShape) : prev.stampShape,
+      stampStyle: object.type === 'stamp' ? (object.stampStyle ?? prev.stampStyle) : prev.stampStyle,
+      stampImageDataUrl:
+        object.type === 'stamp'
+          ? (object.stampImageDataUrl ?? prev.stampImageDataUrl)
+          : prev.stampImageDataUrl,
+      stampImageName:
+        object.type === 'stamp' ? (object.stampImageName ?? prev.stampImageName) : prev.stampImageName,
       signatureText:
-        object.type === 'signature' && (object.signatureMode ?? 'type') === 'type' ? object.text ?? prev.signatureText : prev.signatureText,
-      annotationText: object.type === 'annotate' ? object.text ?? prev.annotationText : prev.annotationText,
-      redactLabel: object.type === 'redact' ? object.text ?? prev.redactLabel : prev.redactLabel,
+        object.type === 'signature' && (object.signatureMode ?? 'type') === 'type'
+          ? (object.text ?? prev.signatureText)
+          : prev.signatureText,
+      annotationText: object.type === 'annotate' ? (object.text ?? prev.annotationText) : prev.annotationText,
+      redactLabel: object.type === 'redact' ? (object.text ?? prev.redactLabel) : prev.redactLabel,
       color: object.color,
       opacity: String(Number(object.opacity.toFixed(2))),
       thickness: String(Number(object.thickness.toFixed(1))),
       fontSize: String(Number((object.fontSize ?? 14).toFixed(1))),
-      signatureFontSize: object.type === 'signature' ? String(Number((object.fontSize ?? 24).toFixed(1))) : prev.signatureFontSize,
+      signatureFontSize:
+        object.type === 'signature'
+          ? String(Number((object.fontSize ?? 24).toFixed(1)))
+          : prev.signatureFontSize,
       rotation: String(Number(object.rotation.toFixed(1))),
       bold: Boolean(object.bold),
       italic: Boolean(object.italic),
       underline: Boolean(object.underline),
       align: object.align ?? prev.align,
-      signatureMode: object.type === 'signature' ? object.signatureMode ?? prev.signatureMode : prev.signatureMode,
-      signaturePoints: object.type === 'signature' ? object.signaturePoints ?? prev.signaturePoints : prev.signaturePoints,
-      signaturePaths: object.type === 'signature' ? object.signaturePaths ?? prev.signaturePaths : prev.signaturePaths,
-      signatureImageDataUrl: object.type === 'signature' ? object.signatureImageDataUrl ?? prev.signatureImageDataUrl : prev.signatureImageDataUrl,
-      signatureImageName: object.type === 'signature' ? object.signatureImageName ?? prev.signatureImageName : prev.signatureImageName,
-      formFieldKind: object.type === 'form-field' ? object.formFieldKind ?? prev.formFieldKind : prev.formFieldKind,
-      formValue: object.type === 'form-field' ? object.formValue ?? prev.formValue : prev.formValue,
-      formPlaceholder: object.type === 'form-field' ? object.formPlaceholder ?? prev.formPlaceholder : prev.formPlaceholder,
+      signatureMode:
+        object.type === 'signature' ? (object.signatureMode ?? prev.signatureMode) : prev.signatureMode,
+      signaturePoints:
+        object.type === 'signature' ? (object.signaturePoints ?? prev.signaturePoints) : prev.signaturePoints,
+      signaturePaths:
+        object.type === 'signature' ? (object.signaturePaths ?? prev.signaturePaths) : prev.signaturePaths,
+      signatureImageDataUrl:
+        object.type === 'signature'
+          ? (object.signatureImageDataUrl ?? prev.signatureImageDataUrl)
+          : prev.signatureImageDataUrl,
+      signatureImageName:
+        object.type === 'signature'
+          ? (object.signatureImageName ?? prev.signatureImageName)
+          : prev.signatureImageName,
+      formFieldKind:
+        object.type === 'form-field' ? (object.formFieldKind ?? prev.formFieldKind) : prev.formFieldKind,
+      formValue: object.type === 'form-field' ? (object.formValue ?? prev.formValue) : prev.formValue,
+      formPlaceholder:
+        object.type === 'form-field'
+          ? (object.formPlaceholder ?? prev.formPlaceholder)
+          : prev.formPlaceholder,
       formChecked: object.type === 'form-field' ? Boolean(object.formChecked) : prev.formChecked,
       formRequired: object.type === 'form-field' ? Boolean(object.formRequired) : prev.formRequired,
-      annotationMode: object.type === 'annotate' ? object.annotationMode ?? prev.annotationMode : prev.annotationMode,
+      annotationMode:
+        object.type === 'annotate' ? (object.annotationMode ?? prev.annotationMode) : prev.annotationMode,
     }));
   };
 
-  const patchEditorObject = (id: string, patch: Partial<EditorObject> | ((object: EditorObject) => EditorObject)) => {
+  const patchEditorObject = (
+    id: string,
+    patch: Partial<EditorObject> | ((object: EditorObject) => EditorObject),
+  ) => {
     setObjects((prev) =>
       prev.map((object) => {
         if (object.id !== id) return object;
@@ -974,7 +1200,9 @@ export default function PdfEditorScreen() {
   const eraseDoodlesAt = (targetPageIndex: number, point: EditorPoint, radius = 0.035) => {
     setObjects((prev) =>
       prev.flatMap((object) =>
-        object.type === 'doodle' && object.pageIndex === targetPageIndex ? splitDoodleObjectAt(object, point, radius) : [object],
+        object.type === 'doodle' && object.pageIndex === targetPageIndex
+          ? splitDoodleObjectAt(object, point, radius)
+          : [object],
       ),
     );
   };
@@ -986,7 +1214,9 @@ export default function PdfEditorScreen() {
       setToast({ tone: 'error', text: 'This tool does not place a box on the page' });
       return;
     }
-    const sameTypeCount = objects.filter((item) => item.pageIndex === pageIndex && item.type === object.type).length;
+    const sameTypeCount = objects.filter(
+      (item) => item.pageIndex === pageIndex && item.type === object.type,
+    ).length;
     if (optionOverrides) setEditorOptions((prev) => ({ ...prev, ...optionOverrides }));
     addEditorObject(
       clampEditorObject({
@@ -1017,7 +1247,9 @@ export default function PdfEditorScreen() {
       const targetPages = targetPagesForScope(applyScope, pageIndex, pageCount, pageRange);
       const currentType = editorObjectTypeForTool(activeTool);
       const defaultForExport =
-        currentType && currentType !== 'doodle' && !objects.some((object) => object.pageIndex === pageIndex && object.type === currentType)
+        currentType &&
+        currentType !== 'doodle' &&
+        !objects.some((object) => object.pageIndex === pageIndex && object.type === currentType)
           ? defaultObjectForTool(activeTool, pageIndex, editorOptions)
           : null;
       const exportObjects = defaultForExport ? [...objects, defaultForExport] : objects;
@@ -1045,10 +1277,15 @@ export default function PdfEditorScreen() {
             },
           });
           const remainingObjects = exportObjects.filter((object) => object.type !== 'redact');
-          output = remainingObjects.length ? await applyPdfEditorObjects(res.bytes, exportEditorObjects(remainingObjects)) : res.bytes;
+          output = remainingObjects.length
+            ? await applyPdfEditorObjects(res.bytes, exportEditorObjects(remainingObjects))
+            : res.bytes;
         } catch {
           output = await applyPdfEditorObjects(bytes, exportEditorObjects(exportObjects));
-          setToast({ tone: 'error', text: 'Server redaction unavailable; exported visual redaction fallback' });
+          setToast({
+            tone: 'error',
+            text: 'Server redaction unavailable; exported visual redaction fallback',
+          });
         }
       } else if (activeTool === 'crop-pdf') {
         output = await cropPdfEdges(bytes, cropEdgesFromQuad(quad), targetPages);
@@ -1059,9 +1296,12 @@ export default function PdfEditorScreen() {
           color: editorOptions.color,
           opacity: parsePositiveNumber(editorOptions.opacity, 0.86, 0.05, 1),
         });
-        if (exportObjects.length) output = await applyPdfEditorObjects(output, exportEditorObjects(exportObjects));
+        if (exportObjects.length)
+          output = await applyPdfEditorObjects(output, exportEditorObjects(exportObjects));
       } else if (canUsePdfEditorTool(activeTool)) {
-        output = exportObjects.length ? await applyPdfEditorObjects(bytes, exportEditorObjects(exportObjects)) : bytes;
+        output = exportObjects.length
+          ? await applyPdfEditorObjects(bytes, exportEditorObjects(exportObjects))
+          : bytes;
       } else {
         output = bytes;
       }
@@ -1149,9 +1389,15 @@ export default function PdfEditorScreen() {
               {tool.title}
             </Txt>
             <Txt variant="caption" muted center style={styles.pickSubtitle}>
-              Choose a PDF to open the full editor with thumbnails, canvas preview, zoom, crop, and tool controls.
+              Choose a PDF to open the full editor with thumbnails, canvas preview, zoom, crop, and tool
+              controls.
             </Txt>
-            <PickFile onPicked={pickFile} title="Select PDF" subtitle="Import from your device or choose an existing FileMint PDF." icon="file-pdf-box" />
+            <PickFile
+              onPicked={pickFile}
+              title="Select PDF"
+              subtitle="Import from your device or choose an existing FileMint PDF."
+              icon="file-pdf-box"
+            />
           </View>
         </View>
       ) : (
@@ -1160,7 +1406,12 @@ export default function PdfEditorScreen() {
             <PageSidebar pages={pages} pageIndex={pageIndex} loading={rendering} onSelect={setPageIndex} />
           ) : null}
           <View style={styles.canvasColumn}>
-            <View style={[styles.canvasHeader, { borderColor: theme.border, backgroundColor: theme.backgroundElevated }]}>
+            <View
+              style={[
+                styles.canvasHeader,
+                { borderColor: theme.border, backgroundColor: theme.backgroundElevated },
+              ]}
+            >
               <View style={styles.canvasTitle}>
                 <View style={[styles.toolPill, { backgroundColor: withAlpha(accent, 0.16) }]}>
                   <Icon name={tool.icon} size={18} color={accent} />
@@ -1175,8 +1426,20 @@ export default function PdfEditorScreen() {
                 </View>
               </View>
               <View style={styles.canvasNav}>
-                <IconButton name="chevron-left" variant="surface" disabled={pageIndex === 0} onPress={() => setPageIndex((p) => Math.max(0, p - 1))} accessibilityLabel="Previous page" />
-                <IconButton name="chevron-right" variant="surface" disabled={pageIndex >= pages.length - 1} onPress={() => setPageIndex((p) => Math.min(pages.length - 1, p + 1))} accessibilityLabel="Next page" />
+                <IconButton
+                  name="chevron-left"
+                  variant="surface"
+                  disabled={pageIndex === 0}
+                  onPress={() => setPageIndex((p) => Math.max(0, p - 1))}
+                  accessibilityLabel="Previous page"
+                />
+                <IconButton
+                  name="chevron-right"
+                  variant="surface"
+                  disabled={pageIndex >= pages.length - 1}
+                  onPress={() => setPageIndex((p) => Math.min(pages.length - 1, p + 1))}
+                  accessibilityLabel="Next page"
+                />
               </View>
             </View>
 
@@ -1204,12 +1467,24 @@ export default function PdfEditorScreen() {
                   contentContainerStyle={styles.stageContent}
                   horizontal
                   bounces={false}
-                  showsHorizontalScrollIndicator={false}>
-                  <ScrollView contentContainerStyle={styles.stageInner} bounces={false} showsVerticalScrollIndicator={false} scrollEnabled={!cropDragging && !canvasInteracting}>
+                  showsHorizontalScrollIndicator={false}
+                >
+                  <ScrollView
+                    contentContainerStyle={styles.stageInner}
+                    bounces={false}
+                    showsVerticalScrollIndicator={false}
+                    scrollEnabled={!cropDragging && !canvasInteracting}
+                  >
                     <View style={[styles.pageSurface, { width: pageWidth, aspectRatio: 0.707 }]}>
-                      {currentPage ? <Image source={{ uri: currentPage.uri }} resizeMode="contain" style={styles.pageImage} /> : null}
+                      {currentPage ? (
+                        <Image
+                          source={{ uri: currentPage.uri }}
+                          resizeMode="contain"
+                          style={styles.pageImage}
+                        />
+                      ) : null}
                       {activeTool === 'crop-pdf' ? (
-                      <CropOverlay
+                        <CropOverlay
                           quad={quad}
                           mode={cropMode}
                           accent={accent}
@@ -1258,11 +1533,21 @@ export default function PdfEditorScreen() {
             beforeAfter={beforeAfter}
             setBeforeAfter={setBeforeAfter}
             onAuto={() => {
-              setQuad({ tl: { x: 0.09, y: 0.08 }, tr: { x: 0.9, y: 0.09 }, br: { x: 0.88, y: 0.9 }, bl: { x: 0.1, y: 0.88 } });
+              setQuad({
+                tl: { x: 0.09, y: 0.08 },
+                tr: { x: 0.9, y: 0.09 },
+                br: { x: 0.88, y: 0.9 },
+                bl: { x: 0.1, y: 0.88 },
+              });
               setToast({ tone: 'success', text: 'Document edges detected' });
             }}
             onRemoveMargins={() => {
-              setQuad({ tl: { x: 0.06, y: 0.05 }, tr: { x: 0.94, y: 0.05 }, br: { x: 0.94, y: 0.95 }, bl: { x: 0.06, y: 0.95 } });
+              setQuad({
+                tl: { x: 0.06, y: 0.05 },
+                tr: { x: 0.94, y: 0.05 },
+                br: { x: 0.94, y: 0.95 },
+                bl: { x: 0.06, y: 0.95 },
+              });
               setToast({ tone: 'success', text: 'Margins removed in preview' });
             }}
             onPerfect={makePerfect}
@@ -1282,8 +1567,14 @@ export default function PdfEditorScreen() {
       )}
 
       {toast ? (
-        <View style={[styles.toast, { backgroundColor: toast.tone === 'success' ? theme.success : theme.danger }]}>
-          <Icon name={toast.tone === 'success' ? 'check-circle-outline' : 'alert-circle-outline'} size={18} color="#06120E" />
+        <View
+          style={[styles.toast, { backgroundColor: toast.tone === 'success' ? theme.success : theme.danger }]}
+        >
+          <Icon
+            name={toast.tone === 'success' ? 'check-circle-outline' : 'alert-circle-outline'}
+            size={18}
+            color="#06120E"
+          />
           <Txt variant="label" style={{ color: '#06120E' }}>
             {toast.text}
           </Txt>
@@ -1345,17 +1636,48 @@ function TopToolbar({
               {fileName ?? 'No file selected'}
             </Txt>
           </View>
-          <IconButton name="content-save-outline" variant="surface" onPress={onSave} disabled={saving || !canSave} accessibilityLabel="Save or export" />
+          <IconButton
+            name="content-save-outline"
+            variant="surface"
+            onPress={onSave}
+            disabled={saving || !canSave}
+            accessibilityLabel="Save or export"
+          />
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mobileToolbarContent}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.mobileToolbarContent}
+        >
           <IconButton name="undo" variant="surface" onPress={onUndo} accessibilityLabel="Undo" />
           <IconButton name="redo" variant="surface" onPress={onRedo} accessibilityLabel="Redo" />
-          <IconButton name="magnify-minus-outline" variant="surface" onPress={onZoomOut} accessibilityLabel="Zoom out" />
-          <Pressable onPress={onFit} style={[styles.zoomPill, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]} accessibilityRole="button">
+          <IconButton
+            name="magnify-minus-outline"
+            variant="surface"
+            onPress={onZoomOut}
+            accessibilityLabel="Zoom out"
+          />
+          <Pressable
+            onPress={onFit}
+            style={[styles.zoomPill, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+            accessibilityRole="button"
+          >
             <Txt variant="tiny">{Math.round(zoom * 100)}%</Txt>
           </Pressable>
-          <IconButton name="magnify-plus-outline" variant="surface" onPress={onZoomIn} accessibilityLabel="Zoom in" />
-          <Button title="Export" icon="export-variant" size="sm" onPress={onSave} loading={saving} disabled={!canSave} />
+          <IconButton
+            name="magnify-plus-outline"
+            variant="surface"
+            onPress={onZoomIn}
+            accessibilityLabel="Zoom in"
+          />
+          <Button
+            title="Export"
+            icon="export-variant"
+            size="sm"
+            onPress={onSave}
+            loading={saving}
+            disabled={!canSave}
+          />
         </ScrollView>
       </View>
     );
@@ -1376,18 +1698,49 @@ function TopToolbar({
         <IconButton name="redo" variant="surface" onPress={onRedo} accessibilityLabel="Redo" />
       </View>
       <View style={styles.zoomGroup}>
-        <IconButton name="magnify-minus-outline" variant="surface" onPress={onZoomOut} accessibilityLabel="Zoom out" />
-        <Pressable onPress={onFit} style={[styles.zoomPill, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]} accessibilityRole="button">
+        <IconButton
+          name="magnify-minus-outline"
+          variant="surface"
+          onPress={onZoomOut}
+          accessibilityLabel="Zoom out"
+        />
+        <Pressable
+          onPress={onFit}
+          style={[styles.zoomPill, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+          accessibilityRole="button"
+        >
           <Txt variant="tiny">{Math.round(zoom * 100)}%</Txt>
         </Pressable>
-        <IconButton name="magnify-plus-outline" variant="surface" onPress={onZoomIn} accessibilityLabel="Zoom in" />
+        <IconButton
+          name="magnify-plus-outline"
+          variant="surface"
+          onPress={onZoomIn}
+          accessibilityLabel="Zoom in"
+        />
       </View>
-      <Button title="Save / Export" icon="content-save-outline" size="sm" onPress={onSave} loading={saving} disabled={!canSave} />
+      <Button
+        title="Save / Export"
+        icon="content-save-outline"
+        size="sm"
+        onPress={onSave}
+        loading={saving}
+        disabled={!canSave}
+      />
     </View>
   );
 }
 
-function PageSidebar({ pages, pageIndex, loading, onSelect }: { pages: PreviewPage[]; pageIndex: number; loading: boolean; onSelect: (index: number) => void }) {
+function PageSidebar({
+  pages,
+  pageIndex,
+  loading,
+  onSelect,
+}: {
+  pages: PreviewPage[];
+  pageIndex: number;
+  loading: boolean;
+  onSelect: (index: number) => void;
+}) {
   const theme = useTheme();
   return (
     <View style={[styles.sidebar, { backgroundColor: theme.backgroundElevated, borderColor: theme.border }]}>
@@ -1405,7 +1758,8 @@ function PageSidebar({ pages, pageIndex, loading, onSelect }: { pages: PreviewPa
                     borderColor: page.index === pageIndex ? theme.primary : theme.border,
                     backgroundColor: page.index === pageIndex ? theme.primaryMuted : theme.backgroundElement,
                   },
-                ]}>
+                ]}
+              >
                 <Image source={{ uri: page.uri }} resizeMode="cover" style={styles.sideThumbImage} />
                 <Txt variant="tiny">Page {page.index + 1}</Txt>
               </Pressable>
@@ -1415,11 +1769,27 @@ function PageSidebar({ pages, pageIndex, loading, onSelect }: { pages: PreviewPa
   );
 }
 
-function PageStrip({ pages, pageIndex, loading, onSelect }: { pages: PreviewPage[]; pageIndex: number; loading: boolean; onSelect: (index: number) => void }) {
+function PageStrip({
+  pages,
+  pageIndex,
+  loading,
+  onSelect,
+}: {
+  pages: PreviewPage[];
+  pageIndex: number;
+  loading: boolean;
+  onSelect: (index: number) => void;
+}) {
   const theme = useTheme();
   return (
-    <View style={[styles.mobileStrip, { backgroundColor: theme.backgroundElevated, borderColor: theme.border }]}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mobileStripContent}>
+    <View
+      style={[styles.mobileStrip, { backgroundColor: theme.backgroundElevated, borderColor: theme.border }]}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.mobileStripContent}
+      >
         {loading && !pages.length
           ? [0, 1, 2].map((i) => <PageSkeleton key={i} compact />)
           : pages.map((page) => (
@@ -1432,7 +1802,8 @@ function PageStrip({ pages, pageIndex, loading, onSelect }: { pages: PreviewPage
                     borderColor: page.index === pageIndex ? theme.primary : theme.border,
                     backgroundColor: page.index === pageIndex ? theme.primaryMuted : theme.backgroundElement,
                   },
-                ]}>
+                ]}
+              >
                 <Image source={{ uri: page.uri }} resizeMode="cover" style={styles.stripThumbImage} />
                 <Txt variant="tiny">{page.index + 1}</Txt>
               </Pressable>
@@ -1445,8 +1816,18 @@ function PageStrip({ pages, pageIndex, loading, onSelect }: { pages: PreviewPage
 function PageSkeleton({ compact }: { compact?: boolean }) {
   const theme = useTheme();
   return (
-    <View style={[compact ? styles.stripThumb : styles.sideThumb, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <View style={[compact ? styles.stripThumbImage : styles.sideThumbImage, { backgroundColor: theme.skeleton, alignItems: 'center', justifyContent: 'center' }]}>
+    <View
+      style={[
+        compact ? styles.stripThumb : styles.sideThumb,
+        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+      ]}
+    >
+      <View
+        style={[
+          compact ? styles.stripThumbImage : styles.sideThumbImage,
+          { backgroundColor: theme.skeleton, alignItems: 'center', justifyContent: 'center' },
+        ]}
+      >
         <ActivityIndicator color={theme.primary} />
       </View>
     </View>
@@ -1636,23 +2017,50 @@ function CropOverlay({
       testID="crop-overlay"
       ref={overlayRef as never}
       style={[StyleSheet.absoluteFill, WEB_GESTURE_STYLE]}
-      onLayout={(e: LayoutChangeEvent) => setLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+      onLayout={(e: LayoutChangeEvent) =>
+        setLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
+      }
       {...pan.panHandlers}
-      {...pointerHandlers}>
+      {...pointerHandlers}
+    >
       <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Path d={path} fill="rgba(3,7,12,0.62)" fillRule="evenodd" />
         {gridLines.map((line, index) => (
-          <Line key={index} x1={line.a.x} y1={line.a.y} x2={line.b.x} y2={line.b.y} stroke={withAlpha(accent, 0.52)} strokeWidth={1.2} strokeDasharray="7 6" />
+          <Line
+            key={index}
+            x1={line.a.x}
+            y1={line.a.y}
+            x2={line.b.x}
+            y2={line.b.y}
+            stroke={withAlpha(accent, 0.52)}
+            strokeWidth={1.2}
+            strokeDasharray="7 6"
+          />
         ))}
         <Polygon points={polyPoints} fill="transparent" stroke={accent} strokeWidth={3.5} />
-        <Circle cx={center.x} cy={center.y} r={20} fill={withAlpha(accent, 0.22)} stroke={accent} strokeWidth={1.5} />
+        <Circle
+          cx={center.x}
+          cy={center.y}
+          r={20}
+          fill={withAlpha(accent, 0.22)}
+          stroke={accent}
+          strokeWidth={1.5}
+        />
       </Svg>
       {(['tl', 'tr', 'br', 'bl'] as CropPointKey[]).map((key) => (
         <View
           key={key}
           testID={`crop-handle-${key}`}
           pointerEvents="none"
-          style={[styles.cornerHandle, { left: px[key].x - 16, top: px[key].y - 16, borderColor: accent, backgroundColor: theme.background }]}
+          style={[
+            styles.cornerHandle,
+            {
+              left: px[key].x - 16,
+              top: px[key].y - 16,
+              borderColor: accent,
+              backgroundColor: theme.background,
+            },
+          ]}
         />
       ))}
       {(['top', 'right', 'bottom', 'left'] as const).map((key) => (
@@ -1660,15 +2068,40 @@ function CropOverlay({
           key={key}
           testID={`crop-handle-${key}`}
           pointerEvents="none"
-          style={[styles.edgeHandle, { left: mids[key].x - 12, top: mids[key].y - 12, backgroundColor: accent }]}
+          style={[
+            styles.edgeHandle,
+            { left: mids[key].x - 12, top: mids[key].y - 12, backgroundColor: accent },
+          ]}
         />
       ))}
-      <View pointerEvents="none" style={[styles.dragHint, { left: center.x - 64, top: center.y + 28, backgroundColor: withAlpha(theme.background, 0.88), borderColor: withAlpha(accent, 0.7) }]}>
+      <View
+        pointerEvents="none"
+        style={[
+          styles.dragHint,
+          {
+            left: center.x - 64,
+            top: center.y + 28,
+            backgroundColor: withAlpha(theme.background, 0.88),
+            borderColor: withAlpha(accent, 0.7),
+          },
+        ]}
+      >
         <Icon name="cursor-move" size={14} color={accent} />
         <Txt variant="tiny">Drag crop</Txt>
       </View>
       {dragging ? (
-        <View pointerEvents="none" style={[styles.magnifier, { left: Math.min(layout.width - 116, dragging.x + 18), top: Math.max(8, dragging.y - 74), borderColor: accent, backgroundColor: theme.backgroundElevated }]}>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.magnifier,
+            {
+              left: Math.min(layout.width - 116, dragging.x + 18),
+              top: Math.max(8, dragging.y - 74),
+              borderColor: accent,
+              backgroundColor: theme.backgroundElevated,
+            },
+          ]}
+        >
           <Icon name="magnify" size={16} color={accent} />
           <Txt variant="tiny">{dragging.target}</Txt>
         </View>
@@ -1713,7 +2146,12 @@ function EditorObjectsOverlay({
   const eraserEnabled = drawingEnabled && options.doodleMode === 'eraser';
   const strokeColor = options.color || accent;
   const strokeWidth = parsePositiveNumber(options.thickness, options.doodleMode === 'marker' ? 9 : 4, 1, 24);
-  const strokeOpacity = parsePositiveNumber(options.opacity, options.doodleMode === 'marker' ? 0.55 : 0.86, 0.05, 1);
+  const strokeOpacity = parsePositiveNumber(
+    options.opacity,
+    options.doodleMode === 'marker' ? 0.55 : 0.86,
+    0.05,
+    1,
+  );
   const eraserRadius = 0.035;
 
   const localPointFromClient = (clientX: number, clientY: number) => {
@@ -1801,7 +2239,11 @@ function EditorObjectsOverlay({
           },
           onPointerMove: (evt: unknown) => {
             if (!drawingRef.current.length) return;
-            const e = evt as { preventDefault?: () => void; stopPropagation?: () => void; nativeEvent?: { clientX: number; clientY: number } };
+            const e = evt as {
+              preventDefault?: () => void;
+              stopPropagation?: () => void;
+              nativeEvent?: { clientX: number; clientY: number };
+            };
             const native = e.nativeEvent;
             if (!native) return;
             e.preventDefault?.();
@@ -1826,25 +2268,45 @@ function EditorObjectsOverlay({
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: (evt) => {
           if (Platform.OS === 'web' || !drawingEnabled) return;
-          beginDrawing({ x: clampUnit(evt.nativeEvent.locationX / layout.width), y: clampUnit(evt.nativeEvent.locationY / layout.height) });
+          beginDrawing({
+            x: clampUnit(evt.nativeEvent.locationX / layout.width),
+            y: clampUnit(evt.nativeEvent.locationY / layout.height),
+          });
         },
         onPanResponderMove: (evt) => {
           if (Platform.OS === 'web' || !drawingEnabled || !drawingRef.current.length) return;
-          updateDrawing({ x: clampUnit(evt.nativeEvent.locationX / layout.width), y: clampUnit(evt.nativeEvent.locationY / layout.height) });
+          updateDrawing({
+            x: clampUnit(evt.nativeEvent.locationX / layout.width),
+            y: clampUnit(evt.nativeEvent.locationY / layout.height),
+          });
         },
         onPanResponderRelease: endDrawing,
         onPanResponderTerminate: endDrawing,
       }),
-    [drawingEnabled, eraserEnabled, layout.height, layout.width, onEraseDoodlesAt, options.color, options.doodleMode, options.opacity, options.thickness, pageIndex],
+    [
+      drawingEnabled,
+      eraserEnabled,
+      layout.height,
+      layout.width,
+      onEraseDoodlesAt,
+      options.color,
+      options.doodleMode,
+      options.opacity,
+      options.thickness,
+      pageIndex,
+    ],
   );
 
   return (
     <View
       ref={overlayRef as never}
       style={[StyleSheet.absoluteFill, WEB_GESTURE_STYLE]}
-      onLayout={(event: LayoutChangeEvent) => setLayout({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
+      onLayout={(event: LayoutChangeEvent) =>
+        setLayout({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })
+      }
       {...drawPan.panHandlers}
-      {...pointerHandlers}>
+      {...pointerHandlers}
+    >
       <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
         {objects
           .filter((object) => object.type === 'doodle')
@@ -1922,8 +2384,18 @@ function EditorObjectsOverlay({
           />
         ))}
       {drawingEnabled && !drawingPoints.length ? (
-        <View pointerEvents="none" style={[styles.drawHint, { backgroundColor: withAlpha(theme.background, 0.76), borderColor: withAlpha(strokeColor, 0.58) }]}>
-          <Icon name={eraserEnabled ? 'eraser' : 'gesture-tap'} size={16} color={eraserEnabled ? accent : strokeColor} />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.drawHint,
+            { backgroundColor: withAlpha(theme.background, 0.76), borderColor: withAlpha(strokeColor, 0.58) },
+          ]}
+        >
+          <Icon
+            name={eraserEnabled ? 'eraser' : 'gesture-tap'}
+            size={16}
+            color={eraserEnabled ? accent : strokeColor}
+          />
           <Txt variant="tiny">{eraserEnabled ? 'Erase strokes' : 'Draw on the page'}</Txt>
         </View>
       ) : null}
@@ -1968,7 +2440,10 @@ function EditablePageObject({
     if (!pointerDrag.current) return;
     const dx = (clientX - pointerDrag.current.startX) / Math.max(1, layout.width);
     const dy = (clientY - pointerDrag.current.startY) / Math.max(1, layout.height);
-    onPatch(objectRef.current.id, { x: pointerDrag.current.start.x + dx, y: pointerDrag.current.start.y + dy });
+    onPatch(objectRef.current.id, {
+      x: pointerDrag.current.start.x + dx,
+      y: pointerDrag.current.start.y + dy,
+    });
   };
 
   const endObjectDrag = () => {
@@ -1995,7 +2470,11 @@ function EditablePageObject({
           },
           onPointerMove: (evt: unknown) => {
             if (!pointerDrag.current) return;
-            const e = evt as { preventDefault?: () => void; stopPropagation?: () => void; nativeEvent?: { clientX: number; clientY: number } };
+            const e = evt as {
+              preventDefault?: () => void;
+              stopPropagation?: () => void;
+              nativeEvent?: { clientX: number; clientY: number };
+            };
             const native = e.nativeEvent;
             if (!native) return;
             e.preventDefault?.();
@@ -2052,15 +2531,32 @@ function EditablePageObject({
           width: `${object.width * 100}%`,
           height: `${object.height * 100}%`,
           borderColor: selected ? accent : withAlpha(object.color, 0.42),
-          transform: [{ rotate: object.type === 'text' || object.type === 'highlight' || object.type === 'redact' || object.type === 'annotate' ? '0deg' : `${object.rotation}deg` }],
+          transform: [
+            {
+              rotate:
+                object.type === 'text' ||
+                object.type === 'highlight' ||
+                object.type === 'redact' ||
+                object.type === 'annotate'
+                  ? '0deg'
+                  : `${object.rotation}deg`,
+            },
+          ],
         },
       ]}
       {...dragPan.panHandlers}
-      {...pointerHandlers}>
+      {...pointerHandlers}
+    >
       <ObjectPreview object={object} selected={selected} accent={accent} />
       {selected ? (
         <>
-          <View pointerEvents="none" style={[styles.objectToolbar, { backgroundColor: theme.backgroundElevated, borderColor: theme.border }]}>
+          <View
+            pointerEvents="none"
+            style={[
+              styles.objectToolbar,
+              { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+            ]}
+          >
             <Icon name="cursor-move" size={14} color={accent} />
             <Txt variant="tiny">Drag</Txt>
           </View>
@@ -2145,7 +2641,11 @@ function ResizeHandle({
           },
           onPointerMove: (evt: unknown) => {
             if (!pointerResize.current) return;
-            const e = evt as { preventDefault?: () => void; stopPropagation?: () => void; nativeEvent?: { clientX: number; clientY: number } };
+            const e = evt as {
+              preventDefault?: () => void;
+              stopPropagation?: () => void;
+              nativeEvent?: { clientX: number; clientY: number };
+            };
             const native = e.nativeEvent;
             if (!native) return;
             e.preventDefault?.();
@@ -2197,7 +2697,13 @@ function ResizeHandle({
     sw: styles.resizeHandle_sw,
     se: styles.resizeHandle_se,
   };
-  return <View {...pan.panHandlers} {...pointerHandlers} style={[styles.resizeHandle, handleStyles[corner], WEB_GESTURE_STYLE, { backgroundColor: accent }]} />;
+  return (
+    <View
+      {...pan.panHandlers}
+      {...pointerHandlers}
+      style={[styles.resizeHandle, handleStyles[corner], WEB_GESTURE_STYLE, { backgroundColor: accent }]}
+    />
+  );
 }
 
 function SignatureDrawPad({
@@ -2263,7 +2769,11 @@ function SignatureDrawPad({
           },
           onPointerMove: (evt: unknown) => {
             if (!draftRef.current.length) return;
-            const e = evt as { preventDefault?: () => void; stopPropagation?: () => void; nativeEvent?: { clientX: number; clientY: number } };
+            const e = evt as {
+              preventDefault?: () => void;
+              stopPropagation?: () => void;
+              nativeEvent?: { clientX: number; clientY: number };
+            };
             const native = e.nativeEvent;
             if (!native) return;
             e.preventDefault?.();
@@ -2288,11 +2798,17 @@ function SignatureDrawPad({
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: (evt) => {
           if (Platform.OS === 'web') return;
-          begin({ x: clampUnit(evt.nativeEvent.locationX / layout.width), y: clampUnit(evt.nativeEvent.locationY / layout.height) });
+          begin({
+            x: clampUnit(evt.nativeEvent.locationX / layout.width),
+            y: clampUnit(evt.nativeEvent.locationY / layout.height),
+          });
         },
         onPanResponderMove: (evt) => {
           if (Platform.OS === 'web') return;
-          move({ x: clampUnit(evt.nativeEvent.locationX / layout.width), y: clampUnit(evt.nativeEvent.locationY / layout.height) });
+          move({
+            x: clampUnit(evt.nativeEvent.locationX / layout.width),
+            y: clampUnit(evt.nativeEvent.locationY / layout.height),
+          });
         },
         onPanResponderRelease: end,
         onPanResponderTerminate: end,
@@ -2305,10 +2821,18 @@ function SignatureDrawPad({
   return (
     <View
       ref={padRef as never}
-      style={[styles.signaturePad, styles.signatureDrawPad, WEB_GESTURE_STYLE, { backgroundColor: theme.backgroundElement }]}
-      onLayout={(event: LayoutChangeEvent) => setLayout({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
+      style={[
+        styles.signaturePad,
+        styles.signatureDrawPad,
+        WEB_GESTURE_STYLE,
+        { backgroundColor: theme.backgroundElement },
+      ]}
+      onLayout={(event: LayoutChangeEvent) =>
+        setLayout({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })
+      }
       {...pan.panHandlers}
-      {...pointerHandlers}>
+      {...pointerHandlers}
+    >
       <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
         {visiblePaths
           .filter((path) => path.length > 1)
@@ -2337,15 +2861,35 @@ function SignatureDrawPad({
   );
 }
 
-function ObjectPreview({ object, selected, accent }: { object: EditorObject; selected: boolean; accent: string }) {
+function ObjectPreview({
+  object,
+  selected,
+  accent,
+}: {
+  object: EditorObject;
+  selected: boolean;
+  accent: string;
+}) {
   const theme = useTheme();
   if (object.type === 'highlight') {
-    return <View style={[styles.objectFill, { backgroundColor: withAlpha(object.color, Math.min(0.58, object.opacity)), borderColor: object.color }]} />;
+    return (
+      <View
+        style={[
+          styles.objectFill,
+          {
+            backgroundColor: withAlpha(object.color, Math.min(0.58, object.opacity)),
+            borderColor: object.color,
+          },
+        ]}
+      />
+    );
   }
   if (object.type === 'redact') {
     return (
       <View style={[styles.objectFill, styles.redactionFill]}>
-        <Txt variant="tiny" center style={{ color: '#FFFFFF' }}>{object.text || 'Redacted'}</Txt>
+        <Txt variant="tiny" center style={{ color: '#FFFFFF' }}>
+          {object.text || 'Redacted'}
+        </Txt>
       </View>
     );
   }
@@ -2354,9 +2898,20 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
       return <View style={[styles.objectFill, styles.annotationShapeFill, { borderColor: object.color }]} />;
     }
     return (
-      <View style={[styles.objectFill, styles.annotationFill, object.annotationMode === 'callout' ? styles.annotationCalloutFill : null, { borderColor: object.color }]}>
-        {object.annotationMode === 'callout' ? <View style={[styles.calloutPointer, { backgroundColor: object.color }]} /> : null}
-        <Txt variant="tiny" style={{ color: '#111827' }}>{object.text || 'Review note'}</Txt>
+      <View
+        style={[
+          styles.objectFill,
+          styles.annotationFill,
+          object.annotationMode === 'callout' ? styles.annotationCalloutFill : null,
+          { borderColor: object.color },
+        ]}
+      >
+        {object.annotationMode === 'callout' ? (
+          <View style={[styles.calloutPointer, { backgroundColor: object.color }]} />
+        ) : null}
+        <Txt variant="tiny" style={{ color: '#111827' }}>
+          {object.text || 'Review note'}
+        </Txt>
       </View>
     );
   }
@@ -2365,7 +2920,11 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
       return (
         <View style={[styles.objectFill, styles.stampUploadFill, { borderColor: object.color }]}>
           {object.stampImageDataUrl ? (
-            <Image source={{ uri: object.stampImageDataUrl }} resizeMode="contain" style={styles.stampImagePreview} />
+            <Image
+              source={{ uri: object.stampImageDataUrl }}
+              resizeMode="contain"
+              style={styles.stampImagePreview}
+            />
           ) : (
             <View style={styles.signaturePadEmpty}>
               <Icon name="image-plus" size={18} color={object.color} />
@@ -2379,7 +2938,12 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
     }
     const filled = object.stampStyle === 'filled';
     const double = object.stampStyle === 'double';
-    const shapeStyle = object.stampShape === 'seal' ? styles.stampSealFill : object.stampShape === 'pill' ? styles.stampPillFill : null;
+    const shapeStyle =
+      object.stampShape === 'seal'
+        ? styles.stampSealFill
+        : object.stampShape === 'pill'
+          ? styles.stampPillFill
+          : null;
     return (
       <View
         style={[
@@ -2388,11 +2952,21 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
           shapeStyle,
           {
             borderColor: object.color,
-            backgroundColor: filled ? withAlpha(object.color, Math.min(0.22, object.opacity * 0.22)) : withAlpha(object.color, 0.035),
+            backgroundColor: filled
+              ? withAlpha(object.color, Math.min(0.22, object.opacity * 0.22))
+              : withAlpha(object.color, 0.035),
           },
-        ]}>
-        {double ? <View pointerEvents="none" style={[styles.stampInnerBorder, shapeStyle, { borderColor: withAlpha(object.color, 0.72) }]} /> : null}
-        {object.stampShape === 'seal' ? <Icon name="star-four-points-outline" size={16} color={object.color} /> : null}
+        ]}
+      >
+        {double ? (
+          <View
+            pointerEvents="none"
+            style={[styles.stampInnerBorder, shapeStyle, { borderColor: withAlpha(object.color, 0.72) }]}
+          />
+        ) : null}
+        {object.stampShape === 'seal' ? (
+          <Icon name="star-four-points-outline" size={16} color={object.color} />
+        ) : null}
         <Txt variant="label" center numberOfLines={1} style={{ color: object.color }}>
           {(object.text || 'APPROVED').toUpperCase()}
         </Txt>
@@ -2403,7 +2977,11 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
     );
   }
   if (object.type === 'signature') {
-    const signaturePaths = object.signaturePaths?.length ? object.signaturePaths : object.signaturePoints?.length ? [object.signaturePoints] : [];
+    const signaturePaths = object.signaturePaths?.length
+      ? object.signaturePaths
+      : object.signaturePoints?.length
+        ? [object.signaturePoints]
+        : [];
     if (object.signatureMode === 'draw') {
       return (
         <View style={[styles.objectFill, styles.signatureFill, { borderColor: object.color }]}>
@@ -2434,7 +3012,11 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
       return (
         <View style={[styles.objectFill, styles.signatureFill, { borderColor: object.color }]}>
           {object.signatureImageDataUrl ? (
-            <Image source={{ uri: object.signatureImageDataUrl }} resizeMode="contain" style={styles.signatureObjectImage} />
+            <Image
+              source={{ uri: object.signatureImageDataUrl }}
+              resizeMode="contain"
+              style={styles.signatureObjectImage}
+            />
           ) : (
             <Txt variant="tiny" center muted>
               Upload signature
@@ -2445,24 +3027,51 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
     }
     return (
       <View style={[styles.objectFill, styles.signatureFill, { borderColor: object.color }]}>
-        <Txt variant="h3" center style={{ color: object.color, fontStyle: 'italic', fontSize: object.fontSize ?? 24 }}>{object.text || 'Signature'}</Txt>
+        <Txt
+          variant="h3"
+          center
+          style={{ color: object.color, fontStyle: 'italic', fontSize: object.fontSize ?? 24 }}
+        >
+          {object.text || 'Signature'}
+        </Txt>
       </View>
     );
   }
   if (object.type === 'watermark') {
     return (
       <View style={[styles.objectFill, styles.watermarkFill]}>
-        <Txt variant="title" center style={{ color: withAlpha(object.color, Math.min(0.72, object.opacity)) }}>{object.text || 'CONFIDENTIAL'}</Txt>
+        <Txt
+          variant="title"
+          center
+          style={{ color: withAlpha(object.color, Math.min(0.72, object.opacity)) }}
+        >
+          {object.text || 'CONFIDENTIAL'}
+        </Txt>
       </View>
     );
   }
   if (object.type === 'form-field') {
     const kind = object.formFieldKind ?? 'text';
-    const label = object.formValue || object.formPlaceholder || (kind === 'checkbox' ? 'Checked' : 'Form field');
+    const label =
+      object.formValue || object.formPlaceholder || (kind === 'checkbox' ? 'Checked' : 'Form field');
     if (kind === 'checkbox') {
       return (
-        <View style={[styles.objectFill, styles.formCheckboxFill, { borderColor: object.color, backgroundColor: withAlpha(object.color, 0.05) }]}>
-          <View style={[styles.formCheckboxBox, { borderColor: object.color, backgroundColor: object.formChecked ? withAlpha(object.color, 0.18) : 'transparent' }]}>
+        <View
+          style={[
+            styles.objectFill,
+            styles.formCheckboxFill,
+            { borderColor: object.color, backgroundColor: withAlpha(object.color, 0.05) },
+          ]}
+        >
+          <View
+            style={[
+              styles.formCheckboxBox,
+              {
+                borderColor: object.color,
+                backgroundColor: object.formChecked ? withAlpha(object.color, 0.18) : 'transparent',
+              },
+            ]}
+          >
             {object.formChecked ? <Icon name="check-bold" size={18} color={object.color} /> : null}
           </View>
           <Txt variant="tiny" numberOfLines={1} style={{ color: object.color }}>
@@ -2482,21 +3091,46 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
       );
     }
     return (
-      <View style={[styles.objectFill, styles.formFieldFill, { borderColor: object.color, backgroundColor: withAlpha(theme.background, selected ? 0.84 : 0.66) }]}>
+      <View
+        style={[
+          styles.objectFill,
+          styles.formFieldFill,
+          { borderColor: object.color, backgroundColor: withAlpha(theme.background, selected ? 0.84 : 0.66) },
+        ]}
+      >
         <View style={styles.formFieldTopRow}>
           <Txt variant="tiny" numberOfLines={1} style={{ color: object.color }}>
-            {kind === 'date' ? 'Date' : kind === 'initials' ? 'Initials' : object.formRequired ? 'Required' : 'Text'}
+            {kind === 'date'
+              ? 'Date'
+              : kind === 'initials'
+                ? 'Initials'
+                : object.formRequired
+                  ? 'Required'
+                  : 'Text'}
           </Txt>
           {object.formRequired ? <Icon name="asterisk" size={12} color={object.color} /> : null}
         </View>
-        <Txt variant="label" numberOfLines={1} style={{ color: object.formValue ? theme.text : theme.textMuted }}>
+        <Txt
+          variant="label"
+          numberOfLines={1}
+          style={{ color: object.formValue ? theme.text : theme.textMuted }}
+        >
           {label}
         </Txt>
       </View>
     );
   }
   return (
-    <View style={[styles.objectFill, styles.textFill, { backgroundColor: withAlpha(theme.background, selected ? 0.78 : 0.56), borderColor: selected ? accent : withAlpha(object.color, 0.5) }]}>
+    <View
+      style={[
+        styles.objectFill,
+        styles.textFill,
+        {
+          backgroundColor: withAlpha(theme.background, selected ? 0.78 : 0.56),
+          borderColor: selected ? accent : withAlpha(object.color, 0.5),
+        },
+      ]}
+    >
       <Txt
         variant="label"
         style={{
@@ -2507,7 +3141,8 @@ function ObjectPreview({ object, selected, accent }: { object: EditorObject; sel
           textDecorationLine: object.underline ? 'underline' : 'none',
           textAlign: object.align ?? 'left',
           width: '100%',
-        }}>
+        }}
+      >
         {object.text || 'Editable text'}
       </Txt>
     </View>
@@ -2532,7 +3167,8 @@ function endPoints(points: EditorPoint[]) {
 
 function pathFromDoodleObject(object: EditorObject, layout: { width: number; height: number }) {
   const points = object.points ?? [];
-  if (object.doodleMode === 'vector' || object.doodleMode === 'arrow') return pathFromPoints(endPoints(points), layout);
+  if (object.doodleMode === 'vector' || object.doodleMode === 'arrow')
+    return pathFromPoints(endPoints(points), layout);
   return pathFromPoints(points, layout);
 }
 
@@ -2610,25 +3246,35 @@ function ToolSettings({
   const desktop = useIsDesktop();
   const accent = Accents[tool.accent];
   return (
-    <View style={[desktop ? styles.settingsPanel : styles.mobileSheet, { backgroundColor: theme.backgroundElevated, borderColor: theme.border }]}>
+    <View
+      style={[
+        desktop ? styles.settingsPanel : styles.mobileSheet,
+        { backgroundColor: theme.backgroundElevated, borderColor: theme.border },
+      ]}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.settingsContent,
           !desktop && resultFile ? styles.settingsContentWithResultDock : null,
-        ]}>
+        ]}
+      >
         <View style={styles.panelHeader}>
           <View style={[styles.toolPill, { backgroundColor: withAlpha(accent, 0.16) }]}>
             <Icon name={tool.icon} size={20} color={accent} />
           </View>
           <View style={{ flex: 1 }}>
             <Txt variant="h3">{tool.title}</Txt>
-            <Txt variant="tiny" muted>{tool.subtitle}</Txt>
+            <Txt variant="tiny" muted>
+              {tool.subtitle}
+            </Txt>
           </View>
         </View>
 
         <Labeled label="Tool">
-          <View style={[styles.toolScrollFrame, { borderColor: theme.border, backgroundColor: theme.background }]}>
+          <View
+            style={[styles.toolScrollFrame, { borderColor: theme.border, backgroundColor: theme.background }]}
+          >
             <ScrollView
               horizontal
               nestedScrollEnabled
@@ -2636,7 +3282,8 @@ function ToolSettings({
               showsHorizontalScrollIndicator
               keyboardShouldPersistTaps="handled"
               style={styles.toolScroll}
-              contentContainerStyle={styles.toolRail}>
+              contentContainerStyle={styles.toolRail}
+            >
               {TOOL_IDS.map((id) => {
                 const meta = EDITOR_TOOLS[id];
                 const active = id === activeTool;
@@ -2644,9 +3291,25 @@ function ToolSettings({
                   <Pressable
                     key={id}
                     onPress={() => setActiveTool(id)}
-                    style={[styles.toolChip, { backgroundColor: active ? withAlpha(Accents[meta.accent], 0.22) : theme.backgroundElement, borderColor: active ? Accents[meta.accent] : theme.border }]}>
-                    <Icon name={meta.icon} size={16} color={active ? Accents[meta.accent] : theme.textSecondary} />
-                    <Txt variant="tiny" style={{ color: active ? Accents[meta.accent] : theme.textSecondary }}>
+                    style={[
+                      styles.toolChip,
+                      {
+                        backgroundColor: active
+                          ? withAlpha(Accents[meta.accent], 0.22)
+                          : theme.backgroundElement,
+                        borderColor: active ? Accents[meta.accent] : theme.border,
+                      },
+                    ]}
+                  >
+                    <Icon
+                      name={meta.icon}
+                      size={16}
+                      color={active ? Accents[meta.accent] : theme.textSecondary}
+                    />
+                    <Txt
+                      variant="tiny"
+                      style={{ color: active ? Accents[meta.accent] : theme.textSecondary }}
+                    >
                       {meta.title}
                     </Txt>
                   </Pressable>
@@ -2666,8 +3329,18 @@ function ToolSettings({
             </Labeled>
             <ActionWrap>
               <ActionButton icon="auto-fix" label="Auto Detect" onPress={onAuto} accent={accent} />
-              <ActionButton icon="page-layout-body" label="Remove Margins" onPress={onRemoveMargins} accent={accent} />
-              <ActionButton icon="vector-square" label="Make Perfect Rectangle" onPress={onPerfect} accent={accent} />
+              <ActionButton
+                icon="page-layout-body"
+                label="Remove Margins"
+                onPress={onRemoveMargins}
+                accent={accent}
+              />
+              <ActionButton
+                icon="vector-square"
+                label="Make Perfect Rectangle"
+                onPress={onPerfect}
+                accent={accent}
+              />
               <ActionButton icon="rotate-right" label="Rotate" accent={accent} />
               <ActionButton icon="backup-restore" label="Reset" onPress={onReset} />
             </ActionWrap>
@@ -2684,8 +3357,22 @@ function ToolSettings({
             <Labeled label="Apply to">
               <Segmented options={APPLY_OPTIONS} value={applyScope} onChange={setApplyScope} />
             </Labeled>
-            {applyScope === 'range' ? <TextField label="Page range" value={pageRange} onChangeText={setPageRange} placeholder="1-3, 7" /> : null}
-            <Button title="Apply Crop" icon="check" onPress={onApply} loading={saving} disabled={!canApply} full />
+            {applyScope === 'range' ? (
+              <TextField
+                label="Page range"
+                value={pageRange}
+                onChangeText={setPageRange}
+                placeholder="1-3, 7"
+              />
+            ) : null}
+            <Button
+              title="Apply Crop"
+              icon="check"
+              onPress={onApply}
+              loading={saving}
+              disabled={!canApply}
+              full
+            />
             <ResultActions
               file={resultFile}
               onPreview={onPreview}
@@ -2740,7 +3427,12 @@ function ResultActions({
   const theme = useTheme();
   if (!file) return null;
   return (
-    <View style={[styles.resultPanel, { backgroundColor: theme.primaryMuted, borderColor: withAlpha(theme.primary, 0.48) }]}>
+    <View
+      style={[
+        styles.resultPanel,
+        { backgroundColor: theme.primaryMuted, borderColor: withAlpha(theme.primary, 0.48) },
+      ]}
+    >
       <View style={styles.resultHeader}>
         <View style={[styles.resultIcon, { backgroundColor: theme.primary }]}>
           <Icon name="check" size={16} color={theme.primaryText} />
@@ -2804,7 +3496,12 @@ function MobileResultDock({
   const theme = useTheme();
   if (!file) return null;
   return (
-    <View style={[styles.mobileResultDock, { backgroundColor: theme.backgroundElevated, borderColor: withAlpha(theme.primary, 0.55) }]}>
+    <View
+      style={[
+        styles.mobileResultDock,
+        { backgroundColor: theme.backgroundElevated, borderColor: withAlpha(theme.primary, 0.55) },
+      ]}
+    >
       <View style={styles.mobileResultTitle}>
         <View style={[styles.resultIcon, { backgroundColor: theme.primary }]}>
           <Icon name="check" size={16} color={theme.primaryText} />
@@ -2876,8 +3573,10 @@ function ToolSpecificPanel({
   const [signatureUploadError, setSignatureUploadError] = useState<string | null>(null);
   const [stampUploadBusy, setStampUploadBusy] = useState(false);
   const [stampUploadError, setStampUploadError] = useState<string | null>(null);
-  const update = <K extends keyof EditorOptions>(key: K, value: EditorOptions[K]) => setOptions((prev) => ({ ...prev, [key]: value }));
-  const toggle = (key: 'bold' | 'italic' | 'underline') => setOptions((prev) => ({ ...prev, [key]: !prev[key] }));
+  const update = <K extends keyof EditorOptions>(key: K, value: EditorOptions[K]) =>
+    setOptions((prev) => ({ ...prev, [key]: value }));
+  const toggle = (key: 'bold' | 'italic' | 'underline') =>
+    setOptions((prev) => ({ ...prev, [key]: !prev[key] }));
   const setAlign = (align: EditorOptions['align']) => setOptions((prev) => ({ ...prev, align }));
   const setDoodleMode = (mode: EditorOptions['doodleMode']) =>
     setOptions((prev) => {
@@ -2898,7 +3597,8 @@ function ToolSpecificPanel({
       thickness: mode === 'draw' ? '2' : prev.thickness,
       rotation: mode === 'type' ? prev.rotation : '0',
     }));
-  const setAnnotationMode = (mode: EditorOptions['annotationMode']) => setOptions((prev) => ({ ...prev, annotationMode: mode }));
+  const setAnnotationMode = (mode: EditorOptions['annotationMode']) =>
+    setOptions((prev) => ({ ...prev, annotationMode: mode }));
   const chooseSignatureImage = async () => {
     setSignatureUploadBusy(true);
     setSignatureUploadError(null);
@@ -2918,7 +3618,9 @@ function ToolSpecificPanel({
         rotation: '0',
       }));
     } catch (error) {
-      setSignatureUploadError(error instanceof Error ? error.message : 'Could not import this signature image.');
+      setSignatureUploadError(
+        error instanceof Error ? error.message : 'Could not import this signature image.',
+      );
     } finally {
       setSignatureUploadBusy(false);
     }
@@ -2974,11 +3676,27 @@ function ToolSpecificPanel({
             <TextField label="Start" value="1" onChangeText={() => undefined} keyboardType="number-pad" />
           </View>
           <View style={styles.twoColItem}>
-            <TextField label="Font size" value="12" onChangeText={() => undefined} keyboardType="number-pad" />
+            <TextField
+              label="Font size"
+              value="12"
+              onChangeText={() => undefined}
+              keyboardType="number-pad"
+            />
           </View>
         </View>
-        <ColorSwatches colors={['#EAF0F6', '#2BD9A8', '#3B82F6', '#FF5C5C']} active={options.color} onSelect={(color) => update('color', color)} />
-        <Button title="Preview Page Numbers" icon="format-list-numbered" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <ColorSwatches
+          colors={['#EAF0F6', '#2BD9A8', '#3B82F6', '#FF5C5C']}
+          active={options.color}
+          onSelect={(color) => update('color', color)}
+        />
+        <Button
+          title="Preview Page Numbers"
+          icon="format-list-numbered"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
@@ -2996,14 +3714,33 @@ function ToolSpecificPanel({
         <TextField label="Watermark" value={options.text} onChangeText={(value) => update('text', value)} />
         <View style={styles.twoCols}>
           <View style={styles.twoColItem}>
-            <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+            <TextField
+              label="Opacity"
+              value={options.opacity}
+              onChangeText={(value) => update('opacity', value)}
+              keyboardType="decimal-pad"
+            />
           </View>
           <View style={styles.twoColItem}>
-            <TextField label="Rotation" value={options.rotation} onChangeText={(value) => update('rotation', value)} keyboardType="numbers-and-punctuation" />
+            <TextField
+              label="Rotation"
+              value={options.rotation}
+              onChangeText={(value) => update('rotation', value)}
+              keyboardType="numbers-and-punctuation"
+            />
           </View>
         </View>
-        <TextField label="Color" value={options.color} onChangeText={(value) => update('color', value)} placeholder="#2BD9A8" />
-        <ColorSwatches colors={['#EAF0F6', '#2BD9A8', '#38BDF8', '#F7C948', '#FB7185']} active={options.color} onSelect={(color) => update('color', color)} />
+        <TextField
+          label="Color"
+          value={options.color}
+          onChangeText={(value) => update('color', value)}
+          placeholder="#2BD9A8"
+        />
+        <ColorSwatches
+          colors={['#EAF0F6', '#2BD9A8', '#38BDF8', '#F7C948', '#FB7185']}
+          active={options.color}
+          onSelect={(color) => update('color', color)}
+        />
         <Labeled label="Position">
           <PositionGrid active="center" accent={accent} />
         </Labeled>
@@ -3011,18 +3748,37 @@ function ToolSpecificPanel({
           <ActionButton icon="grid" label="Tile" accent={accent} />
           <ActionButton icon="layers-outline" label="Behind text" />
         </ActionWrap>
-        <Button title="Preview Watermark" icon="watermark" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <Button
+          title="Preview Watermark"
+          icon="watermark"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
   if (tool === 'flatten') {
     return (
       <>
-        <WarningBox title="Flatten preview" text="Flattened objects may no longer be editable after export." />
-        {['Annotations', 'Forms', 'Signatures', 'Drawings', 'Stamps', 'Editable layers'].map((item, index) => (
-          <CheckRow key={item} label={item} checked={index < 4} />
-        ))}
-        <Button title="Preview Flattened PDF" icon="layers-outline" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <WarningBox
+          title="Flatten preview"
+          text="Flattened objects may no longer be editable after export."
+        />
+        {['Annotations', 'Forms', 'Signatures', 'Drawings', 'Stamps', 'Editable layers'].map(
+          (item, index) => (
+            <CheckRow key={item} label={item} checked={index < 4} />
+          ),
+        )}
+        <Button
+          title="Preview Flattened PDF"
+          icon="layers-outline"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
@@ -3031,25 +3787,90 @@ function ToolSpecificPanel({
       <>
         <TextField label="Text" value={options.text} onChangeText={(value) => update('text', value)} />
         <ActionWrap>
-          <ActionButton icon="format-bold" label="Bold" accent={accent} active={options.bold} onPress={() => toggle('bold')} />
-          <ActionButton icon="format-italic" label="Italic" accent={accent} active={options.italic} onPress={() => toggle('italic')} />
-          <ActionButton icon="format-underline" label="Underline" accent={accent} active={options.underline} onPress={() => toggle('underline')} />
-          <ActionButton icon="format-align-left" label="Left" accent={accent} active={options.align === 'left'} onPress={() => setAlign('left')} />
-          <ActionButton icon="format-align-center" label="Center" accent={accent} active={options.align === 'center'} onPress={() => setAlign('center')} />
-          <ActionButton icon="format-align-right" label="Right" accent={accent} active={options.align === 'right'} onPress={() => setAlign('right')} />
+          <ActionButton
+            icon="format-bold"
+            label="Bold"
+            accent={accent}
+            active={options.bold}
+            onPress={() => toggle('bold')}
+          />
+          <ActionButton
+            icon="format-italic"
+            label="Italic"
+            accent={accent}
+            active={options.italic}
+            onPress={() => toggle('italic')}
+          />
+          <ActionButton
+            icon="format-underline"
+            label="Underline"
+            accent={accent}
+            active={options.underline}
+            onPress={() => toggle('underline')}
+          />
+          <ActionButton
+            icon="format-align-left"
+            label="Left"
+            accent={accent}
+            active={options.align === 'left'}
+            onPress={() => setAlign('left')}
+          />
+          <ActionButton
+            icon="format-align-center"
+            label="Center"
+            accent={accent}
+            active={options.align === 'center'}
+            onPress={() => setAlign('center')}
+          />
+          <ActionButton
+            icon="format-align-right"
+            label="Right"
+            accent={accent}
+            active={options.align === 'right'}
+            onPress={() => setAlign('right')}
+          />
         </ActionWrap>
         <View style={styles.twoCols}>
           <View style={styles.twoColItem}>
-            <TextField label="Font size" value={options.fontSize} onChangeText={(value) => update('fontSize', value)} keyboardType="decimal-pad" />
+            <TextField
+              label="Font size"
+              value={options.fontSize}
+              onChangeText={(value) => update('fontSize', value)}
+              keyboardType="decimal-pad"
+            />
           </View>
           <View style={styles.twoColItem}>
-            <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+            <TextField
+              label="Opacity"
+              value={options.opacity}
+              onChangeText={(value) => update('opacity', value)}
+              keyboardType="decimal-pad"
+            />
           </View>
         </View>
         <TextField label="Color" value={options.color} onChangeText={(value) => update('color', value)} />
-        <ColorSwatches colors={TEXT_COLOR_SWATCHES} active={options.color} onSelect={(color) => update('color', color)} wrap />
-        <Button title="Add Another Text Box" icon="plus" variant="secondary" onPress={onAddObject} disabled={!canApply} full />
-        <Button title="Preview PDF" icon="eye-outline" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <ColorSwatches
+          colors={TEXT_COLOR_SWATCHES}
+          active={options.color}
+          onSelect={(color) => update('color', color)}
+          wrap
+        />
+        <Button
+          title="Add Another Text Box"
+          icon="plus"
+          variant="secondary"
+          onPress={onAddObject}
+          disabled={!canApply}
+          full
+        />
+        <Button
+          title="Preview PDF"
+          icon="eye-outline"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
@@ -3071,14 +3892,30 @@ function ToolSpecificPanel({
               paths={options.signaturePaths}
               color={options.color}
               thickness={parsePositiveNumber(options.thickness, 2, 1, 10)}
-              onChange={(paths) => setOptions((prev) => ({ ...prev, signaturePaths: paths, signaturePoints: paths[paths.length - 1] ?? [] }))}
+              onChange={(paths) =>
+                setOptions((prev) => ({
+                  ...prev,
+                  signaturePaths: paths,
+                  signaturePoints: paths[paths.length - 1] ?? [],
+                }))
+              }
             />
             <View style={styles.twoCols}>
               <View style={styles.twoColItem}>
-                <TextField label="Pen size" value={options.thickness} onChangeText={(value) => update('thickness', value)} keyboardType="decimal-pad" />
+                <TextField
+                  label="Pen size"
+                  value={options.thickness}
+                  onChangeText={(value) => update('thickness', value)}
+                  keyboardType="decimal-pad"
+                />
               </View>
               <View style={styles.twoColItem}>
-                <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+                <TextField
+                  label="Opacity"
+                  value={options.opacity}
+                  onChangeText={(value) => update('opacity', value)}
+                  keyboardType="decimal-pad"
+                />
               </View>
             </View>
             <Button
@@ -3093,17 +3930,38 @@ function ToolSpecificPanel({
         {options.signatureMode === 'type' ? (
           <>
             <View style={[styles.signaturePad, styles.signatureTypedPad]}>
-              <Txt variant="h2" style={{ color: options.color, fontStyle: 'italic', fontSize: parsePositiveNumber(options.signatureFontSize, 24, 8, 96) }}>
+              <Txt
+                variant="h2"
+                style={{
+                  color: options.color,
+                  fontStyle: 'italic',
+                  fontSize: parsePositiveNumber(options.signatureFontSize, 24, 8, 96),
+                }}
+              >
                 {options.signatureText || 'Signature'}
               </Txt>
             </View>
-            <TextField label="Typed signature" value={options.signatureText} onChangeText={(value) => update('signatureText', value)} />
+            <TextField
+              label="Typed signature"
+              value={options.signatureText}
+              onChangeText={(value) => update('signatureText', value)}
+            />
             <View style={styles.twoCols}>
               <View style={styles.twoColItem}>
-                <TextField label="Type size" value={options.signatureFontSize} onChangeText={(value) => update('signatureFontSize', value)} keyboardType="decimal-pad" />
+                <TextField
+                  label="Type size"
+                  value={options.signatureFontSize}
+                  onChangeText={(value) => update('signatureFontSize', value)}
+                  keyboardType="decimal-pad"
+                />
               </View>
               <View style={styles.twoColItem}>
-                <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+                <TextField
+                  label="Opacity"
+                  value={options.opacity}
+                  onChangeText={(value) => update('opacity', value)}
+                  keyboardType="decimal-pad"
+                />
               </View>
             </View>
           </>
@@ -3112,7 +3970,11 @@ function ToolSpecificPanel({
           <>
             <View style={styles.signaturePad}>
               {options.signatureImageDataUrl ? (
-                <Image source={{ uri: options.signatureImageDataUrl }} resizeMode="contain" style={styles.signatureImagePreview} />
+                <Image
+                  source={{ uri: options.signatureImageDataUrl }}
+                  resizeMode="contain"
+                  style={styles.signatureImagePreview}
+                />
               ) : (
                 <View style={styles.signaturePadEmpty}>
                   <Icon name="image-plus" size={24} color={accent} />
@@ -3130,15 +3992,45 @@ function ToolSpecificPanel({
               loading={signatureUploadBusy}
               full
             />
-            {options.signatureImageName ? <Txt variant="tiny" muted>{options.signatureImageName}</Txt> : null}
-            {signatureUploadError ? <Txt variant="tiny" style={{ color: Accents.rose }}>{signatureUploadError}</Txt> : null}
-            <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+            {options.signatureImageName ? (
+              <Txt variant="tiny" muted>
+                {options.signatureImageName}
+              </Txt>
+            ) : null}
+            {signatureUploadError ? (
+              <Txt variant="tiny" style={{ color: Accents.rose }}>
+                {signatureUploadError}
+              </Txt>
+            ) : null}
+            <TextField
+              label="Opacity"
+              value={options.opacity}
+              onChangeText={(value) => update('opacity', value)}
+              keyboardType="decimal-pad"
+            />
           </>
         ) : null}
-        <TextField label="Rotation" value={options.rotation} onChangeText={(value) => update('rotation', value)} keyboardType="numbers-and-punctuation" />
+        <TextField
+          label="Rotation"
+          value={options.rotation}
+          onChangeText={(value) => update('rotation', value)}
+          keyboardType="numbers-and-punctuation"
+        />
         <TextField label="Ink color" value={options.color} onChangeText={(value) => update('color', value)} />
-        <ColorSwatches colors={SIGNATURE_COLOR_SWATCHES} active={options.color} onSelect={(color) => update('color', color)} wrap />
-        <Button title="Place Signature" icon="draw" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <ColorSwatches
+          colors={SIGNATURE_COLOR_SWATCHES}
+          active={options.color}
+          onSelect={(color) => update('color', color)}
+          wrap
+        />
+        <Button
+          title="Place Signature"
+          icon="draw"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
@@ -3146,37 +4038,109 @@ function ToolSpecificPanel({
     return (
       <>
         <ActionWrap>
-          <ActionButton icon="pencil-outline" label="Pencil" accent={accent} active={options.doodleMode === 'pencil'} onPress={() => setDoodleMode('pencil')} />
-          <ActionButton icon="marker" label="Marker" accent={accent} active={options.doodleMode === 'marker'} onPress={() => setDoodleMode('marker')} />
-          <ActionButton icon="eraser" label="Eraser" accent={accent} active={options.doodleMode === 'eraser'} onPress={() => setDoodleMode('eraser')} />
-          <ActionButton icon="vector-line" label="Vector" accent={accent} active={options.doodleMode === 'vector'} onPress={() => setDoodleMode('vector')} />
-          <ActionButton icon="arrow-top-right" label="Arrow" accent={accent} active={options.doodleMode === 'arrow'} onPress={() => setDoodleMode('arrow')} />
+          <ActionButton
+            icon="pencil-outline"
+            label="Pencil"
+            accent={accent}
+            active={options.doodleMode === 'pencil'}
+            onPress={() => setDoodleMode('pencil')}
+          />
+          <ActionButton
+            icon="marker"
+            label="Marker"
+            accent={accent}
+            active={options.doodleMode === 'marker'}
+            onPress={() => setDoodleMode('marker')}
+          />
+          <ActionButton
+            icon="eraser"
+            label="Eraser"
+            accent={accent}
+            active={options.doodleMode === 'eraser'}
+            onPress={() => setDoodleMode('eraser')}
+          />
+          <ActionButton
+            icon="vector-line"
+            label="Vector"
+            accent={accent}
+            active={options.doodleMode === 'vector'}
+            onPress={() => setDoodleMode('vector')}
+          />
+          <ActionButton
+            icon="arrow-top-right"
+            label="Arrow"
+            accent={accent}
+            active={options.doodleMode === 'arrow'}
+            onPress={() => setDoodleMode('arrow')}
+          />
         </ActionWrap>
-        <ColorSwatches colors={DOODLE_COLOR_SWATCHES} active={options.color} onSelect={(color) => update('color', color)} wrap />
+        <ColorSwatches
+          colors={DOODLE_COLOR_SWATCHES}
+          active={options.color}
+          onSelect={(color) => update('color', color)}
+          wrap
+        />
         <View style={styles.twoCols}>
           <View style={styles.twoColItem}>
-            <TextField label="Stroke size" value={options.thickness} onChangeText={(value) => update('thickness', value)} keyboardType="decimal-pad" />
+            <TextField
+              label="Stroke size"
+              value={options.thickness}
+              onChangeText={(value) => update('thickness', value)}
+              keyboardType="decimal-pad"
+            />
           </View>
           <View style={styles.twoColItem}>
-            <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+            <TextField
+              label="Opacity"
+              value={options.opacity}
+              onChangeText={(value) => update('opacity', value)}
+              keyboardType="decimal-pad"
+            />
           </View>
         </View>
-        <TextField label="Stroke color" value={options.color} onChangeText={(value) => update('color', value)} />
-        <Button title="Apply Drawing Layer" icon="pencil-outline" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <TextField
+          label="Stroke color"
+          value={options.color}
+          onChangeText={(value) => update('color', value)}
+        />
+        <Button
+          title="Apply Drawing Layer"
+          icon="pencil-outline"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
   if (tool === 'highlight') {
     return (
       <>
-        <ColorSwatches colors={['#F7C948', '#2BD9A8', '#38BDF8', '#FB7185']} active={options.color} onSelect={(color) => update('color', color)} />
-        <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+        <ColorSwatches
+          colors={['#F7C948', '#2BD9A8', '#38BDF8', '#FB7185']}
+          active={options.color}
+          onSelect={(color) => update('color', color)}
+        />
+        <TextField
+          label="Opacity"
+          value={options.opacity}
+          onChangeText={(value) => update('opacity', value)}
+          keyboardType="decimal-pad"
+        />
         <ActionWrap>
           <ActionButton icon="format-underline" label="Underline" />
           <ActionButton icon="format-strikethrough" label="Strike" />
           <ActionButton icon="gesture" label="Squiggle" />
         </ActionWrap>
-        <Button title="Apply Highlight" icon="marker" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <Button
+          title="Apply Highlight"
+          icon="marker"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
@@ -3212,32 +4176,82 @@ function ToolSpecificPanel({
                   }
                   style={[
                     styles.stampChip,
-                    stamp.shape === 'seal' ? styles.stampChipSeal : stamp.shape === 'pill' ? styles.stampChipPill : null,
+                    stamp.shape === 'seal'
+                      ? styles.stampChipSeal
+                      : stamp.shape === 'pill'
+                        ? styles.stampChipPill
+                        : null,
                     {
                       borderColor: stamp.color,
-                      backgroundColor: stamp.style === 'filled' ? withAlpha(stamp.color, 0.18) : 'transparent',
+                      backgroundColor:
+                        stamp.style === 'filled' ? withAlpha(stamp.color, 0.18) : 'transparent',
                     },
-                  ]}>
+                  ]}
+                >
                   <Txt variant="tiny" center style={{ color: stamp.color }}>
                     {stamp.label}
                   </Txt>
                 </Pressable>
               ))}
             </View>
-            <TextField label="Custom stamp" value={options.stampText} onChangeText={(value) => update('stampText', value)} />
-            <TextField label="Small text" value={options.stampDetail} onChangeText={(value) => update('stampDetail', value)} />
+            <TextField
+              label="Custom stamp"
+              value={options.stampText}
+              onChangeText={(value) => update('stampText', value)}
+            />
+            <TextField
+              label="Small text"
+              value={options.stampDetail}
+              onChangeText={(value) => update('stampDetail', value)}
+            />
             <Labeled label="Shape">
               <ActionWrap>
-                <ActionButton icon="rectangle-outline" label="Box" accent={accent} active={options.stampShape === 'box'} onPress={() => update('stampShape', 'box')} />
-                <ActionButton icon="pill" label="Pill" accent={accent} active={options.stampShape === 'pill'} onPress={() => update('stampShape', 'pill')} />
-                <ActionButton icon="seal" label="Seal" accent={accent} active={options.stampShape === 'seal'} onPress={() => update('stampShape', 'seal')} />
+                <ActionButton
+                  icon="rectangle-outline"
+                  label="Box"
+                  accent={accent}
+                  active={options.stampShape === 'box'}
+                  onPress={() => update('stampShape', 'box')}
+                />
+                <ActionButton
+                  icon="pill"
+                  label="Pill"
+                  accent={accent}
+                  active={options.stampShape === 'pill'}
+                  onPress={() => update('stampShape', 'pill')}
+                />
+                <ActionButton
+                  icon="seal"
+                  label="Seal"
+                  accent={accent}
+                  active={options.stampShape === 'seal'}
+                  onPress={() => update('stampShape', 'seal')}
+                />
               </ActionWrap>
             </Labeled>
             <Labeled label="Style">
               <ActionWrap>
-                <ActionButton icon="square-outline" label="Outline" accent={accent} active={options.stampStyle === 'outline'} onPress={() => update('stampStyle', 'outline')} />
-                <ActionButton icon="checkbox-blank" label="Filled" accent={accent} active={options.stampStyle === 'filled'} onPress={() => update('stampStyle', 'filled')} />
-                <ActionButton icon="checkbox-multiple-blank-outline" label="Double" accent={accent} active={options.stampStyle === 'double'} onPress={() => update('stampStyle', 'double')} />
+                <ActionButton
+                  icon="square-outline"
+                  label="Outline"
+                  accent={accent}
+                  active={options.stampStyle === 'outline'}
+                  onPress={() => update('stampStyle', 'outline')}
+                />
+                <ActionButton
+                  icon="checkbox-blank"
+                  label="Filled"
+                  accent={accent}
+                  active={options.stampStyle === 'filled'}
+                  onPress={() => update('stampStyle', 'filled')}
+                />
+                <ActionButton
+                  icon="checkbox-multiple-blank-outline"
+                  label="Double"
+                  accent={accent}
+                  active={options.stampStyle === 'double'}
+                  onPress={() => update('stampStyle', 'double')}
+                />
               </ActionWrap>
             </Labeled>
           </>
@@ -3245,7 +4259,11 @@ function ToolSpecificPanel({
           <>
             <View style={styles.stampUploadPad}>
               {options.stampImageDataUrl ? (
-                <Image source={{ uri: options.stampImageDataUrl }} resizeMode="contain" style={styles.stampImagePreview} />
+                <Image
+                  source={{ uri: options.stampImageDataUrl }}
+                  resizeMode="contain"
+                  style={styles.stampImagePreview}
+                />
               ) : (
                 <View style={styles.signaturePadEmpty}>
                   <Icon name="image-plus" size={24} color={accent} />
@@ -3263,21 +4281,55 @@ function ToolSpecificPanel({
               loading={stampUploadBusy}
               full
             />
-            {options.stampImageName ? <Txt variant="tiny" muted>{options.stampImageName}</Txt> : null}
-            {stampUploadError ? <Txt variant="tiny" style={{ color: Accents.rose }}>{stampUploadError}</Txt> : null}
+            {options.stampImageName ? (
+              <Txt variant="tiny" muted>
+                {options.stampImageName}
+              </Txt>
+            ) : null}
+            {stampUploadError ? (
+              <Txt variant="tiny" style={{ color: Accents.rose }}>
+                {stampUploadError}
+              </Txt>
+            ) : null}
           </>
         )}
         <View style={styles.twoCols}>
           <View style={styles.twoColItem}>
-            <TextField label="Rotation" value={options.rotation} onChangeText={(value) => update('rotation', value)} keyboardType="numbers-and-punctuation" />
+            <TextField
+              label="Rotation"
+              value={options.rotation}
+              onChangeText={(value) => update('rotation', value)}
+              keyboardType="numbers-and-punctuation"
+            />
           </View>
           <View style={styles.twoColItem}>
-            <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+            <TextField
+              label="Opacity"
+              value={options.opacity}
+              onChangeText={(value) => update('opacity', value)}
+              keyboardType="decimal-pad"
+            />
           </View>
         </View>
-        <TextField label="Stamp color" value={options.color} onChangeText={(value) => update('color', value)} />
-        <ColorSwatches colors={STAMP_COLOR_SWATCHES} active={options.color} onSelect={(color) => update('color', color)} wrap />
-        <Button title="Place Stamp" icon="stamper" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <TextField
+          label="Stamp color"
+          value={options.color}
+          onChangeText={(value) => update('color', value)}
+        />
+        <ColorSwatches
+          colors={STAMP_COLOR_SWATCHES}
+          active={options.color}
+          onSelect={(color) => update('color', color)}
+          wrap
+        />
+        <Button
+          title="Place Stamp"
+          icon="stamper"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
@@ -3285,8 +4337,17 @@ function ToolSpecificPanel({
     const quickNotes = ['Review missing date', 'Confirm signature', 'Resolve price note'];
     return (
       <>
-        <TextField label="Comment text" value={options.annotationText} onChangeText={(value) => update('annotationText', value)} />
-        <ColorSwatches colors={ANNOTATE_COLOR_SWATCHES} active={options.color} onSelect={(color) => update('color', color)} wrap />
+        <TextField
+          label="Comment text"
+          value={options.annotationText}
+          onChangeText={(value) => update('annotationText', value)}
+        />
+        <ColorSwatches
+          colors={ANNOTATE_COLOR_SWATCHES}
+          active={options.color}
+          onSelect={(color) => update('color', color)}
+          wrap
+        />
         <View style={styles.quickNoteGrid}>
           {quickNotes.map((note) => (
             <Pressable key={note} onPress={() => update('annotationText', note)} style={styles.quickNoteChip}>
@@ -3298,20 +4359,60 @@ function ToolSpecificPanel({
           ))}
         </View>
         <ActionWrap>
-          <ActionButton icon="comment-plus-outline" label="Note" accent={accent} active={options.annotationMode === 'note'} onPress={() => setAnnotationMode('note')} />
-          <ActionButton icon="arrow-top-right" label="Callout" accent={accent} active={options.annotationMode === 'callout'} onPress={() => setAnnotationMode('callout')} />
-          <ActionButton icon="shape-outline" label="Shape" accent={accent} active={options.annotationMode === 'shape'} onPress={() => setAnnotationMode('shape')} />
+          <ActionButton
+            icon="comment-plus-outline"
+            label="Note"
+            accent={accent}
+            active={options.annotationMode === 'note'}
+            onPress={() => setAnnotationMode('note')}
+          />
+          <ActionButton
+            icon="arrow-top-right"
+            label="Callout"
+            accent={accent}
+            active={options.annotationMode === 'callout'}
+            onPress={() => setAnnotationMode('callout')}
+          />
+          <ActionButton
+            icon="shape-outline"
+            label="Shape"
+            accent={accent}
+            active={options.annotationMode === 'shape'}
+            onPress={() => setAnnotationMode('shape')}
+          />
         </ActionWrap>
-        <Button title="Add Annotation Box" icon="plus" variant="secondary" onPress={onAddObject} disabled={!canApply} full />
-        <Button title="Apply Annotations" icon="comment-edit-outline" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <Button
+          title="Add Annotation Box"
+          icon="plus"
+          variant="secondary"
+          onPress={onAddObject}
+          disabled={!canApply}
+          full
+        />
+        <Button
+          title="Apply Annotations"
+          icon="comment-edit-outline"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
   if (tool === 'redact') {
     return (
       <>
-        <TextField label="Search text" placeholder="Email, phone, ID, name..." onChangeText={() => undefined} />
-        <TextField label="Redaction label" value={options.redactLabel} onChangeText={(value) => update('redactLabel', value)} />
+        <TextField
+          label="Search text"
+          placeholder="Email, phone, ID, name..."
+          onChangeText={() => undefined}
+        />
+        <TextField
+          label="Redaction label"
+          value={options.redactLabel}
+          onChangeText={(value) => update('redactLabel', value)}
+        />
         <ActionWrap>
           <ActionButton icon="email-outline" label="Emails" accent={accent} />
           <ActionButton icon="phone-outline" label="Phones" />
@@ -3319,7 +4420,14 @@ function ToolSpecificPanel({
           <ActionButton icon="selection-drag" label="Manual box" />
         </ActionWrap>
         <WarningBox title="Permanent redaction" text="Preview every redaction before export." />
-        <Button title="Preview Redactions" icon="marker-cancel" onPress={onApply} loading={saving} disabled={!canApply} full />
+        <Button
+          title="Preview Redactions"
+          icon="marker-cancel"
+          onPress={onApply}
+          loading={saving}
+          disabled={!canApply}
+          full
+        />
       </>
     );
   }
@@ -3335,8 +4443,19 @@ function ToolSpecificPanel({
           <Pressable
             key={name}
             accessibilityRole="button"
-            onPress={() => addFormField(kind === 'Checkbox' ? 'checkbox' : kind === 'Date field' ? 'date' : kind === 'Signature line' ? 'signature' : 'text')}
-            style={({ pressed }) => [styles.formDetectedRow, { opacity: pressed ? 0.78 : 1 }]}>
+            onPress={() =>
+              addFormField(
+                kind === 'Checkbox'
+                  ? 'checkbox'
+                  : kind === 'Date field'
+                    ? 'date'
+                    : kind === 'Signature line'
+                      ? 'signature'
+                      : 'text',
+              )
+            }
+            style={({ pressed }) => [styles.formDetectedRow, { opacity: pressed ? 0.78 : 1 }]}
+          >
             <View style={[styles.formDetectedIndex, { backgroundColor: withAlpha(accent, 0.18) }]}>
               <Txt variant="tiny" style={{ color: accent }}>
                 {index + 1}
@@ -3366,24 +4485,73 @@ function ToolSpecificPanel({
           />
         ))}
       </ActionWrap>
-      <TextField label="Field value" value={options.formValue} onChangeText={(value) => update('formValue', value)} placeholder="Value to place" />
-      <TextField label="Placeholder / label" value={options.formPlaceholder} onChangeText={(value) => update('formPlaceholder', value)} placeholder="Field label" />
+      <TextField
+        label="Field value"
+        value={options.formValue}
+        onChangeText={(value) => update('formValue', value)}
+        placeholder="Value to place"
+      />
+      <TextField
+        label="Placeholder / label"
+        value={options.formPlaceholder}
+        onChangeText={(value) => update('formPlaceholder', value)}
+        placeholder="Field label"
+      />
       <ActionWrap>
-        <ActionButton icon="asterisk" label="Required" accent={accent} active={options.formRequired} onPress={() => update('formRequired', !options.formRequired)} />
-        <ActionButton icon="checkbox-marked-outline" label="Checked" accent={accent} active={options.formChecked} onPress={() => update('formChecked', !options.formChecked)} />
-        <ActionButton icon="form-textbox-password" label="Clear value" accent={accent} onPress={() => update('formValue', '')} />
+        <ActionButton
+          icon="asterisk"
+          label="Required"
+          accent={accent}
+          active={options.formRequired}
+          onPress={() => update('formRequired', !options.formRequired)}
+        />
+        <ActionButton
+          icon="checkbox-marked-outline"
+          label="Checked"
+          accent={accent}
+          active={options.formChecked}
+          onPress={() => update('formChecked', !options.formChecked)}
+        />
+        <ActionButton
+          icon="form-textbox-password"
+          label="Clear value"
+          accent={accent}
+          onPress={() => update('formValue', '')}
+        />
       </ActionWrap>
       <View style={styles.twoCols}>
         <View style={styles.twoColItem}>
-          <TextField label="Font size" value={options.fontSize} onChangeText={(value) => update('fontSize', value)} keyboardType="decimal-pad" />
+          <TextField
+            label="Font size"
+            value={options.fontSize}
+            onChangeText={(value) => update('fontSize', value)}
+            keyboardType="decimal-pad"
+          />
         </View>
         <View style={styles.twoColItem}>
-          <TextField label="Opacity" value={options.opacity} onChangeText={(value) => update('opacity', value)} keyboardType="decimal-pad" />
+          <TextField
+            label="Opacity"
+            value={options.opacity}
+            onChangeText={(value) => update('opacity', value)}
+            keyboardType="decimal-pad"
+          />
         </View>
       </View>
       <TextField label="Field color" value={options.color} onChangeText={(value) => update('color', value)} />
-      <ColorSwatches colors={['#2563EB', '#2BD9A8', '#111827', '#374151', '#EF4444', '#F7C948', '#8B5CF6', '#EAF0F6']} active={options.color} onSelect={(color) => update('color', color)} wrap />
-      <Button title="Preview Filled Form" icon="form-select" onPress={onApply} loading={saving} disabled={!canApply} full />
+      <ColorSwatches
+        colors={['#2563EB', '#2BD9A8', '#111827', '#374151', '#EF4444', '#F7C948', '#8B5CF6', '#EAF0F6']}
+        active={options.color}
+        onSelect={(color) => update('color', color)}
+        wrap
+      />
+      <Button
+        title="Preview Filled Form"
+        icon="form-select"
+        onPress={onApply}
+        loading={saving}
+        disabled={!canApply}
+        full
+      />
     </>
   );
 }
@@ -3391,7 +4559,9 @@ function ToolSpecificPanel({
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <View style={styles.labeled}>
-      <Txt variant="label" muted>{label}</Txt>
+      <Txt variant="label" muted>
+        {label}
+      </Txt>
       {children}
     </View>
   );
@@ -3401,7 +4571,19 @@ function ActionWrap({ children }: { children: React.ReactNode }) {
   return <View style={styles.actionWrap}>{children}</View>;
 }
 
-function ActionButton({ icon, label, onPress, accent, active }: { icon: string; label: string; onPress?: () => void; accent?: string; active?: boolean }) {
+function ActionButton({
+  icon,
+  label,
+  onPress,
+  accent,
+  active,
+}: {
+  icon: string;
+  label: string;
+  onPress?: () => void;
+  accent?: string;
+  active?: boolean;
+}) {
   const theme = useTheme();
   return (
     <Pressable
@@ -3415,11 +4597,16 @@ function ActionButton({ icon, label, onPress, accent, active }: { icon: string; 
             : accent
               ? withAlpha(accent, pressed ? 0.22 : 0.14)
               : theme.backgroundElement,
-          borderColor: active ? accent ?? theme.primary : accent ?? theme.border,
+          borderColor: active ? (accent ?? theme.primary) : (accent ?? theme.border),
           opacity: pressed ? 0.86 : 1,
         },
-      ]}>
-      <Icon name={icon} size={17} color={active ? accent ?? theme.primary : accent ?? theme.textSecondary} />
+      ]}
+    >
+      <Icon
+        name={icon}
+        size={17}
+        color={active ? (accent ?? theme.primary) : (accent ?? theme.textSecondary)}
+      />
       <Txt variant="tiny" center style={styles.actionButtonLabel}>
         {label}
       </Txt>
@@ -3427,23 +4614,17 @@ function ActionButton({ icon, label, onPress, accent, active }: { icon: string; 
   );
 }
 
-function SliderControl({ label, value, accent }: { label: string; value: string; accent: string }) {
-  const theme = useTheme();
-  return (
-    <View style={styles.labeled}>
-      <View style={styles.rowBetween}>
-        <Txt variant="label" muted>{label}</Txt>
-        <Txt variant="tiny">{value}</Txt>
-      </View>
-      <View style={[styles.sliderTrack, { backgroundColor: theme.backgroundElement }]}>
-        <View style={[styles.sliderFill, { backgroundColor: accent, width: '58%' }]} />
-        <View style={[styles.sliderKnob, { backgroundColor: accent, left: '56%' }]} />
-      </View>
-    </View>
-  );
-}
-
-function ColorSwatches({ colors, active, onSelect, wrap }: { colors: string[]; active: string; onSelect?: (color: string) => void; wrap?: boolean }) {
+function ColorSwatches({
+  colors,
+  active,
+  onSelect,
+  wrap,
+}: {
+  colors: string[];
+  active: string;
+  onSelect?: (color: string) => void;
+  wrap?: boolean;
+}) {
   const theme = useTheme();
   return (
     <View style={[styles.swatchRow, wrap ? styles.swatchRowWrap : null]}>
@@ -3469,11 +4650,30 @@ function ColorSwatches({ colors, active, onSelect, wrap }: { colors: string[]; a
 
 function PositionGrid({ active, accent }: { active: string; accent: string }) {
   const theme = useTheme();
-  const cells = ['top-left', 'top-center', 'top-right', 'middle-left', 'center', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+  const cells = [
+    'top-left',
+    'top-center',
+    'top-right',
+    'middle-left',
+    'center',
+    'middle-right',
+    'bottom-left',
+    'bottom-center',
+    'bottom-right',
+  ];
   return (
     <View style={[styles.positionGrid, { borderColor: theme.border }]}>
       {cells.map((cell) => (
-        <View key={cell} style={[styles.positionCell, { backgroundColor: cell === active ? withAlpha(accent, 0.28) : theme.backgroundElement, borderColor: theme.border }]}>
+        <View
+          key={cell}
+          style={[
+            styles.positionCell,
+            {
+              backgroundColor: cell === active ? withAlpha(accent, 0.28) : theme.backgroundElement,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           {cell === active ? <View style={[styles.positionDot, { backgroundColor: accent }]} /> : null}
         </View>
       ))}
@@ -3485,7 +4685,11 @@ function CheckRow({ label, checked }: { label: string; checked: boolean }) {
   const theme = useTheme();
   return (
     <View style={[styles.checkRow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <Icon name={checked ? 'checkbox-marked-circle-outline' : 'checkbox-blank-circle-outline'} size={20} color={checked ? theme.primary : theme.textMuted} />
+      <Icon
+        name={checked ? 'checkbox-marked-circle-outline' : 'checkbox-blank-circle-outline'}
+        size={20}
+        color={checked ? theme.primary : theme.textMuted}
+      />
       <Txt variant="label">{label}</Txt>
     </View>
   );
@@ -3494,11 +4698,20 @@ function CheckRow({ label, checked }: { label: string; checked: boolean }) {
 function WarningBox({ title, text }: { title: string; text: string }) {
   const theme = useTheme();
   return (
-    <View style={[styles.warningBox, { backgroundColor: theme.warningMuted, borderColor: withAlpha(theme.warning, 0.45) }]}>
+    <View
+      style={[
+        styles.warningBox,
+        { backgroundColor: theme.warningMuted, borderColor: withAlpha(theme.warning, 0.45) },
+      ]}
+    >
       <Icon name="alert-outline" size={18} color={theme.warning} />
       <View style={{ flex: 1 }}>
-        <Txt variant="label" style={{ color: theme.warning }}>{title}</Txt>
-        <Txt variant="tiny" style={{ color: theme.warning }}>{text}</Txt>
+        <Txt variant="label" style={{ color: theme.warning }}>
+          {title}
+        </Txt>
+        <Txt variant="tiny" style={{ color: theme.warning }}>
+          {text}
+        </Txt>
       </View>
     </View>
   );
@@ -3507,18 +4720,54 @@ function WarningBox({ title, text }: { title: string; text: string }) {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   lockedRoot: { alignItems: 'center', justifyContent: 'center', padding: Spacing.lg },
-  lockedCard: { width: '100%', maxWidth: 520, borderWidth: 1, borderRadius: Radius.xl, padding: Spacing.xl, gap: Spacing.md },
-  topbar: { minHeight: 64, borderBottomWidth: 1, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  lockedCard: {
+    width: '100%',
+    maxWidth: 520,
+    borderWidth: 1,
+    borderRadius: Radius.xl,
+    padding: Spacing.xl,
+    gap: Spacing.md,
+  },
+  topbar: {
+    minHeight: 64,
+    borderBottomWidth: 1,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   topbarMobile: { borderBottomWidth: 1, paddingHorizontal: Spacing.sm, paddingBottom: Spacing.sm },
   mobileTopMain: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   mobileToolbarContent: { gap: Spacing.sm, paddingHorizontal: Spacing.xs, paddingRight: Spacing.lg },
   titleBlock: { flex: 1, minWidth: 0 },
   toolbarGroup: { flexDirection: 'row', gap: 6 },
   zoomGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  zoomPill: { minWidth: 58, height: 36, borderRadius: Radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.sm },
+  zoomPill: {
+    minWidth: 58,
+    height: 36,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
   pickShell: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg },
-  pickPanel: { width: '100%', maxWidth: 620, borderWidth: 1, borderRadius: Radius.xl, padding: Spacing.xl, gap: Spacing.md },
-  bigIcon: { width: 68, height: 68, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
+  pickPanel: {
+    width: '100%',
+    maxWidth: 620,
+    borderWidth: 1,
+    borderRadius: Radius.xl,
+    padding: Spacing.xl,
+    gap: Spacing.md,
+  },
+  bigIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
   pickSubtitle: { maxWidth: 420, alignSelf: 'center' },
   editorBody: { flex: 1, minHeight: 0 },
   editorBodyDesktop: { flexDirection: 'row' },
@@ -3528,44 +4777,177 @@ const styles = StyleSheet.create({
   sideThumb: { borderWidth: 1, borderRadius: Radius.md, padding: Spacing.sm, gap: Spacing.xs },
   sideThumbImage: { width: '100%', aspectRatio: 0.72, borderRadius: Radius.sm, backgroundColor: '#fff' },
   canvasColumn: { flex: 1, minWidth: 0 },
-  canvasHeader: { minHeight: 62, borderBottomWidth: 1, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
+  canvasHeader: {
+    minHeight: 62,
+    borderBottomWidth: 1,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
   canvasTitle: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  toolPill: { width: 38, height: 38, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  toolPill: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   canvasNav: { flexDirection: 'row', gap: Spacing.xs },
   stage: { flex: 1, minHeight: 0 },
   stageScroll: { flex: 1 },
   stageContent: { minWidth: '100%', flexGrow: 1 },
-  stageInner: { minHeight: '100%', minWidth: '100%', alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
+  stageInner: {
+    minHeight: '100%',
+    minWidth: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+  },
   pageSurface: { backgroundColor: '#fff', borderRadius: Radius.sm, overflow: 'hidden' },
   pageImage: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, width: '100%', height: '100%' },
-  loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    padding: Spacing.xl,
+  },
   settingsPanel: { width: 360, borderLeftWidth: 1 },
-  mobileSheet: { maxHeight: 430, borderTopWidth: 1, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl },
+  mobileSheet: {
+    maxHeight: 430,
+    borderTopWidth: 1,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+  },
   settingsContent: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.xxl },
   settingsContentWithResultDock: { paddingBottom: 188 },
   panelHeader: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' },
-  toolScrollFrame: { position: 'relative', borderWidth: 1, borderRadius: Radius.xl, overflow: 'hidden', paddingVertical: 4 },
+  toolScrollFrame: {
+    position: 'relative',
+    borderWidth: 1,
+    borderRadius: Radius.xl,
+    overflow: 'hidden',
+    paddingVertical: 4,
+  },
   toolScroll: { maxHeight: 54 },
   toolRail: { gap: Spacing.sm, paddingRight: Spacing.lg },
-  toolScrollCue: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 28, alignItems: 'center', justifyContent: 'center' },
-  toolChip: { height: 38, borderRadius: Radius.pill, borderWidth: 1, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  toolScrollCue: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolChip: {
+    height: 38,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   labeled: { gap: Spacing.xs },
   actionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  actionButton: { minHeight: 54, minWidth: 150, flex: 1, borderRadius: Radius.md, borderWidth: 1, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  actionButton: {
+    minHeight: 54,
+    minWidth: 150,
+    flex: 1,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
   actionButtonLabel: { flexShrink: 1 },
   mobileStrip: { borderTopWidth: 1, paddingVertical: Spacing.sm },
   mobileStripContent: { gap: Spacing.sm, paddingHorizontal: Spacing.md },
-  stripThumb: { width: 70, borderWidth: 1, borderRadius: Radius.md, padding: 5, gap: 3, alignItems: 'center' },
+  stripThumb: {
+    width: 70,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: 5,
+    gap: 3,
+    alignItems: 'center',
+  },
   stripThumbImage: { width: '100%', aspectRatio: 0.72, borderRadius: Radius.sm, backgroundColor: '#fff' },
   cornerHandle: { position: 'absolute', width: 32, height: 32, borderRadius: Radius.sm, borderWidth: 4 },
   edgeHandle: { position: 'absolute', width: 24, height: 24, borderRadius: Radius.pill },
-  dragHint: { position: 'absolute', height: 30, borderRadius: Radius.pill, borderWidth: 1, paddingHorizontal: Spacing.sm, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  magnifier: { position: 'absolute', width: 96, height: 54, borderRadius: Radius.lg, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  drawHint: { position: 'absolute', left: 16, bottom: 16, minHeight: 34, borderRadius: Radius.pill, borderWidth: 1, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  editorObject: { position: 'absolute', borderWidth: 2, borderRadius: Radius.sm, minWidth: 28, minHeight: 22 },
-  objectFill: { flex: 1, borderWidth: 1, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center', padding: Spacing.xs, overflow: 'hidden' },
-  objectToolbar: { position: 'absolute', top: -38, left: 0, minHeight: 30, borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: Spacing.sm, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  resizeHandle: { position: 'absolute', width: 22, height: 22, borderRadius: Radius.pill, borderWidth: 3, borderColor: '#FFFFFF' },
+  dragHint: {
+    position: 'absolute',
+    height: 30,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  magnifier: {
+    position: 'absolute',
+    width: 96,
+    height: 54,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  drawHint: {
+    position: 'absolute',
+    left: 16,
+    bottom: 16,
+    minHeight: 34,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editorObject: {
+    position: 'absolute',
+    borderWidth: 2,
+    borderRadius: Radius.sm,
+    minWidth: 28,
+    minHeight: 22,
+  },
+  objectFill: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xs,
+    overflow: 'hidden',
+  },
+  objectToolbar: {
+    position: 'absolute',
+    top: -38,
+    left: 0,
+    minHeight: 30,
+    borderWidth: 1,
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  resizeHandle: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderRadius: Radius.pill,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
   resizeHandle_nw: { left: -11, top: -11 },
   resizeHandle_ne: { right: -11, top: -11 },
   resizeHandle_sw: { left: -11, bottom: -11 },
@@ -3574,68 +4956,280 @@ const styles = StyleSheet.create({
   annotationFill: { backgroundColor: 'rgba(255,245,132,0.9)' },
   annotationShapeFill: { backgroundColor: 'transparent', borderWidth: 3 },
   annotationCalloutFill: { overflow: 'visible' },
-  calloutPointer: { position: 'absolute', left: -8, bottom: -8, width: 18, height: 18, transform: [{ rotate: '45deg' }], opacity: 0.9 },
+  calloutPointer: {
+    position: 'absolute',
+    left: -8,
+    bottom: -8,
+    width: 18,
+    height: 18,
+    transform: [{ rotate: '45deg' }],
+    opacity: 0.9,
+  },
   formFieldFill: { borderWidth: 1.5, alignItems: 'stretch', justifyContent: 'center', gap: 2 },
   formFieldTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
-  formCheckboxFill: { borderWidth: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: Spacing.xs },
-  formCheckboxBox: { width: 28, height: 28, borderRadius: Radius.xs, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  formCheckboxFill: {
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: Spacing.xs,
+  },
+  formCheckboxBox: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.xs,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   formSignatureFill: { borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', gap: 4 },
   formSignatureLine: { width: '84%', height: 2, borderRadius: Radius.pill },
   stampFill: { position: 'relative', backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 3, gap: 1 },
   stampPillFill: { borderRadius: Radius.pill },
   stampSealFill: { borderRadius: Radius.pill, aspectRatio: 1.55 },
-  stampInnerBorder: { position: 'absolute', left: 6, right: 6, top: 6, bottom: 6, borderWidth: 1.5, borderRadius: Radius.xs },
+  stampInnerBorder: {
+    position: 'absolute',
+    left: 6,
+    right: 6,
+    top: 6,
+    bottom: 6,
+    borderWidth: 1.5,
+    borderRadius: Radius.xs,
+  },
   stampUploadFill: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1.5, padding: Spacing.xs },
-  stampUploadPad: { height: 150, borderRadius: Radius.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.035)' },
+  stampUploadPad: {
+    height: 150,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.035)',
+  },
   stampImagePreview: { width: '100%', height: '100%' },
   signatureFill: { backgroundColor: 'rgba(255,255,255,0.02)' },
   signatureObjectImage: { width: '100%', height: '100%' },
   watermarkFill: { backgroundColor: 'transparent', borderColor: 'transparent' },
   textFill: { alignItems: 'flex-start', justifyContent: 'center' },
-  textObject: { position: 'absolute', left: '19%', top: '30%', width: '44%', minHeight: 74, borderWidth: 2, borderRadius: Radius.sm, padding: Spacing.sm },
-  floatingToolbar: { position: 'absolute', top: -42, left: 0, height: 34, borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: Spacing.sm, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  redactBox: { position: 'absolute', left: '22%', top: '42%', width: '48%', height: 48, backgroundColor: '#050505', borderWidth: 2 },
-  highlightBox: { position: 'absolute', left: '18%', top: '36%', width: '56%', height: 42, borderWidth: 1.5, borderRadius: Radius.xs },
-  signaturePreview: { position: 'absolute', left: '42%', top: '70%', width: '34%', height: 82, borderWidth: 1.5, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }] },
-  stampPreview: { position: 'absolute', left: '24%', top: '55%', width: '48%', height: 92, borderWidth: 4, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-12deg' }] },
-  watermarkPreview: { position: 'absolute', left: '10%', right: '10%', top: '42%', minHeight: 90, alignItems: 'center', justifyContent: 'center' },
-  annotationPreview: { position: 'absolute', right: '10%', top: '18%', width: '28%', minHeight: 86, borderWidth: 1.5, borderRadius: Radius.sm, padding: Spacing.sm },
-  toast: { position: 'absolute', right: Spacing.lg, bottom: Spacing.lg, minHeight: 46, borderRadius: Radius.pill, paddingHorizontal: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  textObject: {
+    position: 'absolute',
+    left: '19%',
+    top: '30%',
+    width: '44%',
+    minHeight: 74,
+    borderWidth: 2,
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+  },
+  floatingToolbar: {
+    position: 'absolute',
+    top: -42,
+    left: 0,
+    height: 34,
+    borderWidth: 1,
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  redactBox: {
+    position: 'absolute',
+    left: '22%',
+    top: '42%',
+    width: '48%',
+    height: 48,
+    backgroundColor: '#050505',
+    borderWidth: 2,
+  },
+  highlightBox: {
+    position: 'absolute',
+    left: '18%',
+    top: '36%',
+    width: '56%',
+    height: 42,
+    borderWidth: 1.5,
+    borderRadius: Radius.xs,
+  },
+  signaturePreview: {
+    position: 'absolute',
+    left: '42%',
+    top: '70%',
+    width: '34%',
+    height: 82,
+    borderWidth: 1.5,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '-8deg' }],
+  },
+  stampPreview: {
+    position: 'absolute',
+    left: '24%',
+    top: '55%',
+    width: '48%',
+    height: 92,
+    borderWidth: 4,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '-12deg' }],
+  },
+  watermarkPreview: {
+    position: 'absolute',
+    left: '10%',
+    right: '10%',
+    top: '42%',
+    minHeight: 90,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  annotationPreview: {
+    position: 'absolute',
+    right: '10%',
+    top: '18%',
+    width: '28%',
+    minHeight: 86,
+    borderWidth: 1.5,
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+  },
+  toast: {
+    position: 'absolute',
+    right: Spacing.lg,
+    bottom: Spacing.lg,
+    minHeight: 46,
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sliderTrack: { height: 8, borderRadius: Radius.pill, overflow: 'hidden' },
-  sliderFill: { height: '100%', borderRadius: Radius.pill },
-  sliderKnob: { position: 'absolute', top: -5, width: 18, height: 18, borderRadius: Radius.pill },
   swatchRow: { flexDirection: 'row', gap: Spacing.sm },
   swatchRowWrap: { flexWrap: 'wrap' },
   swatch: { width: 32, height: 32, borderRadius: Radius.pill, borderWidth: 3 },
   twoCols: { width: '100%', flexDirection: 'row', gap: Spacing.sm },
   twoColItem: { flex: 1, minWidth: 0 },
-  positionGrid: { borderWidth: 1, borderRadius: Radius.md, overflow: 'hidden', flexDirection: 'row', flexWrap: 'wrap' },
-  positionCell: { width: '33.333%', aspectRatio: 2.1, borderWidth: 0.5, alignItems: 'center', justifyContent: 'center' },
+  positionGrid: {
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  positionCell: {
+    width: '33.333%',
+    aspectRatio: 2.1,
+    borderWidth: 0.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   positionDot: { width: 10, height: 10, borderRadius: Radius.pill },
-  checkRow: { minHeight: 46, borderWidth: 1, borderRadius: Radius.md, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  warningBox: { borderWidth: 1, borderRadius: Radius.md, padding: Spacing.md, flexDirection: 'row', gap: Spacing.sm },
+  checkRow: {
+    minHeight: 46,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  warningBox: {
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   resultPanel: { borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.md, gap: Spacing.md },
   resultHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  resultIcon: { width: 28, height: 28, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
+  resultIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   resultActions: { gap: Spacing.sm },
-  mobileResultDock: { position: 'absolute', left: Spacing.md, right: Spacing.md, bottom: Spacing.md, borderWidth: 1, borderRadius: Radius.xl, padding: Spacing.md, gap: Spacing.sm },
+  mobileResultDock: {
+    position: 'absolute',
+    left: Spacing.md,
+    right: Spacing.md,
+    bottom: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
   mobileResultTitle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   mobileResultButtons: { flexDirection: 'row', gap: Spacing.sm },
   mobileResultButton: { flex: 1 },
-  signaturePad: { height: 132, borderRadius: Radius.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  signaturePad: {
+    height: 132,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   signatureDrawPad: { position: 'relative' },
   signatureTypedPad: { paddingHorizontal: Spacing.md },
-  signaturePadEmpty: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.md },
+  signaturePadEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+  },
   signatureImagePreview: { width: '100%', height: '100%' },
   stampGallery: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  stampChip: { minHeight: 40, minWidth: 96, borderWidth: 2, borderRadius: Radius.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-4deg' }] },
+  stampChip: {
+    minHeight: 40,
+    minWidth: 96,
+    borderWidth: 2,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '-4deg' }],
+  },
   stampChipPill: { borderRadius: Radius.pill },
   stampChipSeal: { minWidth: 74, borderRadius: Radius.pill, transform: [{ rotate: '-8deg' }] },
-  commentRow: { borderRadius: Radius.md, padding: Spacing.md, backgroundColor: 'rgba(255,255,255,0.045)', gap: 2 },
+  commentRow: {
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    gap: 2,
+  },
   formFieldList: { gap: Spacing.sm },
-  formDetectedRow: { minHeight: 54, borderRadius: Radius.md, padding: Spacing.sm, backgroundColor: 'rgba(255,255,255,0.045)', flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  formDetectedIndex: { width: 28, height: 28, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
+  formDetectedRow: {
+    minHeight: 54,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  formDetectedIndex: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   quickNoteGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  quickNoteChip: { minHeight: 34, maxWidth: '100%', borderRadius: Radius.pill, paddingHorizontal: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.045)' },
+  quickNoteChip: {
+    minHeight: 34,
+    maxWidth: '100%',
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+  },
 });

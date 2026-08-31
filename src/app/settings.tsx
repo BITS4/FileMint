@@ -32,7 +32,11 @@ type Picker = 'theme' | 'quality' | 'compression' | 'ocr' | 'scanColor' | null;
 
 const THEME_LABEL: Record<ThemeMode, string> = { system: 'System', dark: 'Dark', light: 'Light' };
 const QUALITY_LABEL: Record<Quality, string> = { high: 'High', medium: 'Medium', low: 'Low' };
-const SCAN_LABEL: Record<ScanColorMode, string> = { color: 'Color', grayscale: 'Grayscale', bw: 'Black & White' };
+const SCAN_LABEL: Record<ScanColorMode, string> = {
+  color: 'Color',
+  grayscale: 'Grayscale',
+  bw: 'Black & White',
+};
 const OCR_LANGS: [string, string][] = [
   ['eng', 'English'],
   ['spa', 'Spanish'],
@@ -98,11 +102,9 @@ export default function SettingsScreen() {
   }, [settings.serverUrl]);
 
   const storageUsed = useMemo(() => files.reduce((sum, f) => sum + f.size, 0), [files]);
-  const capCount = server?.online
-    ? Object.values(server.capabilities).filter(Boolean).length
-    : 0;
+  const capCount = server?.online ? Object.values(server.capabilities).filter(Boolean).length : 0;
   const ocrLabel = OCR_LANGS.find(([code]) => code === settings.ocrLanguage)?.[1] ?? settings.ocrLanguage;
-  const planName = user?.currentPlanId ? PLAN_LABEL[user.currentPlanId] ?? user.currentPlanId : 'Free';
+  const planName = user?.currentPlanId ? (PLAN_LABEL[user.currentPlanId] ?? user.currentPlanId) : 'Free';
   const planExpiry = user?.lifetimePremium
     ? 'Lifetime Premium'
     : user?.premiumExpiresAt
@@ -116,7 +118,14 @@ export default function SettingsScreen() {
       title: 'Appearance',
       actions: (Object.keys(THEME_LABEL) as ThemeMode[]).map((mode) => ({
         label: THEME_LABEL[mode],
-        icon: settings.themeMode === mode ? 'check' : mode === 'dark' ? 'weather-night' : mode === 'light' ? 'white-balance-sunny' : 'theme-light-dark',
+        icon:
+          settings.themeMode === mode
+            ? 'check'
+            : mode === 'dark'
+              ? 'weather-night'
+              : mode === 'light'
+                ? 'white-balance-sunny'
+                : 'theme-light-dark',
         onPress: () => settings.update({ themeMode: mode }),
       })),
     },
@@ -163,17 +172,31 @@ export default function SettingsScreen() {
   };
 
   const handleClear = async () => {
-    const ok = await confirm('Clear all files?', 'This permanently deletes every file in FileMint. This cannot be undone.', 'Delete all', true);
+    const ok = await confirm(
+      'Clear all files?',
+      'This permanently deletes every file in FileMint. This cannot be undone.',
+      'Delete all',
+      true,
+    );
     if (ok) await clearLibrary();
   };
 
   const handleLogout = async () => {
-    const ok = await confirm('Log out?', 'Your local session token will be cleared. You can log in again any time.', 'Log out');
+    const ok = await confirm(
+      'Log out?',
+      'Your local session token will be cleared. You can log in again any time.',
+      'Log out',
+    );
     if (ok) await logout();
   };
 
   const handleDeleteAccount = async () => {
-    const ok = await confirm('Delete account?', 'This signs you out and removes the account record from the local FileMint server. This cannot be undone.', 'Delete account', true);
+    const ok = await confirm(
+      'Delete account?',
+      'This signs you out and removes the account record from the local FileMint server. This cannot be undone.',
+      'Delete account',
+      true,
+    );
     if (ok) await deleteAccount();
   };
 
@@ -183,7 +206,11 @@ export default function SettingsScreen() {
       setCurrentPassword('');
       setNewPassword('');
       setChangingPassword(false);
-      await confirm('Password changed', 'Your password was updated. Other active sessions were signed out.', 'OK');
+      await confirm(
+        'Password changed',
+        'Your password was updated. Other active sessions were signed out.',
+        'OK',
+      );
     } catch (e) {
       await confirm('Could not change password', e instanceof Error ? e.message : 'Try again later.', 'OK');
     }
@@ -194,14 +221,22 @@ export default function SettingsScreen() {
       const message = await manageSubscription();
       await confirm('Subscription', message, 'OK');
     } catch (e) {
-      await confirm('Subscription', e instanceof Error ? e.message : 'Log in to manage your subscription.', 'OK');
+      await confirm(
+        'Subscription',
+        e instanceof Error ? e.message : 'Log in to manage your subscription.',
+        'OK',
+      );
     }
   };
 
   const handleRestorePurchases = async () => {
     try {
       const restored = await restorePurchases();
-      await confirm(restored ? 'Premium restored' : 'No active purchase', restored ? 'Your Premium access is active.' : 'No active Premium purchase was found.', 'OK');
+      await confirm(
+        restored ? 'Premium restored' : 'No active purchase',
+        restored ? 'Your Premium access is active.' : 'No active Premium purchase was found.',
+        'OK',
+      );
     } catch (e) {
       await confirm('Restore failed', e instanceof Error ? e.message : 'Log in to restore purchases.', 'OK');
     }
@@ -232,52 +267,148 @@ export default function SettingsScreen() {
             <ListRow
               icon="account-circle-outline"
               title={user.fullName || user.email}
-              subtitle={user.username ? `@${user.username} · ${user.email}` : user.fullName ? user.email : 'Signed in'}
+              subtitle={
+                user.username ? `@${user.username} · ${user.email}` : user.fullName ? user.email : 'Signed in'
+              }
               value={user.emailVerified ? 'Verified' : 'Unverified'}
             />
             <ListRow
               icon={user.emailVerified ? 'email-check-outline' : 'email-alert-outline'}
               iconColor={user.emailVerified ? theme.success : theme.warning}
               title="Email verification"
-              subtitle={user.emailVerified ? 'Your email is confirmed.' : 'Confirm your email before buying Premium.'}
+              subtitle={
+                user.emailVerified ? 'Your email is confirmed.' : 'Confirm your email before buying Premium.'
+              }
               value={user.emailVerified ? 'Done' : 'Needed'}
-              onPress={user.emailVerified ? undefined : () => router.push(`/auth/verify?email=${encodeURIComponent(user.email)}`)}
+              onPress={
+                user.emailVerified
+                  ? undefined
+                  : () => router.push(`/auth/verify?email=${encodeURIComponent(user.email)}`)
+              }
               showChevron={!user.emailVerified}
             />
-            <ListRow icon="crown-outline" iconColor={theme.primary} title="Current plan" subtitle={planExpiry} value={planName} />
-            <ListRow icon="credit-card-cog-outline" title="Upgrade / manage subscription" onPress={isPremium ? handleManageSubscription : () => router.push('/upgrade')} showChevron />
+            <ListRow
+              icon="crown-outline"
+              iconColor={theme.primary}
+              title="Current plan"
+              subtitle={planExpiry}
+              value={planName}
+            />
+            <ListRow
+              icon="credit-card-cog-outline"
+              title="Upgrade / manage subscription"
+              onPress={isPremium ? handleManageSubscription : () => router.push('/upgrade')}
+              showChevron
+            />
             <ListRow icon="restore" title="Restore purchases" onPress={handleRestorePurchases} showChevron />
-            <ListRow icon="lock-reset" title="Change password" onPress={() => setChangingPassword((v) => !v)} showChevron />
+            <ListRow
+              icon="lock-reset"
+              title="Change password"
+              onPress={() => setChangingPassword((v) => !v)}
+              showChevron
+            />
             {changingPassword ? (
               <View style={styles.passwordPanel}>
-                <TextField label="Current password" icon="lock-outline" value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry autoCapitalize="none" />
-                <TextField label="New password" icon="lock-check-outline" value={newPassword} onChangeText={setNewPassword} secureTextEntry autoCapitalize="none" hint="At least 8 characters with a letter and a number." />
-                <Button title="Save password" icon="check" loading={authLoading} disabled={!currentPassword || !newPassword} onPress={handleChangePassword} />
+                <TextField
+                  label="Current password"
+                  icon="lock-outline"
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+                <TextField
+                  label="New password"
+                  icon="lock-check-outline"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  hint="At least 8 characters with a letter and a number."
+                />
+                <Button
+                  title="Save password"
+                  icon="check"
+                  loading={authLoading}
+                  disabled={!currentPassword || !newPassword}
+                  onPress={handleChangePassword}
+                />
               </View>
             ) : null}
             <ListRow icon="logout" title="Logout" onPress={handleLogout} showChevron />
-            <ListRow icon="account-remove-outline" title="Delete account" destructive onPress={handleDeleteAccount} showChevron />
+            <ListRow
+              icon="account-remove-outline"
+              title="Delete account"
+              destructive
+              onPress={handleDeleteAccount}
+              showChevron
+            />
           </>
         ) : (
           <>
-            <ListRow icon="account-outline" title="Not signed in" subtitle="Log in to manage Premium, sessions, and account security." />
+            <ListRow
+              icon="account-outline"
+              title="Not signed in"
+              subtitle="Log in to manage Premium, sessions, and account security."
+            />
             <View style={styles.authButtons}>
-              <Button title="Log in" icon="login" onPress={() => router.push('/auth/login')} style={{ flex: 1 }} />
-              <Button title="Sign up" icon="account-plus-outline" variant="secondary" onPress={() => router.push('/auth/signup')} style={{ flex: 1 }} />
+              <Button
+                title="Log in"
+                icon="login"
+                onPress={() => router.push('/auth/login')}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Sign up"
+                icon="account-plus-outline"
+                variant="secondary"
+                onPress={() => router.push('/auth/signup')}
+                style={{ flex: 1 }}
+              />
             </View>
           </>
         )}
       </Group>
 
       <Group title="General">
-        <ListRow icon="theme-light-dark" title="Appearance" value={THEME_LABEL[settings.themeMode]} onPress={() => setPicker('theme')} showChevron />
-        <ListRow icon="quality-high" title="Default PDF quality" value={QUALITY_LABEL[settings.defaultPdfQuality]} onPress={() => setPicker('quality')} showChevron />
-        <ListRow icon="arrow-collapse-vertical" title="Compression level" value={QUALITY_LABEL[settings.compressionLevel]} onPress={() => setPicker('compression')} showChevron />
-        <ListRow icon="translate" title="OCR language" value={ocrLabel} onPress={() => setPicker('ocr')} showChevron />
+        <ListRow
+          icon="theme-light-dark"
+          title="Appearance"
+          value={THEME_LABEL[settings.themeMode]}
+          onPress={() => setPicker('theme')}
+          showChevron
+        />
+        <ListRow
+          icon="quality-high"
+          title="Default PDF quality"
+          value={QUALITY_LABEL[settings.defaultPdfQuality]}
+          onPress={() => setPicker('quality')}
+          showChevron
+        />
+        <ListRow
+          icon="arrow-collapse-vertical"
+          title="Compression level"
+          value={QUALITY_LABEL[settings.compressionLevel]}
+          onPress={() => setPicker('compression')}
+          showChevron
+        />
+        <ListRow
+          icon="translate"
+          title="OCR language"
+          value={ocrLabel}
+          onPress={() => setPicker('ocr')}
+          showChevron
+        />
       </Group>
 
       <Group title="Scanning">
-        <ListRow icon="palette-outline" title="Scan color mode" value={SCAN_LABEL[settings.scanColorMode]} onPress={() => setPicker('scanColor')} showChevron />
+        <ListRow
+          icon="palette-outline"
+          title="Scan color mode"
+          value={SCAN_LABEL[settings.scanColorMode]}
+          onPress={() => setPicker('scanColor')}
+          showChevron
+        />
         <ListRow
           icon="auto-fix"
           title="Auto-enhance scans"
@@ -328,19 +459,49 @@ export default function SettingsScreen() {
 
       <Group title="Storage">
         <ListRow icon="harddisk" title="Storage used" value={formatBytes(storageUsed)} />
-        <ListRow icon="trash-can-outline" title="Clear all files" subtitle={`${files.length} item${files.length === 1 ? '' : 's'}`} destructive onPress={handleClear} />
+        <ListRow
+          icon="trash-can-outline"
+          title="Clear all files"
+          subtitle={`${files.length} item${files.length === 1 ? '' : 's'}`}
+          destructive
+          onPress={handleClear}
+        />
       </Group>
 
       <Group title="Support">
         <ListRow icon="share-variant" title="Share FileMint" onPress={shareApp} showChevron />
-        <ListRow icon="message-text-outline" title="Send feedback" onPress={() => router.push('/feedback')} showChevron />
-        <ListRow icon="lightbulb-outline" title="Request a feature" onPress={() => router.push('/feedback?type=feature')} showChevron />
+        <ListRow
+          icon="message-text-outline"
+          title="Send feedback"
+          onPress={() => router.push('/feedback')}
+          showChevron
+        />
+        <ListRow
+          icon="lightbulb-outline"
+          title="Request a feature"
+          onPress={() => router.push('/feedback?type=feature')}
+          showChevron
+        />
       </Group>
 
       <Group title="About">
-        <ListRow icon="shield-check-outline" title="Privacy policy" onPress={() => void WebBrowser.openBrowserAsync('https://example.com/privacy')} showChevron />
-        <ListRow icon="file-document-outline" title="Terms of service" onPress={() => void WebBrowser.openBrowserAsync('https://example.com/terms')} showChevron />
-        <ListRow icon="information-outline" title="Version" value={Constants.expoConfig?.version ?? '1.0.0'} />
+        <ListRow
+          icon="shield-check-outline"
+          title="Privacy policy"
+          onPress={() => void WebBrowser.openBrowserAsync('https://example.com/privacy')}
+          showChevron
+        />
+        <ListRow
+          icon="file-document-outline"
+          title="Terms of service"
+          onPress={() => void WebBrowser.openBrowserAsync('https://example.com/terms')}
+          showChevron
+        />
+        <ListRow
+          icon="information-outline"
+          title="Version"
+          value={Constants.expoConfig?.version ?? '1.0.0'}
+        />
       </Group>
 
       <ActionSheet
@@ -369,7 +530,19 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   upgrade: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.sm },
-  upgradeIcon: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
-  authButtons: { flexDirection: 'row', gap: Spacing.md, paddingHorizontal: Spacing.sm, paddingBottom: Spacing.sm, flexWrap: 'wrap' },
+  upgradeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    flexWrap: 'wrap',
+  },
   passwordPanel: { gap: Spacing.md, paddingHorizontal: Spacing.sm, paddingBottom: Spacing.md },
 });

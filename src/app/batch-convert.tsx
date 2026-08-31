@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { ToolOutcome } from '@/components/tools/ToolOutcome';
@@ -101,11 +101,12 @@ export default function BatchConvertScreen() {
 
   useEffect(() => {
     refreshServer();
-    setSelected((prev) => prev.filter((id) => {
-      const file = libraryFiles.find((f) => f.id === id);
-      return file ? canConvert(file, target) : false;
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setSelected((prev) =>
+      prev.filter((id) => {
+        const file = libraryFiles.find((f) => f.id === id);
+        return file ? canConvert(file, target) : false;
+      }),
+    );
   }, [target]);
 
   const importFiles = async () => {
@@ -151,7 +152,8 @@ export default function BatchConvertScreen() {
                   borderColor: active ? theme.primary : theme.border,
                   backgroundColor: active ? withAlpha(theme.primary, 0.14) : theme.backgroundElement,
                 },
-              ]}>
+              ]}
+            >
               <Icon name={option.icon} size={20} color={active ? theme.primary : theme.textSecondary} />
               <Txt variant="label" weight="700" style={{ color: active ? theme.primary : theme.text }}>
                 {option.label}
@@ -205,7 +207,8 @@ export default function BatchConvertScreen() {
             </View>
             {skipped > 0 ? (
               <Txt variant="tiny" muted>
-                {skipped} selected file{skipped === 1 ? '' : 's'} cannot convert to {target.toUpperCase()} and will be skipped.
+                {skipped} selected file{skipped === 1 ? '' : 's'} cannot convert to {target.toUpperCase()} and
+                will be skipped.
               </Txt>
             ) : null}
           </Card>
@@ -213,14 +216,21 @@ export default function BatchConvertScreen() {
           {availableFiles.length ? (
             <View style={{ gap: Spacing.sm }}>
               {availableFiles.slice(0, 80).map((file) => (
-                <BatchFileRow key={file.id} file={file} selected={selected.includes(file.id)} onPress={() => toggle(file.id)} />
+                <BatchFileRow
+                  key={file.id}
+                  file={file}
+                  selected={selected.includes(file.id)}
+                  onPress={() => toggle(file.id)}
+                />
               ))}
             </View>
           ) : (
             <EmptyState
               icon="file-search-outline"
               title="No compatible files"
-              subtitle={target === 'pdf' ? 'Import Word, Excel or PowerPoint files first.' : 'Import PDF files first.'}
+              subtitle={
+                target === 'pdf' ? 'Import Word, Excel or PowerPoint files first.' : 'Import PDF files first.'
+              }
               compact
             />
           )}
@@ -241,7 +251,15 @@ export default function BatchConvertScreen() {
   );
 }
 
-function BatchFileRow({ file, selected, onPress }: { file: FileItem; selected: boolean; onPress: () => void }) {
+function BatchFileRow({
+  file,
+  selected,
+  onPress,
+}: {
+  file: FileItem;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const theme = useTheme();
   const meta = kindMeta(file.kind);
   return (
@@ -253,7 +271,8 @@ function BatchFileRow({ file, selected, onPress }: { file: FileItem; selected: b
           borderColor: selected ? theme.primary : theme.border,
           backgroundColor: selected ? withAlpha(theme.primary, 0.12) : theme.backgroundElement,
         },
-      ]}>
+      ]}
+    >
       <View style={[styles.fileIcon, { backgroundColor: withAlpha(Accents[meta.accent], 0.15) }]}>
         <Icon name={meta.icon} size={20} color={Accents[meta.accent]} />
       </View>
@@ -291,7 +310,12 @@ const styles = StyleSheet.create({
   },
   inlineCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
+  rowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
   actions: { flexDirection: 'row', gap: Spacing.sm },
   fileRow: {
     borderWidth: 1,

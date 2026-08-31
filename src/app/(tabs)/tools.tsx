@@ -18,13 +18,24 @@ export default function ToolsScreen() {
     <Screen scroll padded contentContainerStyle={{ paddingBottom: desktop ? 42 : 110 }}>
       <AppHeader
         title={desktop ? 'Tool catalogue' : 'All Tools'}
-        right={<IconButton name="magnify" onPress={() => router.push('/search')} accessibilityLabel="Search tools" />}
+        right={
+          <IconButton
+            name="magnify"
+            onPress={() => router.push('/search')}
+            accessibilityLabel="Search tools"
+          />
+        }
       />
       <Txt variant="caption" muted style={{ marginTop: -6, marginBottom: Spacing.sm }}>
         Every FileMint tool, grouped by what it does.
       </Txt>
       {CATEGORIES.map((category) => (
-        <ToolGroup key={category.key} title={category.label} tools={toolsByCategory(category.key)} onOpen={open} />
+        <ToolGroup
+          key={category.key}
+          title={category.label}
+          tools={toolsByCategory(category.key)}
+          onOpen={open}
+        />
       ))}
     </Screen>
   );

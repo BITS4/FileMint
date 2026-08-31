@@ -13,7 +13,6 @@ import {
   ToolRow,
 } from '@/components/ui';
 import { searchTools } from '@/constants/tools';
-import { Spacing } from '@/constants/theme';
 import { useOpenTool } from '@/hooks/use-open-tool';
 import { goBack } from '@/lib/nav';
 import { useShallow } from 'zustand/react/shallow';
@@ -59,7 +58,12 @@ export default function SearchScreen() {
           compact
         />
       ) : empty ? (
-        <EmptyState icon="file-search-outline" title="No results" subtitle={`Nothing matches “${query.trim()}”.`} compact />
+        <EmptyState
+          icon="file-search-outline"
+          title="No results"
+          subtitle={`Nothing matches “${query.trim()}”.`}
+          compact
+        />
       ) : (
         <View>
           {fileResults.length > 0 ? (

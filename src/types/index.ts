@@ -82,15 +82,7 @@ export type ViewMode = 'list' | 'grid';
 /** Home filter chips. */
 export type FileFilter = 'all' | 'pdf' | 'docs' | 'excel' | 'ppt' | 'images' | 'recent' | 'favorites';
 
-export type ToolCategory =
-  | 'convert'
-  | 'edit'
-  | 'organize'
-  | 'scan'
-  | 'security'
-  | 'ocr'
-  | 'export'
-  | 'view';
+export type ToolCategory = 'convert' | 'edit' | 'organize' | 'scan' | 'security' | 'ocr' | 'export' | 'view';
 
 /**
  * Honest per-tool capability state so the UI never pretends something works:

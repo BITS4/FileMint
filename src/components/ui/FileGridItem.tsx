@@ -34,7 +34,8 @@ export function FileGridItem({ file, onPress, onMore }: FileGridItemProps) {
         styles.card,
         desktop && styles.desktopCard,
         { backgroundColor: theme.card, borderColor: theme.border, opacity: pressed ? 0.85 : 1 },
-      ]}>
+      ]}
+    >
       <View>
         <Thumbnail file={file} fill radius={Radius.md} />
         <View style={styles.badge}>
@@ -52,7 +53,8 @@ export function FileGridItem({ file, onPress, onMore }: FileGridItemProps) {
               haptics.tap();
               onMore();
             }}
-            style={[styles.more, { backgroundColor: theme.overlay }]}>
+            style={[styles.more, { backgroundColor: theme.overlay }]}
+          >
             <Icon name="dots-horizontal" size={16} color="#FFFFFF" />
           </Pressable>
         ) : null}

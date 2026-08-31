@@ -88,13 +88,20 @@ async function request<T>(path: string, options: RequestInit & { token?: string 
   try {
     res = await fetch(`${base}${path}`, { ...options, headers });
   } catch {
-    throw new ApiError(`Can't reach the FileMint server at ${base}. Start it with "npm run server".`, 0, null);
+    throw new ApiError(
+      `Can't reach the FileMint server at ${base}. Start it with "npm run server".`,
+      0,
+      null,
+    );
   }
 
   const text = await res.text();
   const data = text ? tryJson(text) : {};
   if (!res.ok) {
-    const message = typeof data === 'object' && data && 'error' in data ? String((data as { error: unknown }).error) : `Request failed (${res.status}).`;
+    const message =
+      typeof data === 'object' && data && 'error' in data
+        ? String((data as { error: unknown }).error)
+        : `Request failed (${res.status}).`;
     throw new ApiError(message, res.status, data);
   }
   return data as T;
@@ -117,7 +124,9 @@ export const authApi = {
     return request<SignupResponse>('/auth/signup', { method: 'POST', body: jsonBody(input) });
   },
   checkUsername(username: string) {
-    return request<{ username: string; valid: boolean; available: boolean; message: string }>(`/auth/username?username=${encodeURIComponent(username)}`);
+    return request<{ username: string; valid: boolean; available: boolean; message: string }>(
+      `/auth/username?username=${encodeURIComponent(username)}`,
+    );
   },
   verifyEmail(input: { email: string; code: string }) {
     return request<{ user: AuthUser }>('/auth/verify-email', { method: 'POST', body: jsonBody(input) });
@@ -135,16 +144,28 @@ export const authApi = {
     return request<{ ok: boolean }>('/auth/logout', { method: 'POST', token });
   },
   me(token: string) {
-    return request<{ user: AuthUser; session: Pick<AuthSession, 'expiresAt' | 'warningAt'> }>('/auth/me', { token });
+    return request<{ user: AuthUser; session: Pick<AuthSession, 'expiresAt' | 'warningAt'> }>('/auth/me', {
+      token,
+    });
   },
   requestPasswordReset(email: string) {
-    return request<CodeResponse>('/auth/password-reset/request', { method: 'POST', body: jsonBody({ email }) });
+    return request<CodeResponse>('/auth/password-reset/request', {
+      method: 'POST',
+      body: jsonBody({ email }),
+    });
   },
   confirmPasswordReset(input: { email: string; code: string; password: string }) {
-    return request<{ ok: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: jsonBody(input) });
+    return request<{ ok: boolean }>('/auth/password-reset/confirm', {
+      method: 'POST',
+      body: jsonBody(input),
+    });
   },
   changePassword(token: string, input: { currentPassword: string; newPassword: string }) {
-    return request<{ user: AuthUser }>('/auth/change-password', { method: 'POST', token, body: jsonBody(input) });
+    return request<{ user: AuthUser }>('/auth/change-password', {
+      method: 'POST',
+      token,
+      body: jsonBody(input),
+    });
   },
   deleteAccount(token: string) {
     return request<{ ok: boolean }>('/auth/account', { method: 'DELETE', token });

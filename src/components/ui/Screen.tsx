@@ -37,9 +37,7 @@ export function Screen({
   const gutter = padded ? { paddingHorizontal: desktop ? Spacing.xxl : Spacing.lg } : null;
   const maxWidth = Math.min(desktop ? DesktopContentWidth : MaxContentWidth, width || MaxContentWidth);
 
-  const inner = (
-    <View style={[styles.column, { maxWidth }, gutter, contentContainerStyle]}>{children}</View>
-  );
+  const inner = <View style={[styles.column, { maxWidth }, gutter, contentContainerStyle]}>{children}</View>;
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: theme.background }, style]} edges={edges}>
@@ -48,7 +46,8 @@ export function Screen({
           style={styles.flex}
           contentContainerStyle={[styles.scrollContent, desktop ? styles.desktopScrollContent : null]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           {inner}
         </ScrollView>
       ) : (

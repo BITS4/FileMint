@@ -6,7 +6,14 @@ import { useIsDesktop } from '@/hooks/use-breakpoint';
 import { useOpenTool } from '@/hooks/use-open-tool';
 import type { ToolDef } from '@/types';
 
-const TO_PDF = pickTools(['image-to-pdf', 'txt-to-pdf', 'csv-to-pdf', 'docx-to-pdf', 'pptx-to-pdf', 'xlsx-to-pdf']);
+const TO_PDF = pickTools([
+  'image-to-pdf',
+  'txt-to-pdf',
+  'csv-to-pdf',
+  'docx-to-pdf',
+  'pptx-to-pdf',
+  'xlsx-to-pdf',
+]);
 const FROM_PDF = pickTools([
   'pdf-to-jpg',
   'pdf-to-png',

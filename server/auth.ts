@@ -1,4 +1,12 @@
-import { createHash, createHmac, randomBytes, randomInt, randomUUID, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomInt,
+  randomUUID,
+  scrypt as scryptCb,
+  timingSafeEqual,
+} from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -194,11 +202,15 @@ let pgPool: Pool | null = null;
 let pgReady: Promise<void> | null = null;
 
 function normalizeEmail(value: unknown): string {
-  return String(value ?? '').trim().toLowerCase();
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
 }
 
 function normalizeUsername(value: unknown): string {
-  return String(value ?? '').trim().toLowerCase();
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
 }
 
 function validateUsername(username: string): string | null {
@@ -209,7 +221,9 @@ function validateUsername(username: string): string | null {
 }
 
 function normalizePhone(value: unknown): string {
-  return String(value ?? '').trim().replace(/\s+/g, ' ');
+  return String(value ?? '')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 function isPhone(value: string): boolean {
@@ -289,7 +303,10 @@ function getPgPool(): Pool | null {
   if (!pgPool) {
     pgPool = new Pool({
       connectionString: url,
-      ssl: url.includes('sslmode=require') || /neon\.tech/i.test(url) ? { rejectUnauthorized: false } : undefined,
+      ssl:
+        url.includes('sslmode=require') || /neon\.tech/i.test(url)
+          ? { rejectUnauthorized: false }
+          : undefined,
       max: Number(process.env.DATABASE_POOL_MAX ?? 4),
     });
   }
@@ -300,13 +317,15 @@ async function ensurePgStore(): Promise<Pool | null> {
   const pool = getPgPool();
   if (!pool) return null;
   if (!pgReady) {
-    pgReady = pool.query(
-      `CREATE TABLE IF NOT EXISTS filemint_auth_store (
+    pgReady = pool
+      .query(
+        `CREATE TABLE IF NOT EXISTS filemint_auth_store (
         id TEXT PRIMARY KEY,
         data JSONB NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )`,
-    ).then(() => undefined);
+      )
+      .then(() => undefined);
   }
   await pgReady;
   return pool;
@@ -315,7 +334,9 @@ async function ensurePgStore(): Promise<Pool | null> {
 async function loadPgDb(): Promise<AuthDb | null> {
   const pool = await ensurePgStore();
   if (!pool) return null;
-  const res = await pool.query<{ data: unknown }>('SELECT data FROM filemint_auth_store WHERE id = $1', ['main']);
+  const res = await pool.query<{ data: unknown }>('SELECT data FROM filemint_auth_store WHERE id = $1', [
+    'main',
+  ]);
   if (res.rows[0]?.data) return normalizeDb(res.rows[0].data);
   const db = emptyDb();
   await writePgDb(db);
@@ -366,14 +387,19 @@ async function mutateDb<T>(fn: (db: AuthDb) => T | Promise<T>): Promise<T> {
     return result;
   };
   const next = saveChain.then(run, run);
-  saveChain = next.then(() => undefined, () => undefined);
+  saveChain = next.then(
+    () => undefined,
+    () => undefined,
+  );
   return next;
 }
 
 function prune(db: AuthDb): void {
   const cutoff = Date.now() - 7 * DAY_MS;
   db.codes = db.codes.filter((code) => !code.usedAt && new Date(code.expiresAt).getTime() > cutoff);
-  db.sessions = db.sessions.filter((session) => !session.revokedAt && new Date(session.expiresAt).getTime() > cutoff);
+  db.sessions = db.sessions.filter(
+    (session) => !session.revokedAt && new Date(session.expiresAt).getTime() > cutoff,
+  );
 }
 
 async function hashPassword(password: string): Promise<PasswordRecord> {
@@ -419,7 +445,11 @@ function syncPremium(user: UserRecord): void {
     user.premiumExpiresAt = null;
     return;
   }
-  if (user.premiumStatus === 'active' && user.premiumExpiresAt && new Date(user.premiumExpiresAt).getTime() <= Date.now()) {
+  if (
+    user.premiumStatus === 'active' &&
+    user.premiumExpiresAt &&
+    new Date(user.premiumExpiresAt).getTime() <= Date.now()
+  ) {
     user.premiumStatus = 'expired';
   }
 }
@@ -464,7 +494,9 @@ async function readJson(c: Context): Promise<Record<string, unknown>> {
   }
 }
 
-async function authenticate(c: Context): Promise<{ db: AuthDb; user: UserRecord; session: SessionRecord } | null> {
+async function authenticate(
+  c: Context,
+): Promise<{ db: AuthDb; user: UserRecord; session: SessionRecord } | null> {
   const header = c.req.header('authorization') ?? '';
   const match = /^Bearer\s+(.+)$/i.exec(header);
   if (!match) return null;
@@ -496,7 +528,10 @@ function isProductionLike(): boolean {
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char);
+  return value.replace(
+    /[&<>"']/g,
+    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char,
+  );
 }
 
 function appBaseUrl(c: Context): string {
@@ -514,13 +549,18 @@ function buildVerifyUrl(c: Context, email: string, code: string): string {
   return `${appBaseUrl(c)}/auth/verify?${params.toString()}`;
 }
 
-async function deliverAuthCode(c: Context, options: { email: string; code: string; purpose: CodePurpose; fullName?: string | null }): Promise<{ sent: boolean; devCode?: string; error?: string }> {
+async function deliverAuthCode(
+  c: Context,
+  options: { email: string; code: string; purpose: CodePurpose; fullName?: string | null },
+): Promise<{ sent: boolean; devCode?: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.FILEMINT_EMAIL_FROM || process.env.RESEND_FROM;
   const isVerify = options.purpose === 'verify_email';
   const verifyUrl = isVerify ? buildVerifyUrl(c, options.email, options.code) : null;
   const title = isVerify ? 'Verify your FileMint email' : 'Reset your FileMint password';
-  const intro = isVerify ? 'Use this code to verify your FileMint account.' : 'Use this code to reset your FileMint password.';
+  const intro = isVerify
+    ? 'Use this code to verify your FileMint account.'
+    : 'Use this code to reset your FileMint password.';
   const name = options.fullName ? ` ${escapeHtml(options.fullName)}` : '';
 
   if (apiKey && from) {
@@ -542,19 +582,30 @@ async function deliverAuthCode(c: Context, options: { email: string; code: strin
       });
       if (!res.ok) {
         const body = await res.text().catch(() => '');
-        return { sent: false, error: `Email provider rejected the message (${res.status}). ${body.slice(0, 240)}`.trim() };
+        return {
+          sent: false,
+          error: `Email provider rejected the message (${res.status}). ${body.slice(0, 240)}`.trim(),
+        };
       }
       return { sent: true };
     } catch (error) {
-      return { sent: false, error: error instanceof Error ? error.message : 'Email provider request failed.' };
+      return {
+        sent: false,
+        error: error instanceof Error ? error.message : 'Email provider request failed.',
+      };
     }
   }
 
   if (isProductionLike()) {
-    return { sent: false, error: 'Email delivery is not configured. Set RESEND_API_KEY and FILEMINT_EMAIL_FROM before deploying.' };
+    return {
+      sent: false,
+      error: 'Email delivery is not configured. Set RESEND_API_KEY and FILEMINT_EMAIL_FROM before deploying.',
+    };
   }
 
-  console.info(`[FileMint auth] ${isVerify ? 'Verification' : 'Password reset'} code for ${options.email}: ${options.code}`);
+  console.info(
+    `[FileMint auth] ${isVerify ? 'Verification' : 'Password reset'} code for ${options.email}: ${options.code}`,
+  );
   return { sent: false, devCode: options.code };
 }
 
@@ -589,17 +640,28 @@ async function stripeRequest<T>(path: string, init: RequestInit = {}): Promise<T
   const text = await res.text();
   const data = text ? JSON.parse(text) : {};
   if (!res.ok) {
-    const message = typeof data === 'object' && data && 'error' in data && typeof (data as { error?: { message?: unknown } }).error?.message === 'string'
-      ? String((data as { error: { message: string } }).error.message)
-      : `Stripe request failed (${res.status}).`;
+    const message =
+      typeof data === 'object' &&
+      data &&
+      'error' in data &&
+      typeof (data as { error?: { message?: unknown } }).error?.message === 'string'
+        ? String((data as { error: { message: string } }).error.message)
+        : `Stripe request failed (${res.status}).`;
     throw new Error(message);
   }
   return data as T;
 }
 
-async function createStripeCheckout(c: Context, user: UserRecord, plan: (typeof PREMIUM_PLANS)[number]): Promise<{ id: string; url: string }> {
+async function createStripeCheckout(
+  c: Context,
+  user: UserRecord,
+  plan: (typeof PREMIUM_PLANS)[number],
+): Promise<{ id: string; url: string }> {
   const price = stripePriceId(plan.id);
-  if (!price) throw new Error(`Stripe price ID is missing for ${plan.shortName}. Set ${`STRIPE_PRICE_${plan.id.toUpperCase()}`}.`);
+  if (!price)
+    throw new Error(
+      `Stripe price ID is missing for ${plan.shortName}. Set ${`STRIPE_PRICE_${plan.id.toUpperCase()}`}.`,
+    );
 
   const base = appBaseUrl(c);
   const success = `${base}/upgrade?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
@@ -631,10 +693,19 @@ async function createStripeCheckout(c: Context, user: UserRecord, plan: (typeof 
   });
 }
 
-function activatePaidPlan(db: AuthDb, user: UserRecord, planId: PlanId, providerRef: string, provider: PurchaseRecord['provider'], payload?: Record<string, unknown>): PurchaseRecord {
+function activatePaidPlan(
+  db: AuthDb,
+  user: UserRecord,
+  planId: PlanId,
+  providerRef: string,
+  provider: PurchaseRecord['provider'],
+  payload?: Record<string, unknown>,
+): PurchaseRecord {
   const plan = PREMIUM_PLANS.find((item) => item.id === planId);
   if (!plan) throw new Error('Unknown plan.');
-  let purchase = db.purchases.find((item) => item.provider === provider && item.providerRef === providerRef && item.userId === user.id);
+  let purchase = db.purchases.find(
+    (item) => item.provider === provider && item.providerRef === providerRef && item.userId === user.id,
+  );
   if (!purchase) {
     const startedAt = nowIso();
     purchase = {
@@ -674,10 +745,12 @@ function activatePaidPlan(db: AuthDb, user: UserRecord, planId: PlanId, provider
 function verifyStripeWebhook(rawBody: string, signatureHeader: string | undefined): boolean {
   const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
   if (!secret || !signatureHeader) return false;
-  const parts = Object.fromEntries(signatureHeader.split(',').map((part) => {
-    const [key, value] = part.split('=');
-    return [key, value];
-  }));
+  const parts = Object.fromEntries(
+    signatureHeader.split(',').map((part) => {
+      const [key, value] = part.split('=');
+      return [key, value];
+    }),
+  );
   const timestamp = parts.t;
   const signature = parts.v1;
   if (!timestamp || !signature) return false;
@@ -708,10 +781,16 @@ export function registerAuth(app: Hono): void {
   app.get('/auth/username', async (c) => {
     const username = normalizeUsername(c.req.query('username'));
     const validationError = validateUsername(username);
-    if (validationError) return c.json({ username, valid: false, available: false, message: validationError });
+    if (validationError)
+      return c.json({ username, valid: false, available: false, message: validationError });
     const db = await loadDb();
     const available = !db.users.some((u) => normalizeUsername(u.username) === username && !u.deletedAt);
-    return c.json({ username, valid: true, available, message: available ? 'Username is available.' : 'This username is already taken.' });
+    return c.json({
+      username,
+      valid: true,
+      available,
+      message: available ? 'Username is available.' : 'This username is already taken.',
+    });
   });
 
   app.post('/auth/signup', async (c) => {
@@ -729,7 +808,11 @@ export function registerAuth(app: Hono): void {
     if (usernameError) return c.json({ error: usernameError }, 400);
     if (fullName.length < 2) return c.json({ error: 'Enter your full name.' }, 400);
     if (!isPhone(phone)) return c.json({ error: 'Enter a valid phone number.' }, 400);
-    if (!isStrongPassword(password)) return c.json({ error: 'Password must be at least 8 characters and include a letter and a number.' }, 400);
+    if (!isStrongPassword(password))
+      return c.json(
+        { error: 'Password must be at least 8 characters and include a letter and a number.' },
+        400,
+      );
 
     const result = await mutateDb(async (db) => {
       if (db.users.some((u) => u.email === email && !u.deletedAt)) {
@@ -762,7 +845,12 @@ export function registerAuth(app: Hono): void {
     });
 
     if ('error' in result) return c.json({ error: result.error }, 409);
-    const delivery = await deliverAuthCode(c, { email, code: result.code, purpose: 'verify_email', fullName });
+    const delivery = await deliverAuthCode(c, {
+      email,
+      code: result.code,
+      purpose: 'verify_email',
+      fullName,
+    });
     if (delivery.error) return c.json({ error: delivery.error, user: result.user }, 502);
     return c.json({ user: result.user, sent: delivery.sent, devCode: delivery.devCode }, 201);
   });
@@ -771,15 +859,23 @@ export function registerAuth(app: Hono): void {
     const body = await readJson(c);
     const email = normalizeEmail(body.email);
     const code = String(body.code ?? '').trim();
-    if (!isEmail(email) || !/^\d{6}$/.test(code)) return c.json({ error: 'Enter the 6-digit confirmation code.' }, 400);
+    if (!isEmail(email) || !/^\d{6}$/.test(code))
+      return c.json({ error: 'Enter the 6-digit confirmation code.' }, 400);
 
     const result = await mutateDb((db) => {
       const user = db.users.find((u) => u.email === email && !u.deletedAt);
       if (!user) return { error: 'Account not found.', status: 404 };
       if (user.emailVerified) return { error: 'This email is already verified.', status: 409 };
-      const record = db.codes.find((item) => item.email === email && item.purpose === 'verify_email' && !item.usedAt && item.codeHash === codeHash(email, 'verify_email', code));
+      const record = db.codes.find(
+        (item) =>
+          item.email === email &&
+          item.purpose === 'verify_email' &&
+          !item.usedAt &&
+          item.codeHash === codeHash(email, 'verify_email', code),
+      );
       if (!record) return { error: 'The confirmation code is wrong or has already been used.', status: 400 };
-      if (new Date(record.expiresAt).getTime() <= Date.now()) return { error: 'The confirmation code has expired. Request a new code.', status: 410 };
+      if (new Date(record.expiresAt).getTime() <= Date.now())
+        return { error: 'The confirmation code has expired. Request a new code.', status: 410 };
       record.usedAt = nowIso();
       user.emailVerified = true;
       return { user: publicUser(user) };
@@ -801,15 +897,24 @@ export function registerAuth(app: Hono): void {
       if (!user) return { error: 'Account not found.', status: 404 };
       if (user.emailVerified) return { error: 'This email is already verified.', status: 409 };
       const recent = db.codes.filter(
-        (item) => item.email === email && item.purpose === 'verify_email' && new Date(item.createdAt).getTime() > Date.now() - LIMITS.code.windowMs,
+        (item) =>
+          item.email === email &&
+          item.purpose === 'verify_email' &&
+          new Date(item.createdAt).getTime() > Date.now() - LIMITS.code.windowMs,
       );
-      if (recent.length >= LIMITS.code.count) return { error: 'Too many confirmation emails. Try again later.', status: 429 };
+      if (recent.length >= LIMITS.code.count)
+        return { error: 'Too many confirmation emails. Try again later.', status: 429 };
       const code = issueCode(db, email, 'verify_email', user.id);
       return { code, fullName: user.fullName ?? null };
     });
 
     if ('error' in result) return c.json({ error: result.error }, result.status as 404 | 409 | 429);
-    const delivery = await deliverAuthCode(c, { email, code: result.code, purpose: 'verify_email', fullName: result.fullName });
+    const delivery = await deliverAuthCode(c, {
+      email,
+      code: result.code,
+      purpose: 'verify_email',
+      fullName: result.fullName,
+    });
     if (delivery.error) return c.json({ error: delivery.error }, 502);
     return c.json({ sent: delivery.sent, devCode: delivery.devCode });
   });
@@ -827,7 +932,10 @@ export function registerAuth(app: Hono): void {
       const generic = { error: 'Email or password is incorrect.', status: 401 as const };
       if (!user) return generic;
       if (user.lockedUntil && new Date(user.lockedUntil).getTime() > Date.now()) {
-        return { error: 'This account is temporarily locked after too many failed attempts. Try again later.', status: 423 as const };
+        return {
+          error: 'This account is temporarily locked after too many failed attempts. Try again later.',
+          status: 423 as const,
+        };
       }
       const ok = await verifyPassword(password, user.password);
       if (!ok) {
@@ -839,7 +947,12 @@ export function registerAuth(app: Hono): void {
       user.lockedUntil = null;
       if (!user.emailVerified) {
         const code = issueCode(db, email, 'verify_email', user.id);
-        return { error: 'Verify your email before logging in.', status: 403 as const, code, fullName: user.fullName ?? null };
+        return {
+          error: 'Verify your email before logging in.',
+          status: 403 as const,
+          code,
+          fullName: user.fullName ?? null,
+        };
       }
       const token = randomBytes(32).toString('base64url');
       const expiresAt = addMs(SESSION_MS);
@@ -856,9 +969,15 @@ export function registerAuth(app: Hono): void {
     });
 
     if ('error' in result) {
-      const delivery = 'code' in result && typeof result.code === 'string'
-        ? await deliverAuthCode(c, { email, code: result.code, purpose: 'verify_email', fullName: result.fullName ?? null })
-        : null;
+      const delivery =
+        'code' in result && typeof result.code === 'string'
+          ? await deliverAuthCode(c, {
+              email,
+              code: result.code,
+              purpose: 'verify_email',
+              fullName: result.fullName ?? null,
+            })
+          : null;
       if (delivery?.error) return c.json({ error: delivery.error, emailVerificationRequired: true }, 502);
       return c.json(
         {
@@ -887,7 +1006,13 @@ export function registerAuth(app: Hono): void {
     const auth = await authenticate(c);
     if (!auth) return c.json({ error: 'Session expired. Please log in again.' }, 401);
     await writeDb(auth.db);
-    return c.json({ user: publicUser(auth.user), session: { expiresAt: auth.session.expiresAt, warningAt: new Date(new Date(auth.session.expiresAt).getTime() - SESSION_WARNING_MS).toISOString() } });
+    return c.json({
+      user: publicUser(auth.user),
+      session: {
+        expiresAt: auth.session.expiresAt,
+        warningAt: new Date(new Date(auth.session.expiresAt).getTime() - SESSION_WARNING_MS).toISOString(),
+      },
+    });
   });
 
   app.post('/auth/password-reset/request', async (c) => {
@@ -903,7 +1028,12 @@ export function registerAuth(app: Hono): void {
       return { sent: true, code, fullName: user.fullName ?? null };
     });
     if ('code' in result && typeof result.code === 'string') {
-      const delivery = await deliverAuthCode(c, { email, code: result.code, purpose: 'password_reset', fullName: result.fullName ?? null });
+      const delivery = await deliverAuthCode(c, {
+        email,
+        code: result.code,
+        purpose: 'password_reset',
+        fullName: result.fullName ?? null,
+      });
       if (delivery.error) return c.json({ error: delivery.error }, 502);
       return c.json({ sent: delivery.sent, devCode: delivery.devCode });
     }
@@ -916,19 +1046,32 @@ export function registerAuth(app: Hono): void {
     const code = String(body.code ?? '').trim();
     const password = String(body.password ?? '');
     if (!isEmail(email) || !/^\d{6}$/.test(code)) return c.json({ error: 'Enter the reset code.' }, 400);
-    if (!isStrongPassword(password)) return c.json({ error: 'Password must be at least 8 characters and include a letter and a number.' }, 400);
+    if (!isStrongPassword(password))
+      return c.json(
+        { error: 'Password must be at least 8 characters and include a letter and a number.' },
+        400,
+      );
 
     const result = await mutateDb(async (db) => {
       const user = db.users.find((u) => u.email === email && !u.deletedAt);
       if (!user) return { error: 'Account not found.', status: 404 as const };
-      const record = db.codes.find((item) => item.email === email && item.purpose === 'password_reset' && !item.usedAt && item.codeHash === codeHash(email, 'password_reset', code));
-      if (!record) return { error: 'The reset code is wrong or has already been used.', status: 400 as const };
-      if (new Date(record.expiresAt).getTime() <= Date.now()) return { error: 'The reset code has expired. Request a new code.', status: 410 as const };
+      const record = db.codes.find(
+        (item) =>
+          item.email === email &&
+          item.purpose === 'password_reset' &&
+          !item.usedAt &&
+          item.codeHash === codeHash(email, 'password_reset', code),
+      );
+      if (!record)
+        return { error: 'The reset code is wrong or has already been used.', status: 400 as const };
+      if (new Date(record.expiresAt).getTime() <= Date.now())
+        return { error: 'The reset code has expired. Request a new code.', status: 410 as const };
       record.usedAt = nowIso();
       user.password = await hashPassword(password);
       user.failedLoginAttempts = 0;
       user.lockedUntil = null;
-      for (const session of db.sessions.filter((s) => s.userId === user.id && !s.revokedAt)) session.revokedAt = nowIso();
+      for (const session of db.sessions.filter((s) => s.userId === user.id && !s.revokedAt))
+        session.revokedAt = nowIso();
       return { ok: true };
     });
 
@@ -942,14 +1085,22 @@ export function registerAuth(app: Hono): void {
     const body = await readJson(c);
     const currentPassword = String(body.currentPassword ?? '');
     const newPassword = String(body.newPassword ?? '');
-    if (!isStrongPassword(newPassword)) return c.json({ error: 'New password must be at least 8 characters and include a letter and a number.' }, 400);
+    if (!isStrongPassword(newPassword))
+      return c.json(
+        { error: 'New password must be at least 8 characters and include a letter and a number.' },
+        400,
+      );
 
     const result = await mutateDb(async (db) => {
       const user = db.users.find((u) => u.id === auth.user.id && !u.deletedAt);
       if (!user) return { error: 'Account not found.', status: 404 as const };
-      if (!(await verifyPassword(currentPassword, user.password))) return { error: 'Current password is incorrect.', status: 401 as const };
+      if (!(await verifyPassword(currentPassword, user.password)))
+        return { error: 'Current password is incorrect.', status: 401 as const };
       user.password = await hashPassword(newPassword);
-      for (const session of db.sessions.filter((s) => s.userId === user.id && s.tokenHash !== auth.session.tokenHash && !s.revokedAt)) session.revokedAt = nowIso();
+      for (const session of db.sessions.filter(
+        (s) => s.userId === user.id && s.tokenHash !== auth.session.tokenHash && !s.revokedAt,
+      ))
+        session.revokedAt = nowIso();
       return { user: publicUser(user) };
     });
 
@@ -963,7 +1114,8 @@ export function registerAuth(app: Hono): void {
     await mutateDb((db) => {
       const user = db.users.find((u) => u.id === auth.user.id);
       if (user) user.deletedAt = nowIso();
-      for (const session of db.sessions.filter((s) => s.userId === auth.user.id && !s.revokedAt)) session.revokedAt = nowIso();
+      for (const session of db.sessions.filter((s) => s.userId === auth.user.id && !s.revokedAt))
+        session.revokedAt = nowIso();
     });
     return c.json({ ok: true });
   });
@@ -994,9 +1146,17 @@ export function registerAuth(app: Hono): void {
             payload: { planId, sessionId: session.id },
           });
         });
-        return c.json({ user: publicUser(auth.user), checkoutUrl: session.url, sessionId: session.id, verified: false });
+        return c.json({
+          user: publicUser(auth.user),
+          checkoutUrl: session.url,
+          sessionId: session.id,
+          verified: false,
+        });
       } catch (error) {
-        return c.json({ error: error instanceof Error ? error.message : 'Could not start Stripe Checkout.' }, 502);
+        return c.json(
+          { error: error instanceof Error ? error.message : 'Could not start Stripe Checkout.' },
+          502,
+        );
       }
     }
 
@@ -1013,7 +1173,10 @@ export function registerAuth(app: Hono): void {
     const result = await mutateDb((db) => {
       const user = db.users.find((u) => u.id === auth.user.id && !u.deletedAt);
       if (!user) return { error: 'Account not found.', status: 404 as const };
-      const purchase = activatePaidPlan(db, user, planId, `dev_${randomUUID()}`, 'stripe-dev', { planId, amountCents: plan.amountCents });
+      const purchase = activatePaidPlan(db, user, planId, `dev_${randomUUID()}`, 'stripe-dev', {
+        planId,
+        amountCents: plan.amountCents,
+      });
       return { user: publicUser(user), purchase };
     });
 
@@ -1026,7 +1189,8 @@ export function registerAuth(app: Hono): void {
     if (!auth) return c.json({ error: 'Log in to confirm payment.' }, 401);
     const body = await readJson(c);
     const sessionId = String(body.sessionId ?? '').trim();
-    if (!/^cs_(test|live)_/.test(sessionId)) return c.json({ error: 'Missing Stripe Checkout session.' }, 400);
+    if (!/^cs_(test|live)_/.test(sessionId))
+      return c.json({ error: 'Missing Stripe Checkout session.' }, 400);
 
     try {
       const session = await stripeRequest<{
@@ -1037,21 +1201,31 @@ export function registerAuth(app: Hono): void {
         metadata?: { userId?: string; planId?: string };
       }>(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
       const planId = session.metadata?.planId as PlanId | undefined;
-      if (session.client_reference_id !== auth.user.id && session.metadata?.userId !== auth.user.id) return c.json({ error: 'This checkout session belongs to another account.' }, 403);
-      if (!planId || !PREMIUM_PLANS.some((plan) => plan.id === planId)) return c.json({ error: 'Stripe session is missing the FileMint plan.' }, 400);
-      if (session.payment_status !== 'paid' && session.status !== 'complete') return c.json({ error: 'Stripe has not confirmed this payment yet.' }, 402);
+      if (session.client_reference_id !== auth.user.id && session.metadata?.userId !== auth.user.id)
+        return c.json({ error: 'This checkout session belongs to another account.' }, 403);
+      if (!planId || !PREMIUM_PLANS.some((plan) => plan.id === planId))
+        return c.json({ error: 'Stripe session is missing the FileMint plan.' }, 400);
+      if (session.payment_status !== 'paid' && session.status !== 'complete')
+        return c.json({ error: 'Stripe has not confirmed this payment yet.' }, 402);
 
       const result = await mutateDb((db) => {
         const user = db.users.find((u) => u.id === auth.user.id && !u.deletedAt);
         if (!user) return { error: 'Account not found.', status: 404 as const };
-        const purchase = activatePaidPlan(db, user, planId, session.id, 'stripe', { sessionId: session.id, status: session.status, paymentStatus: session.payment_status });
+        const purchase = activatePaidPlan(db, user, planId, session.id, 'stripe', {
+          sessionId: session.id,
+          status: session.status,
+          paymentStatus: session.payment_status,
+        });
         return { user: publicUser(user), purchase };
       });
 
       if ('error' in result) return c.json({ error: result.error }, result.status);
       return c.json({ user: result.user, purchase: result.purchase, verified: true });
     } catch (error) {
-      return c.json({ error: error instanceof Error ? error.message : 'Could not confirm Stripe payment.' }, 502);
+      return c.json(
+        { error: error instanceof Error ? error.message : 'Could not confirm Stripe payment.' },
+        502,
+      );
     }
   });
 
@@ -1063,14 +1237,27 @@ export function registerAuth(app: Hono): void {
     const event = JSON.parse(rawBody) as {
       id?: string;
       type?: string;
-      data?: { object?: { id?: string; payment_status?: string; status?: string; client_reference_id?: string | null; metadata?: { userId?: string; planId?: string } } };
+      data?: {
+        object?: {
+          id?: string;
+          payment_status?: string;
+          status?: string;
+          client_reference_id?: string | null;
+          metadata?: { userId?: string; planId?: string };
+        };
+      };
     };
     if (event.type === 'checkout.session.completed') {
       const session = event.data?.object;
       const userId = session?.metadata?.userId || session?.client_reference_id || null;
       const planId = session?.metadata?.planId as PlanId | undefined;
       const sessionId = session?.id;
-      if (sessionId && userId && planId && (session.payment_status === 'paid' || session.status === 'complete')) {
+      if (
+        sessionId &&
+        userId &&
+        planId &&
+        (session.payment_status === 'paid' || session.status === 'complete')
+      ) {
         await mutateDb((db) => {
           const user = db.users.find((u) => u.id === userId && !u.deletedAt);
           if (!user || !PREMIUM_PLANS.some((plan) => plan.id === planId)) return;
@@ -1110,12 +1297,18 @@ export function registerAuth(app: Hono): void {
       if (!user) return { error: 'Account not found.', status: 404 as const };
       const usage = getUsage(db, user.id);
       if (!isActivePremium(user) && usage[key] >= FREE_USAGE_LIMITS[key]) {
-        return { error: 'Daily free limit reached. Upgrade to Premium to continue.', status: 402 as const, usage, limit: FREE_USAGE_LIMITS[key] };
+        return {
+          error: 'Daily free limit reached. Upgrade to Premium to continue.',
+          status: 402 as const,
+          usage,
+          limit: FREE_USAGE_LIMITS[key],
+        };
       }
       usage[key] += 1;
       return { usage, premium: isActivePremium(user) };
     });
-    if ('error' in result) return c.json({ error: result.error, usage: result.usage, limit: result.limit }, result.status);
+    if ('error' in result)
+      return c.json({ error: result.error, usage: result.usage, limit: result.limit }, result.status);
     return c.json(result);
   });
 

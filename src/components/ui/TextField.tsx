@@ -29,7 +29,8 @@ export function TextField({ label, icon, hint, style, multiline, ...rest }: Text
             borderColor: theme.border,
           },
           multiline && styles.multiline,
-        ]}>
+        ]}
+      >
         {icon ? <Icon name={icon} size={18} color={theme.textMuted} /> : null}
         <TextInput
           placeholderTextColor={theme.textMuted}

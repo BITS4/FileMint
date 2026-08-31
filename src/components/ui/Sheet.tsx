@@ -31,7 +31,8 @@ export function Sheet({ visible, onClose, title, children }: SheetProps) {
               borderColor: theme.border,
               paddingBottom: insets.bottom + Spacing.lg,
             },
-          ]}>
+          ]}
+        >
           <View style={[styles.handle, { backgroundColor: theme.borderStrong }]} />
           {title ? (
             <Txt variant="h3" style={styles.title}>
@@ -82,8 +83,12 @@ export function ActionSheet({
               }}
               style={({ pressed }) => [
                 styles.action,
-                { backgroundColor: pressed ? theme.backgroundElement : 'transparent', opacity: action.disabled ? 0.4 : 1 },
-              ]}>
+                {
+                  backgroundColor: pressed ? theme.backgroundElement : 'transparent',
+                  opacity: action.disabled ? 0.4 : 1,
+                },
+              ]}
+            >
               <Icon name={action.icon} size={22} color={color} />
               <Txt variant="body" weight="600" style={{ color }}>
                 {action.label}

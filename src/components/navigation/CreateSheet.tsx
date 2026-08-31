@@ -22,9 +22,17 @@ export function CreateSheet({ visible, onClose }: CreateSheetProps) {
 
   const actions: SheetAction[] = [
     { label: 'Scan with camera', icon: 'line-scan', onPress: () => router.push('/scan') },
-    { label: 'Images to PDF', icon: 'image-multiple', onPress: () => router.push('/convert-to-pdf?profile=image') },
+    {
+      label: 'Images to PDF',
+      icon: 'image-multiple',
+      onPress: () => router.push('/convert-to-pdf?profile=image'),
+    },
     { label: 'Import a file', icon: 'file-import-outline', onPress: handleImport },
-    { label: 'Text note to PDF', icon: 'note-plus-outline', onPress: () => router.push('/convert-to-pdf?profile=text') },
+    {
+      label: 'Text note to PDF',
+      icon: 'note-plus-outline',
+      onPress: () => router.push('/convert-to-pdf?profile=text'),
+    },
   ];
 
   return <ActionSheet visible={visible} onClose={onClose} title="Create or import" actions={actions} />;

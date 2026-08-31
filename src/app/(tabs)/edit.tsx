@@ -39,7 +39,8 @@ export default function EditScreen() {
     <Screen scroll padded contentContainerStyle={{ paddingBottom: desktop ? 48 : 120 }}>
       <AppHeader title={desktop ? 'PDF editing studio' : 'Edit PDF'} />
       <Txt variant="caption" muted style={styles.subtitle}>
-        Open a PDF into a full editor with thumbnails, canvas preview, tool settings, undo, zoom, and export controls.
+        Open a PDF into a full editor with thumbnails, canvas preview, tool settings, undo, zoom, and export
+        controls.
       </Txt>
 
       {crop ? <FeaturedCropCard tool={crop} onPress={() => openTool(crop, editorRoute(crop))} /> : null}
@@ -54,7 +55,9 @@ export default function EditScreen() {
           columns={desktop ? 3 : 1}
           gap={Spacing.md}
           keyExtractor={(tool) => tool.id}
-          renderItem={(tool) => <PremiumToolCard tool={tool} onPress={() => openTool(tool, editorRoute(tool))} />}
+          renderItem={(tool) => (
+            <PremiumToolCard tool={tool} onPress={() => openTool(tool, editorRoute(tool))} />
+          )}
         />
       </View>
     </Screen>
@@ -79,17 +82,24 @@ function FeaturedCropCard({ tool, onPress }: { tool: ToolDef; onPress: () => voi
           borderColor: pressed ? color : withAlpha(color, 0.6),
           transform: [{ scale: pressed ? 0.992 : 1 }],
         },
-      ]}>
+      ]}
+    >
       <View style={[styles.featureIcon, { backgroundColor: withAlpha(color, 0.18) }]}>
         <Icon name={tool.icon} size={34} color={color} />
       </View>
       <View style={styles.featureBody}>
         <View style={styles.featureTitleRow}>
           <Txt variant="title">{tool.title}</Txt>
-          <Badge label={tool.premium ? 'Premium crop editor' : 'Crop editor'} color={color} variant="soft" small />
+          <Badge
+            label={tool.premium ? 'Premium crop editor' : 'Crop editor'}
+            color={color}
+            variant="soft"
+            small
+          />
         </View>
         <Txt variant="caption" muted>
-          Bright crop overlay, draggable corners and sides, perspective mode, grid guides, page thumbnails, zoom, and apply scopes.
+          Bright crop overlay, draggable corners and sides, perspective mode, grid guides, page thumbnails,
+          zoom, and apply scopes.
         </Txt>
       </View>
       <View style={[styles.launchCircle, { borderColor: withAlpha(color, 0.55) }]}>
@@ -118,12 +128,17 @@ function PremiumToolCard({ tool, onPress }: { tool: ToolDef; onPress: () => void
           borderColor: pressed ? color : theme.border,
           transform: [{ translateY: pressed ? 1 : 0 }, { scale: pressed ? 0.992 : 1 }],
         },
-      ]}>
+      ]}
+    >
       <View style={styles.cardTop}>
         <View style={[styles.cardIcon, { backgroundColor: withAlpha(color, 0.16) }]}>
           <Icon name={tool.icon} size={26} color={color} />
         </View>
-        {tool.premium ? <Badge label="Premium" color={Accents.amber} variant="soft" small /> : needsBadge ? <Badge label="Advanced UI" color={color} variant="soft" small /> : null}
+        {tool.premium ? (
+          <Badge label="Premium" color={Accents.amber} variant="soft" small />
+        ) : needsBadge ? (
+          <Badge label="Advanced UI" color={color} variant="soft" small />
+        ) : null}
       </View>
       <View style={styles.cardBody}>
         <Txt variant="h3" numberOfLines={1}>
@@ -146,7 +161,12 @@ function PremiumToolCard({ tool, onPress }: { tool: ToolDef; onPress: () => void
 const styles = StyleSheet.create({
   subtitle: { marginTop: -6, marginBottom: Spacing.lg, maxWidth: 760 },
   group: { gap: Spacing.md },
-  groupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
   featured: {
     minHeight: 170,
     borderWidth: 1,
@@ -157,10 +177,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.lg,
   },
-  featureIcon: { width: 76, height: 76, borderRadius: Radius.xl, alignItems: 'center', justifyContent: 'center' },
+  featureIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: Radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   featureBody: { flex: 1, gap: Spacing.xs, minWidth: 0 },
   featureTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flexWrap: 'wrap' },
-  launchCircle: { width: 48, height: 48, borderRadius: Radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  launchCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: {
     minHeight: 172,
     borderWidth: 1,
@@ -169,8 +202,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.sm },
-  cardIcon: { width: 52, height: 52, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  cardIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cardBody: { gap: Spacing.xs },
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });

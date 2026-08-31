@@ -97,7 +97,8 @@ export function ToolOutcome({ runner, runningLabel = 'Working...', doneLabel = '
             style={[
               styles.runningBadge,
               { backgroundColor: theme.primaryMuted, transform: [{ scale: iconScale }, { rotate }] },
-            ]}>
+            ]}
+          >
             <Icon name="file-sync-outline" size={24} color={theme.primary} />
           </Animated.View>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -121,7 +122,12 @@ export function ToolOutcome({ runner, runningLabel = 'Working...', doneLabel = '
 
   if (runner.state === 'error') {
     return (
-      <Animated.View style={{ opacity: appear, transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
+      <Animated.View
+        style={{
+          opacity: appear,
+          transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+        }}
+      >
         <Card style={[styles.card, { borderColor: theme.danger }]}>
           <View style={styles.headerRow}>
             <Icon name="alert-circle-outline" size={22} color={theme.danger} />
@@ -142,7 +148,12 @@ export function ToolOutcome({ runner, runningLabel = 'Working...', doneLabel = '
     const results = Array.isArray(runner.result) ? runner.result : [runner.result];
     const single = results.length === 1 ? results[0] : undefined;
     return (
-      <Animated.View style={{ opacity: appear, transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
+      <Animated.View
+        style={{
+          opacity: appear,
+          transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+        }}
+      >
         <Card style={[styles.card, styles.doneCard, { borderColor: withAlpha(theme.primary, 0.46) }]}>
           <View style={[styles.successIcon, { backgroundColor: withAlpha(theme.primary, 0.16) }]}>
             <Icon name="check-circle" size={30} color={theme.primary} />
@@ -151,20 +162,45 @@ export function ToolOutcome({ runner, runningLabel = 'Working...', doneLabel = '
             {doneLabel}
           </Txt>
           <Txt variant="caption" muted center>
-            {single ? `Saved "${single.name}" to your files.` : `${results.length} files saved to your files.`}
+            {single
+              ? `Saved "${single.name}" to your files.`
+              : `${results.length} files saved to your files.`}
           </Txt>
           {single?.conversionReport ? <ConversionReportView report={single.conversionReport} /> : null}
           <View style={styles.actions}>
             {single ? (
-              <Button title={single.conversionReport ? 'Preview' : 'Open'} icon="eye-outline" onPress={() => router.replace(`/viewer/${single.id}`)} full />
+              <Button
+                title={single.conversionReport ? 'Preview' : 'Open'}
+                icon="eye-outline"
+                onPress={() => router.replace(`/viewer/${single.id}`)}
+                full
+              />
             ) : (
-              <Button title="View in Files" icon="folder-outline" onPress={() => router.replace('/files')} full />
+              <Button
+                title="View in Files"
+                icon="folder-outline"
+                onPress={() => router.replace('/files')}
+                full
+              />
             )}
             {single ? (
-              <Button title="Download" icon="download-outline" variant="secondary" onPress={() => void downloadFile(single)} full />
+              <Button
+                title="Download"
+                icon="download-outline"
+                variant="secondary"
+                onPress={() => void downloadFile(single)}
+                full
+              />
             ) : null}
             {single ? (
-              <Button title="Share" icon="share-variant" variant="secondary" onPress={() => void shareFile(single)} disabled={!shareSupported} full />
+              <Button
+                title="Share"
+                icon="share-variant"
+                variant="secondary"
+                onPress={() => void shareFile(single)}
+                disabled={!shareSupported}
+                full
+              />
             ) : null}
             <Button title="Done" variant="ghost" onPress={goBack} full />
           </View>
@@ -182,12 +218,21 @@ function ConversionReportView({ report }: { report: ConversionReport }) {
   const rows = [
     ['Mode', report.resolvedMode ?? report.requestedMode ?? 'unknown'],
     ['PDF type', report.pdfType ?? 'unknown'],
-    ['Editable text', report.editableTextDetected === undefined ? 'Unknown' : report.editableTextDetected ? 'Yes' : 'No'],
+    [
+      'Editable text',
+      report.editableTextDetected === undefined ? 'Unknown' : report.editableTextDetected ? 'Yes' : 'No',
+    ],
     ['Editable regions', String(report.editableTextBoxes ?? 0)],
     ['Editable chars', String(report.editableCharacters ?? 0)],
     ['DOCX editable chars', String(report.outputEditableCharacters ?? report.editableCharacters ?? 0)],
-    ['Text coverage', report.textCoverageEstimate === undefined ? 'Unknown' : `${report.textCoverageEstimate}%`],
-    ['Hidden text layer', report.hiddenTextLayer === undefined ? 'No' : report.hiddenTextLayer ? 'Yes' : 'No'],
+    [
+      'Text coverage',
+      report.textCoverageEstimate === undefined ? 'Unknown' : `${report.textCoverageEstimate}%`,
+    ],
+    [
+      'Hidden text layer',
+      report.hiddenTextLayer === undefined ? 'No' : report.hiddenTextLayer ? 'Yes' : 'No',
+    ],
     ['Word tables', String(report.tablesRebuiltAsWord ?? 0)],
     ['Tables', String(report.tablesDetected ?? 0)],
     ['DOCX tables', String(report.outputTables ?? 0)],
@@ -241,10 +286,29 @@ const styles = StyleSheet.create({
   runningGlowArea: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   runningGlow: { position: 'absolute', width: 190, height: 190, borderRadius: 95, right: -72, top: -88 },
   runningGlowAlt: { position: 'absolute', width: 140, height: 140, borderRadius: 70, left: -54, bottom: -74 },
-  runningBadge: { width: 48, height: 48, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
+  runningBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   doneCard: { overflow: 'hidden' },
-  successIcon: { width: 60, height: 60, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
-  report: { borderWidth: 1, borderRadius: Radius.md, padding: Spacing.md, gap: Spacing.sm, marginTop: Spacing.sm },
+  successIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+  report: {
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
   reportGrid: { gap: 6 },
   reportRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
   reportLabel: { flex: 1 },

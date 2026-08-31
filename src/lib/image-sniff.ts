@@ -12,8 +12,14 @@ export function sniffImageType(b: Uint8Array): ImageSig {
   if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'png';
   if (
     b.length >= 12 &&
-    b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && // RIFF
-    b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 // WEBP
+    b[0] === 0x52 &&
+    b[1] === 0x49 &&
+    b[2] === 0x46 &&
+    b[3] === 0x46 && // RIFF
+    b[8] === 0x57 &&
+    b[9] === 0x45 &&
+    b[10] === 0x42 &&
+    b[11] === 0x50 // WEBP
   )
     return 'webp';
   if (b.length >= 4 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'gif';
@@ -30,7 +36,7 @@ export function sniffImageType(b: Uint8Array): ImageSig {
     if (['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1'].includes(brand)) return 'heic';
   }
   const head = ascii(b, 0, 256).trimStart().toLowerCase();
-  if (head.startsWith('<svg') || head.startsWith('<?xml') && head.includes('<svg')) return 'svg';
+  if (head.startsWith('<svg') || (head.startsWith('<?xml') && head.includes('<svg'))) return 'svg';
   return 'unknown';
 }
 
@@ -47,7 +53,8 @@ export function imageMime(sig: ImageSig, ext = ''): string {
 
   const e = ext.toLowerCase().replace(/^\./, '');
   if (e === 'jpg' || e === 'jpeg') return 'image/jpeg';
-  if (['png', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'avif'].includes(e)) return `image/${e === 'tif' ? 'tiff' : e}`;
+  if (['png', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'avif'].includes(e))
+    return `image/${e === 'tif' ? 'tiff' : e}`;
   if (e === 'svg' || e === 'svgz') return 'image/svg+xml';
   return 'application/octet-stream';
 }

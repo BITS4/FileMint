@@ -69,7 +69,8 @@ function ToolCard({ tool, onPress }: { tool: ToolDef; onPress: () => void }) {
           backgroundColor: pressed ? theme.backgroundElement : theme.card,
           borderColor: pressed ? theme.borderStrong : theme.border,
         },
-      ]}>
+      ]}
+    >
       <View style={styles.cardTop}>
         <View style={[styles.cardIcon, { backgroundColor: withAlpha(color, 0.16) }]}>
           <Icon name={tool.icon} size={25} color={color} />
@@ -109,7 +110,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: Spacing.sm },
+  cardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
   cardIcon: {
     width: 50,
     height: 50,

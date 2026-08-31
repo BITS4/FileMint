@@ -29,18 +29,25 @@ export default function SignupScreen() {
   const [email, setEmail] = useState(String(params.email ?? ''));
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [usernameStatus, setUsernameStatus] = useState<{ state: 'idle' | 'checking' | 'ok' | 'bad'; message: string }>({
+  const [usernameStatus, setUsernameStatus] = useState<{
+    state: 'idle' | 'checking' | 'ok' | 'bad';
+    message: string;
+  }>({
     state: 'idle',
     message: 'At least 6 characters. Letters, numbers, and underscore only.',
   });
 
   const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
-  const canSubmit = !!fullName.trim() && !!phone.trim() && !!email.trim() && !!password && usernameStatus.state === 'ok';
+  const canSubmit =
+    !!fullName.trim() && !!phone.trim() && !!email.trim() && !!password && usernameStatus.state === 'ok';
 
   useEffect(() => {
     const value = username.trim().toLowerCase();
     if (!value) {
-      setUsernameStatus({ state: 'idle', message: 'At least 6 characters. Letters, numbers, and underscore only.' });
+      setUsernameStatus({
+        state: 'idle',
+        message: 'At least 6 characters. Letters, numbers, and underscore only.',
+      });
       return;
     }
     if (value.length < 6) {
@@ -62,7 +69,10 @@ export default function SignupScreen() {
         })
         .catch((e) => {
           if (canceled) return;
-          setUsernameStatus({ state: 'bad', message: e instanceof Error ? e.message : 'Could not check this username.' });
+          setUsernameStatus({
+            state: 'bad',
+            message: e instanceof Error ? e.message : 'Could not check this username.',
+          });
         });
     }, 350);
     return () => {
@@ -73,7 +83,13 @@ export default function SignupScreen() {
 
   const submit = async () => {
     try {
-      await signup({ email, password, fullName: fullName.trim(), phone: phone.trim(), username: username.trim().toLowerCase() });
+      await signup({
+        email,
+        password,
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        username: username.trim().toLowerCase(),
+      });
       router.replace(verifyRoute(email, redirect) as never);
     } catch (e) {
       Alert.alert('Sign up failed', e instanceof Error ? e.message : 'Could not create your account.');
@@ -96,8 +112,21 @@ export default function SignupScreen() {
       </View>
 
       <Card style={styles.card}>
-        <TextField label="Full name" icon="account-outline" value={fullName} onChangeText={setFullName} placeholder="Your legal name" />
-        <TextField label="Phone" icon="phone-outline" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+1 555 123 4567" />
+        <TextField
+          label="Full name"
+          icon="account-outline"
+          value={fullName}
+          onChangeText={setFullName}
+          placeholder="Your legal name"
+        />
+        <TextField
+          label="Phone"
+          icon="phone-outline"
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+          placeholder="+1 555 123 4567"
+        />
         <TextField
           label="Username"
           icon="account-circle-outline"
@@ -107,7 +136,15 @@ export default function SignupScreen() {
           placeholder="vazir_2026"
           hint={usernameStatus.message}
         />
-        <TextField label="Email" icon="email-outline" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" />
+        <TextField
+          label="Email"
+          icon="email-outline"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="you@example.com"
+        />
         <TextField
           label="Password"
           icon="lock-outline"
@@ -118,7 +155,13 @@ export default function SignupScreen() {
           placeholder="At least 8 characters"
           hint="Use at least one letter and one number."
         />
-        <Button title={showPassword ? 'Hide password' : 'Show password'} icon={showPassword ? 'eye-off-outline' : 'eye-outline'} variant="ghost" size="sm" onPress={() => setShowPassword((v) => !v)} />
+        <Button
+          title={showPassword ? 'Hide password' : 'Show password'}
+          icon={showPassword ? 'eye-off-outline' : 'eye-outline'}
+          variant="ghost"
+          size="sm"
+          onPress={() => setShowPassword((v) => !v)}
+        />
         {devCode ? <DevCode code={devCode} /> : null}
         {error ? (
           <View style={[styles.error, { backgroundColor: theme.dangerMuted }]}>
@@ -128,8 +171,24 @@ export default function SignupScreen() {
             </Txt>
           </View>
         ) : null}
-        <Button title="Sign up" icon="account-plus-outline" size="lg" full loading={loading || usernameStatus.state === 'checking'} disabled={!canSubmit} onPress={submit} />
-        <Button title="Already have an account?" variant="ghost" onPress={() => router.replace(`/auth/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirect)}` as never)} />
+        <Button
+          title="Sign up"
+          icon="account-plus-outline"
+          size="lg"
+          full
+          loading={loading || usernameStatus.state === 'checking'}
+          disabled={!canSubmit}
+          onPress={submit}
+        />
+        <Button
+          title="Already have an account?"
+          variant="ghost"
+          onPress={() =>
+            router.replace(
+              `/auth/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirect)}` as never,
+            )
+          }
+        />
       </Card>
     </Screen>
   );
@@ -150,8 +209,26 @@ function DevCode({ code }: { code: string }) {
 const styles = StyleSheet.create({
   screen: { paddingBottom: 40, maxWidth: 560, alignSelf: 'center', width: '100%' },
   hero: { alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.sm, marginBottom: Spacing.lg },
-  heroIcon: { width: 78, height: 78, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
+  heroIcon: {
+    width: 78,
+    height: 78,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: { gap: Spacing.md },
-  error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md },
-  devCode: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md },
+  error: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  devCode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
 });

@@ -33,7 +33,19 @@ export interface ServerStatus {
 
 const OFFLINE: ServerStatus = {
   online: false,
-  capabilities: { libreoffice: false, qpdf: false, ghostscript: false, pdfRepair: false, ocr: false, pdf2docx: false, pdfExport: false, imageNormalize: false, pdfUtility: false, pdfEdit: false, collabora: false },
+  capabilities: {
+    libreoffice: false,
+    qpdf: false,
+    ghostscript: false,
+    pdfRepair: false,
+    ocr: false,
+    pdf2docx: false,
+    pdfExport: false,
+    imageNormalize: false,
+    pdfUtility: false,
+    pdfEdit: false,
+    collabora: false,
+  },
 };
 const LOCAL_STATUS_TIMEOUT_MS = 4000;
 const HOSTED_STATUS_TIMEOUT_MS = 25000;
@@ -82,7 +94,9 @@ function isPrivateLanHost(hostname: string): boolean {
 function isHostedWebRuntime(): boolean {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
   const host = window.location.hostname;
-  return !!host && host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]' && !isPrivateLanHost(host);
+  return (
+    !!host && host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]' && !isPrivateLanHost(host)
+  );
 }
 
 function shouldUseHostedServer(url: string): boolean {
@@ -142,9 +156,10 @@ function localServerCandidates(): string[] {
   const configured = baseUrl();
   const nativeCandidates = nativeLanCandidates();
   const hostedCandidates = isHostedWebRuntime() ? [PRODUCTION_SERVER_URL] : [];
-  const candidates = isLocalServerUrl(configured) && Platform.OS !== 'web'
-    ? [...nativeCandidates, configured]
-    : [configured, ...hostedCandidates, ...browserLanCandidates(), ...nativeCandidates];
+  const candidates =
+    isLocalServerUrl(configured) && Platform.OS !== 'web'
+      ? [...nativeCandidates, configured]
+      : [configured, ...hostedCandidates, ...browserLanCandidates(), ...nativeCandidates];
   if (isLocalServerUrl(configured)) {
     try {
       const url = new URL(configured);
@@ -182,7 +197,10 @@ async function readServerStatusAt(url: string, timeoutMs: number): Promise<Serve
   }
 }
 
-async function resolveServerUrl(requiredCapability?: keyof ServerCapabilities, timeoutMs = 1500): Promise<string> {
+async function resolveServerUrl(
+  requiredCapability?: keyof ServerCapabilities,
+  timeoutMs = 1500,
+): Promise<string> {
   const configured = baseUrl();
   let best: { url: string; status: ServerStatus } | null = null;
 
@@ -273,7 +291,10 @@ async function buildForm(req: ConvertRequest): Promise<FormData> {
   return form;
 }
 
-function capabilityForRequest(endpoint: string, fields?: Record<string, string | number | boolean>): keyof ServerCapabilities | undefined {
+function capabilityForRequest(
+  endpoint: string,
+  fields?: Record<string, string | number | boolean>,
+): keyof ServerCapabilities | undefined {
   const normalized = endpoint.replace(/^\/+/, '');
   if (normalized === 'image/normalize') return 'imageNormalize';
   if (normalized === 'pdf/render' || normalized === 'pdf/text') return 'pdfUtility';
@@ -351,7 +372,11 @@ async function appendFilePart(form: FormData, fileUri: string, fileName: string,
     const blob = await (await fetch(fileUri)).blob();
     form.append('file', blob, fileName);
   } else {
-    form.append('file', { uri: fileUri, name: fileName, type: mime ?? 'application/octet-stream' } as unknown as Blob);
+    form.append('file', {
+      uri: fileUri,
+      name: fileName,
+      type: mime ?? 'application/octet-stream',
+    } as unknown as Blob);
   }
 }
 
@@ -368,7 +393,12 @@ export interface EditorLaunch {
   frameError?: string;
 }
 
-export async function uploadForEdit(fileUri: string, fileName: string, mime: string | undefined, origin: string): Promise<EditSession> {
+export async function uploadForEdit(
+  fileUri: string,
+  fileName: string,
+  mime: string | undefined,
+  origin: string,
+): Promise<EditSession> {
   const form = new FormData();
   await appendFilePart(form, fileUri, fileName, mime);
   form.append('origin', origin);
@@ -395,7 +425,8 @@ export async function getEditorLaunch(id: string, token: string): Promise<Editor
     framePolicy?: string;
     frameError?: string;
   };
-  if (!res.ok || !data.url) throw new Error(data.error ?? 'The editor (Collabora) is unavailable. Is it running in Docker?');
+  if (!res.ok || !data.url)
+    throw new Error(data.error ?? 'The editor (Collabora) is unavailable. Is it running in Docker?');
   return {
     url: data.url,
     frameAllowed: data.frameAllowed !== false,
@@ -425,5 +456,7 @@ export async function downloadEdited(id: string, token: string): Promise<Uint8Ar
 }
 
 export async function closeEdit(id: string, token: string): Promise<void> {
-  await fetch(`${baseUrl()}/edit/close/${id}?access_token=${encodeURIComponent(token)}`, { method: 'POST' }).catch(() => undefined);
+  await fetch(`${baseUrl()}/edit/close/${id}?access_token=${encodeURIComponent(token)}`, {
+    method: 'POST',
+  }).catch(() => undefined);
 }

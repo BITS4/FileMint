@@ -2,7 +2,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { ApiError, authApi, isPremiumUser, type AuthUser, type CheckoutResponse, type PlanId, type PremiumPlan } from '@/lib/auth-api';
+import {
+  ApiError,
+  authApi,
+  isPremiumUser,
+  type AuthUser,
+  type CheckoutResponse,
+  type PlanId,
+  type PremiumPlan,
+} from '@/lib/auth-api';
 
 interface AuthState {
   user: AuthUser | null;
@@ -16,7 +24,13 @@ interface AuthState {
   hydrated: boolean;
   setError: (error: string | null) => void;
   clearSession: () => void;
-  signup: (input: { email: string; username: string; password: string; fullName: string; phone: string }) => Promise<void>;
+  signup: (input: {
+    email: string;
+    username: string;
+    password: string;
+    fullName: string;
+    phone: string;
+  }) => Promise<void>;
   checkUsername: (username: string) => Promise<{ valid: boolean; available: boolean; message: string }>;
   verifyEmail: (input: { email: string; code: string }) => Promise<void>;
   resendCode: (email: string) => Promise<string | null>;
@@ -55,7 +69,15 @@ export const useAuth = create<AuthState>()(
       devCode: null,
       hydrated: false,
       setError: (error) => set({ error }),
-      clearSession: () => set({ user: null, token: null, sessionExpiresAt: null, sessionWarningAt: null, error: null, devCode: null }),
+      clearSession: () =>
+        set({
+          user: null,
+          token: null,
+          sessionExpiresAt: null,
+          sessionWarningAt: null,
+          error: null,
+          devCode: null,
+        }),
       signup: async (input) => {
         set({ loading: true, error: null, devCode: null });
         try {
@@ -113,7 +135,10 @@ export const useAuth = create<AuthState>()(
           });
         } catch (e) {
           const message = errorMessage(e);
-          const data = e instanceof ApiError && typeof e.data === 'object' && e.data ? (e.data as { devCode?: string }) : {};
+          const data =
+            e instanceof ApiError && typeof e.data === 'object' && e.data
+              ? (e.data as { devCode?: string })
+              : {};
           set({ error: message, devCode: data.devCode ?? null });
           throw e;
         } finally {
@@ -128,7 +153,15 @@ export const useAuth = create<AuthState>()(
         } catch {
           // Logging out must clear local credentials even if the server is offline.
         } finally {
-          set({ user: null, token: null, sessionExpiresAt: null, sessionWarningAt: null, error: null, devCode: null, loading: false });
+          set({
+            user: null,
+            token: null,
+            sessionExpiresAt: null,
+            sessionWarningAt: null,
+            error: null,
+            devCode: null,
+            loading: false,
+          });
         }
       },
       refreshMe: async () => {
@@ -139,7 +172,12 @@ export const useAuth = create<AuthState>()(
         }
         try {
           const res = await authApi.me(token);
-          set({ user: res.user, sessionExpiresAt: res.session.expiresAt, sessionWarningAt: res.session.warningAt, error: null });
+          set({
+            user: res.user,
+            sessionExpiresAt: res.session.expiresAt,
+            sessionWarningAt: res.session.warningAt,
+            error: null,
+          });
         } catch (e) {
           get().clearSession();
           throw e;

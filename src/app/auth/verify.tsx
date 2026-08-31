@@ -58,8 +58,23 @@ export default function VerifyEmailScreen() {
       </View>
 
       <Card style={styles.card}>
-        <TextField label="Email" icon="email-outline" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-        <TextField label="Confirmation code" icon="numeric" value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={6} placeholder="123456" />
+        <TextField
+          label="Email"
+          icon="email-outline"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextField
+          label="Confirmation code"
+          icon="numeric"
+          value={code}
+          onChangeText={setCode}
+          keyboardType="number-pad"
+          maxLength={6}
+          placeholder="123456"
+        />
         {devCode ? (
           <View style={[styles.devCode, { backgroundColor: theme.warningMuted }]}>
             <Icon name="email-fast-outline" size={18} color={theme.warning} />
@@ -76,8 +91,22 @@ export default function VerifyEmailScreen() {
             </Txt>
           </View>
         ) : null}
-        <Button title="Verify email" icon="check-decagram-outline" size="lg" full loading={loading} disabled={!email || code.length !== 6} onPress={submit} />
-        <Button title="Resend code" icon="email-sync-outline" variant="secondary" onPress={resend} disabled={!email || loading} />
+        <Button
+          title="Verify email"
+          icon="check-decagram-outline"
+          size="lg"
+          full
+          loading={loading}
+          disabled={!email || code.length !== 6}
+          onPress={submit}
+        />
+        <Button
+          title="Resend code"
+          icon="email-sync-outline"
+          variant="secondary"
+          onPress={resend}
+          disabled={!email || loading}
+        />
         <Button title="Back to login" variant="ghost" onPress={() => router.replace(loginRoute as never)} />
       </Card>
     </Screen>
@@ -87,8 +116,26 @@ export default function VerifyEmailScreen() {
 const styles = StyleSheet.create({
   screen: { paddingBottom: 40, maxWidth: 560, alignSelf: 'center', width: '100%' },
   hero: { alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.sm, marginBottom: Spacing.lg },
-  heroIcon: { width: 78, height: 78, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
+  heroIcon: {
+    width: 78,
+    height: 78,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: { gap: Spacing.md },
-  error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md },
-  devCode: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md },
+  error: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  devCode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
 });

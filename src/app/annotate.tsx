@@ -4,7 +4,17 @@ import { View } from 'react-native';
 
 import { PickFile } from '@/components/tools/PickFile';
 import { ToolOutcome } from '@/components/tools/ToolOutcome';
-import { AppHeader, Button, Card, Icon, Screen, Segmented, type SegmentedOption, TextField, Txt } from '@/components/ui';
+import {
+  AppHeader,
+  Button,
+  Card,
+  Icon,
+  Screen,
+  Segmented,
+  type SegmentedOption,
+  TextField,
+  Txt,
+} from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useRunner } from '@/hooks/use-runner';
 import { useTheme } from '@/hooks/use-theme';
@@ -75,9 +85,21 @@ export default function AnnotateScreen() {
       const pageIndex = (parseInt(page, 10) || 1) - 1;
       const out =
         mode === 'highlight'
-          ? await markAreaOnPage(bytes, { pageIndex, position, color: MARK_COLORS.yellow, opacity: 0.42, height: 30 })
+          ? await markAreaOnPage(bytes, {
+              pageIndex,
+              position,
+              color: MARK_COLORS.yellow,
+              opacity: 0.42,
+              height: 30,
+            })
           : mode === 'redact'
-            ? await markAreaOnPage(bytes, { pageIndex, position, color: MARK_COLORS.black, opacity: 1, height: 38 })
+            ? await markAreaOnPage(bytes, {
+                pageIndex,
+                position,
+                color: MARK_COLORS.black,
+                opacity: 1,
+                height: 38,
+              })
             : await addTextToPage(bytes, {
                 pageIndex,
                 text: text.trim() || preset.text || 'Text',
@@ -108,7 +130,12 @@ export default function AnnotateScreen() {
       </View>
 
       {!file ? (
-        <PickFile onPicked={onPicked} title="Select a PDF" subtitle="Add a text note or stamp to a page." icon="comment-edit-outline" />
+        <PickFile
+          onPicked={onPicked}
+          title="Select a PDF"
+          subtitle="Add a text note or stamp to a page."
+          icon="comment-edit-outline"
+        />
       ) : runner.state !== 'done' ? (
         <View style={{ gap: Spacing.md }}>
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
@@ -122,9 +149,19 @@ export default function AnnotateScreen() {
           </Card>
 
           {mode === 'text' ? (
-            <TextField label="Text" value={text} onChangeText={setText} placeholder="Type the text to place" />
+            <TextField
+              label="Text"
+              value={text}
+              onChangeText={setText}
+              placeholder="Type the text to place"
+            />
           ) : null}
-          <TextField label={`Page (1–${pageCount})`} value={page} onChangeText={setPage} keyboardType="number-pad" />
+          <TextField
+            label={`Page (1–${pageCount})`}
+            value={page}
+            onChangeText={setPage}
+            keyboardType="number-pad"
+          />
           <Labeled label="Position">
             <Segmented options={POSITIONS} value={position} onChange={setPosition} />
           </Labeled>
@@ -137,7 +174,14 @@ export default function AnnotateScreen() {
             </>
           ) : null}
 
-          <Button title="Add to PDF" icon="format-text" onPress={run} loading={runner.state === 'running'} full size="lg" />
+          <Button
+            title="Add to PDF"
+            icon="format-text"
+            onPress={run}
+            loading={runner.state === 'running'}
+            full
+            size="lg"
+          />
         </View>
       ) : null}
 

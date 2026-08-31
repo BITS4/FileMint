@@ -126,7 +126,8 @@ export default function ManagePagesScreen() {
       const out: PageItem[] = [];
       for (const p of prev) {
         out.push(p);
-        if (selected.includes(p.key)) out.push({ key: uid('p_'), srcIndex: p.srcIndex, rotation: p.rotation });
+        if (selected.includes(p.key))
+          out.push({ key: uid('p_'), srcIndex: p.srcIndex, rotation: p.rotation });
       }
       return out;
     });
@@ -170,14 +171,22 @@ export default function ManagePagesScreen() {
   const single = selected.length === 1;
 
   const toolbar = editing ? (
-    <View style={[styles.toolbarWrap, { backgroundColor: theme.backgroundElevated, borderColor: theme.border }]}>
+    <View
+      style={[styles.toolbarWrap, { backgroundColor: theme.backgroundElevated, borderColor: theme.border }]}
+    >
       <View style={styles.toolbar}>
         <ToolBtn icon="arrow-left" label="Move" disabled={!single} onPress={() => moveSelected(-1)} />
         <ToolBtn icon="arrow-right" label="Move" disabled={!single} onPress={() => moveSelected(1)} />
         <ToolBtn icon="rotate-right" label="Rotate" disabled={!selected.length} onPress={rotate} />
         <ToolBtn icon="content-duplicate" label="Copy" disabled={!selected.length} onPress={duplicate} />
         <ToolBtn icon="file-plus-outline" label="Blank" onPress={addBlank} />
-        <ToolBtn icon="trash-can-outline" label="Delete" disabled={!selected.length} danger onPress={remove} />
+        <ToolBtn
+          icon="trash-can-outline"
+          label="Delete"
+          disabled={!selected.length}
+          danger
+          onPress={remove}
+        />
       </View>
       <Button
         title={`Apply (${pages.length} page${pages.length === 1 ? '' : 's'})`}
@@ -197,7 +206,11 @@ export default function ManagePagesScreen() {
         right={
           file && editing ? (
             <IconButton
-              name={selected.length === pages.length && pages.length ? 'checkbox-multiple-marked-outline' : 'checkbox-multiple-blank-outline'}
+              name={
+                selected.length === pages.length && pages.length
+                  ? 'checkbox-multiple-marked-outline'
+                  : 'checkbox-multiple-blank-outline'
+              }
               onPress={() => setSelected(selected.length === pages.length ? [] : pages.map((p) => p.key))}
               accessibilityLabel="Select all"
             />
@@ -206,7 +219,11 @@ export default function ManagePagesScreen() {
       />
 
       {!file ? (
-        <PickFile onPicked={onPicked} title="Select a PDF to edit" subtitle="Reorder, rotate, delete, duplicate or add blank pages." />
+        <PickFile
+          onPicked={onPicked}
+          title="Select a PDF to edit"
+          subtitle="Reorder, rotate, delete, duplicate or add blank pages."
+        />
       ) : runner.state === 'done' || runner.state === 'running' ? (
         <ToolOutcome runner={runner} runningLabel="Saving changes…" doneLabel="Pages updated" />
       ) : (
@@ -244,7 +261,19 @@ export default function ManagePagesScreen() {
   );
 }
 
-function ToolBtn({ icon, label, onPress, disabled, danger }: { icon: string; label: string; onPress: () => void; disabled?: boolean; danger?: boolean }) {
+function ToolBtn({
+  icon,
+  label,
+  onPress,
+  disabled,
+  danger,
+}: {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
   const theme = useTheme();
   const color = disabled ? theme.textMuted : danger ? theme.danger : theme.text;
   return (
@@ -289,7 +318,8 @@ function PageCard({
           borderColor: selected ? theme.primary : theme.border,
           borderWidth: selected ? 2 : 1,
         },
-      ]}>
+      ]}
+    >
       <View style={[styles.paper, { backgroundColor: isBlank ? theme.background : '#fff' }]}>
         {thumbnailUri ? (
           <Image
@@ -309,7 +339,9 @@ function PageCard({
           </View>
         )}
       </View>
-      <View style={[styles.indexBadge, { backgroundColor: selected ? theme.primary : theme.backgroundElevated }]}>
+      <View
+        style={[styles.indexBadge, { backgroundColor: selected ? theme.primary : theme.backgroundElevated }]}
+      >
         <Txt variant="tiny" style={{ color: selected ? theme.primaryText : theme.text }}>
           {index + 1}
         </Txt>
@@ -336,17 +368,79 @@ function PageCard({
 }
 
 const styles = StyleSheet.create({
-  hint: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radius.md, marginBottom: Spacing.md },
+  hint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.md,
+  },
   gridWrap: { paddingBottom: Spacing.lg },
   page: { aspectRatio: 0.72, borderRadius: Radius.md, padding: 8, overflow: 'hidden' },
-  paper: { flex: 1, width: '100%', borderRadius: Radius.sm, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  paper: {
+    flex: 1,
+    width: '100%',
+    borderRadius: Radius.sm,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   thumbnail: { width: '100%', height: '100%' },
-  placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.sm },
-  indexBadge: { position: 'absolute', top: 10, left: 10, minWidth: 24, height: 24, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 7 },
-  pageLabel: { position: 'absolute', bottom: 10, alignSelf: 'center', maxWidth: '78%', borderRadius: Radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
-  rotBadge: { position: 'absolute', top: 10, right: 10, paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.xs },
-  check: { position: 'absolute', bottom: 10, right: 10, width: 22, height: 22, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
-  toolbarWrap: { borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg, padding: Spacing.sm, gap: Spacing.sm },
+  placeholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  indexBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    minWidth: 24,
+    height: 24,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 7,
+  },
+  pageLabel: {
+    position: 'absolute',
+    bottom: 10,
+    alignSelf: 'center',
+    maxWidth: '78%',
+    borderRadius: Radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  rotBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+  },
+  check: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    width: 22,
+    height: 22,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolbarWrap: {
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
   toolbar: { flexDirection: 'row', justifyContent: 'space-between' },
   toolBtn: { alignItems: 'center', flex: 1, paddingVertical: Spacing.xs },
 });

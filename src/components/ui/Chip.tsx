@@ -29,7 +29,8 @@ export function Chip({ label, active, onPress, icon }: ChipProps) {
           borderColor: active ? theme.primary : theme.border,
           opacity: pressed ? 0.85 : 1,
         },
-      ]}>
+      ]}
+    >
       {icon ? <Icon name={icon} size={15} color={active ? theme.primaryText : theme.textSecondary} /> : null}
       <Txt variant="label" style={{ color: active ? theme.primaryText : theme.textSecondary }}>
         {label}

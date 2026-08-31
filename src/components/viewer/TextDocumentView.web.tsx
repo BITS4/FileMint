@@ -55,7 +55,7 @@ function safeTitle(file: FileItem) {
 
 function renderCsvTable(rows: string[][]) {
   const hasHeader = rows.length > 1;
-  const head = hasHeader ? rows[0] ?? [] : [];
+  const head = hasHeader ? (rows[0] ?? []) : [];
   const body = hasHeader ? rows.slice(1) : rows;
   return (
     <div style={styles.tableShell}>
@@ -146,12 +146,25 @@ export function TextDocumentView({ file, night }: TextDocumentViewProps) {
 
   return (
     <div style={{ ...styles.root, background: dark ? '#0B1117' : '#F3F6FA' }}>
-      <div style={{ ...styles.textPage, background: dark ? '#111827' : '#fff', color: dark ? '#EAF0F6' : '#111827' }}>
+      <div
+        style={{
+          ...styles.textPage,
+          background: dark ? '#111827' : '#fff',
+          color: dark ? '#EAF0F6' : '#111827',
+        }}
+      >
         <div style={styles.documentHeader}>
           <strong>{file.name}</strong>
           <span>{safeTitle(file)}</span>
         </div>
-        <pre style={{ ...styles.pre, fontFamily: isCode(file) ? 'ui-monospace, SFMono-Regular, Consolas, monospace' : 'system-ui, sans-serif' }}>
+        <pre
+          style={{
+            ...styles.pre,
+            fontFamily: isCode(file)
+              ? 'ui-monospace, SFMono-Regular, Consolas, monospace'
+              : 'system-ui, sans-serif',
+          }}
+        >
           {text || 'Loading...'}
         </pre>
       </div>

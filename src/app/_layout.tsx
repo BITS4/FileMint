@@ -1,10 +1,9 @@
-import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/theme';
@@ -41,15 +40,21 @@ export default function RootLayout() {
     if (warningAt > now) {
       timers.push(
         setTimeout(() => {
-          Alert.alert('Your session will expire soon.', 'For your privacy, FileMint will ask you to log in again shortly.');
+          Alert.alert(
+            'Your session will expire soon.',
+            'For your privacy, FileMint will ask you to log in again shortly.',
+          );
         }, warningAt - now),
       );
     }
 
     timers.push(
-      setTimeout(() => {
-        logout().finally(() => router.replace('/auth/login'));
-      }, Math.max(0, expiresAt - now)),
+      setTimeout(
+        () => {
+          logout().finally(() => router.replace('/auth/login'));
+        },
+        Math.max(0, expiresAt - now),
+      ),
     );
 
     return () => timers.forEach(clearTimeout);
@@ -78,7 +83,8 @@ export default function RootLayout() {
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: palette.background },
-            }}>
+            }}
+          >
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="settings" />
             <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'fade' }} />

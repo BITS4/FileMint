@@ -59,7 +59,15 @@ export default function LoginScreen() {
       </View>
 
       <Card style={styles.card}>
-        <TextField label="Email" icon="email-outline" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" />
+        <TextField
+          label="Email"
+          icon="email-outline"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="you@example.com"
+        />
         <TextField
           label="Password"
           icon="lock-outline"
@@ -69,7 +77,13 @@ export default function LoginScreen() {
           autoCapitalize="none"
           placeholder="Your password"
         />
-        <Button title={showPassword ? 'Hide password' : 'Show password'} icon={showPassword ? 'eye-off-outline' : 'eye-outline'} variant="ghost" size="sm" onPress={() => setShowPassword((v) => !v)} />
+        <Button
+          title={showPassword ? 'Hide password' : 'Show password'}
+          icon={showPassword ? 'eye-off-outline' : 'eye-outline'}
+          variant="ghost"
+          size="sm"
+          onPress={() => setShowPassword((v) => !v)}
+        />
         {error ? (
           <View style={[styles.error, { backgroundColor: theme.dangerMuted }]}>
             <Icon name="alert-circle-outline" size={18} color={theme.danger} />
@@ -78,8 +92,20 @@ export default function LoginScreen() {
             </Txt>
           </View>
         ) : null}
-        <Button title="Log in" icon="login" size="lg" full loading={loading} disabled={!email || !password} onPress={submit} />
-        <Button title="Forgot password?" variant="ghost" onPress={() => router.push(routeWithRedirect('/auth/reset', redirect, email) as never)} />
+        <Button
+          title="Log in"
+          icon="login"
+          size="lg"
+          full
+          loading={loading}
+          disabled={!email || !password}
+          onPress={submit}
+        />
+        <Button
+          title="Forgot password?"
+          variant="ghost"
+          onPress={() => router.push(routeWithRedirect('/auth/reset', redirect, email) as never)}
+        />
       </Card>
 
       <Card style={styles.alt}>
@@ -92,7 +118,12 @@ export default function LoginScreen() {
             Create a verified account before buying Premium.
           </Txt>
         </View>
-        <Button title="Sign up" size="sm" variant="secondary" onPress={() => router.push(routeWithRedirect('/auth/signup', redirect, email) as never)} />
+        <Button
+          title="Sign up"
+          size="sm"
+          variant="secondary"
+          onPress={() => router.push(routeWithRedirect('/auth/signup', redirect, email) as never)}
+        />
       </Card>
     </Screen>
   );
@@ -101,9 +132,27 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   screen: { paddingBottom: 40, maxWidth: 560, alignSelf: 'center', width: '100%' },
   hero: { alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.sm, marginBottom: Spacing.lg },
-  heroIcon: { width: 78, height: 78, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
+  heroIcon: {
+    width: 78,
+    height: 78,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: { gap: Spacing.md },
-  error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md },
+  error: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
   alt: { marginTop: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  smallIcon: { width: 42, height: 42, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  smallIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

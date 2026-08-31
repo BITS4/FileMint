@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Switch, View } from 'react-native';
 
 import { PickFile } from '@/components/tools/PickFile';
@@ -17,8 +17,7 @@ import {
   Txt,
 } from '@/components/ui';
 import { STATUS_LABEL, findTool } from '@/constants/tools';
-import { Accents } from '@/constants/theme';
-import { Spacing } from '@/constants/theme';
+import { Accents, Spacing } from '@/constants/theme';
 import { premiumUpgradeRoute } from '@/hooks/use-open-tool';
 import { useRunner } from '@/hooks/use-runner';
 import { useTheme } from '@/hooks/use-theme';
@@ -55,14 +54,17 @@ export default function ToolScreen() {
   };
   useEffect(() => {
     if (needsServer) runCheck();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsServer, id]);
 
   if (!tool) {
     return (
       <Screen padded>
         <AppHeader showBack />
-        <EmptyState icon="help-circle-outline" title="Tool not found" subtitle="This tool doesn’t exist yet." />
+        <EmptyState
+          icon="help-circle-outline"
+          title="Tool not found"
+          subtitle="This tool doesn’t exist yet."
+        />
       </Screen>
     );
   }
@@ -101,7 +103,10 @@ export default function ToolScreen() {
 
   const setValue = (k: string, v: string | boolean) => setValues((prev) => ({ ...prev, [k]: v }));
   const capability = op.serverCapability;
-  const serverMissing = needsServer && server !== null && (!server.online || (capability ? !server.capabilities[capability] : false));
+  const serverMissing =
+    needsServer &&
+    server !== null &&
+    (!server.online || (capability ? !server.capabilities[capability] : false));
   const run = () => {
     if (serverMissing || (needsServer && server === null)) return;
     runner.run((onProgress) => op.run!({ file, values, onProgress }));
@@ -139,7 +144,13 @@ export default function ToolScreen() {
               : `This tool uses the hosted FileMint conversion server. If it was sleeping, tap Check again and wait a few seconds.`}
           </Txt>
           <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-            <Button title="Open Settings" variant="secondary" icon="cog-outline" onPress={() => router.push('/settings')} style={{ flex: 1 }} />
+            <Button
+              title="Open Settings"
+              variant="secondary"
+              icon="cog-outline"
+              onPress={() => router.push('/settings')}
+              style={{ flex: 1 }}
+            />
             <Button title="Check again" icon="refresh" onPress={runCheck} style={{ flex: 1 }} />
           </View>
         </Card>
@@ -170,7 +181,12 @@ export default function ToolScreen() {
             ) : null}
 
             {(op.fields ?? []).map((field) => (
-              <FieldControl key={field.key} field={field} value={values[field.key]} onChange={(v) => setValue(field.key, v)} />
+              <FieldControl
+                key={field.key}
+                field={field}
+                value={values[field.key]}
+                onChange={(v) => setValue(field.key, v)}
+              />
             ))}
 
             <Button
@@ -206,7 +222,16 @@ function LockedToolScreen({ tool }: { tool: NonNullable<ReturnType<typeof findTo
     <Screen padded>
       <AppHeader title={tool.title} showBack />
       <Card style={{ alignItems: 'center', gap: Spacing.md, marginTop: Spacing.xl }}>
-        <View style={{ width: 78, height: 78, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: withAlpha(Accents.amber, 0.18) }}>
+        <View
+          style={{
+            width: 78,
+            height: 78,
+            borderRadius: 999,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: withAlpha(Accents.amber, 0.18),
+          }}
+        >
           <Icon name="crown-outline" size={38} color={Accents.amber} />
         </View>
         <Txt variant="title" center>
@@ -215,8 +240,19 @@ function LockedToolScreen({ tool }: { tool: NonNullable<ReturnType<typeof findTo
         <Txt variant="caption" muted center>
           {tool.premiumReason ?? `${tool.title} is included with FileMint Premium.`}
         </Txt>
-        <Button title="Upgrade Now" icon="crown-outline" full onPress={() => router.push(upgradeRoute as never)} />
-        <Button title="View Plans" variant="secondary" icon="credit-card-outline" full onPress={() => router.push(upgradeRoute as never)} />
+        <Button
+          title="Upgrade Now"
+          icon="crown-outline"
+          full
+          onPress={() => router.push(upgradeRoute as never)}
+        />
+        <Button
+          title="View Plans"
+          variant="secondary"
+          icon="credit-card-outline"
+          full
+          onPress={() => router.push(upgradeRoute as never)}
+        />
         <Button title="Maybe Later" variant="ghost" full onPress={goBack} />
         <Txt variant="tiny" muted center style={{ color: theme.textSecondary }}>
           After upgrading, FileMint returns you to this tool automatically.
@@ -239,7 +275,14 @@ function FieldControl({
 
   if (field.type === 'switch') {
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: 4,
+        }}
+      >
         <Txt variant="body" weight="600">
           {field.label}
         </Txt>
@@ -260,7 +303,11 @@ function FieldControl({
           <Txt variant="label" muted style={{ marginLeft: 2 }}>
             {field.label}
           </Txt>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingRight: Spacing.lg }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: Spacing.sm, paddingRight: Spacing.lg }}
+          >
             {field.options.map((opt) => (
               <Chip
                 key={opt.value}

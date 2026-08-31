@@ -53,7 +53,11 @@ function applyPixelFilter(canvas: HTMLCanvasElement, filter: ImageEditOptions['f
   ctx.putImageData(image, 0, 0);
 }
 
-async function rasterizeInBrowser(bytes: Uint8Array, mime: string, edits: ImageEditOptions = {}): Promise<PreparedImage> {
+async function rasterizeInBrowser(
+  bytes: Uint8Array,
+  mime: string,
+  edits: ImageEditOptions = {},
+): Promise<PreparedImage> {
   const url = URL.createObjectURL(new Blob([bytes as unknown as BlobPart], { type: mime }));
   try {
     const img = await loadImage(url);
@@ -79,7 +83,12 @@ async function rasterizeInBrowser(bytes: Uint8Array, mime: string, edits: ImageE
   }
 }
 
-async function normalizeOnServer(storageKey: string, ext: string, sig: ImageSig, edits: ImageEditOptions = {}): Promise<PreparedImage> {
+async function normalizeOnServer(
+  storageKey: string,
+  ext: string,
+  sig: ImageSig,
+  edits: ImageEditOptions = {},
+): Promise<PreparedImage> {
   const fileUri = await getUri(storageKey);
   try {
     const res = await convertFile({
@@ -95,9 +104,7 @@ async function normalizeOnServer(storageKey: string, ext: string, sig: ImageSig,
     return { bytes: res.bytes, ext: 'png' };
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'The conversion server could not normalize it.';
-    throw new Error(
-      `Could not decode this image locally or on the server (${sig}). ${detail}`,
-    );
+    throw new Error(`Could not decode this image locally or on the server (${sig}). ${detail}`);
   }
 }
 
@@ -105,7 +112,11 @@ function hasEdits(edits: ImageEditOptions = {}) {
   return (edits.rotate ?? 0) !== 0 || (!!edits.filter && edits.filter !== 'none');
 }
 
-export async function prepareImageForPdf(storageKey: string, ext: string, edits: ImageEditOptions = {}): Promise<PreparedImage> {
+export async function prepareImageForPdf(
+  storageKey: string,
+  ext: string,
+  edits: ImageEditOptions = {},
+): Promise<PreparedImage> {
   const bytes = await readBytes(storageKey);
   const sig = sniffImageType(bytes);
   if (!hasEdits(edits) && sig === 'jpg') return { bytes, ext: 'jpg' };

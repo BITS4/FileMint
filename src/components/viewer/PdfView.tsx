@@ -24,7 +24,10 @@ export function PdfView({ storageKey, night }: PdfViewProps) {
 
   useEffect(() => {
     setFailed(undefined);
-    storage.getUri(storageKey).then(setUri).catch(() => setFailed('Preview could not open this file.'));
+    storage
+      .getUri(storageKey)
+      .then(setUri)
+      .catch(() => setFailed('Preview could not open this file.'));
   }, [storageKey]);
 
   if (failed) {

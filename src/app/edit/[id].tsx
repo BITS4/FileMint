@@ -6,7 +6,14 @@ import { CollaboraEditor, type CollaboraEditorHandle } from '@/components/viewer
 import { AppHeader, Button, EmptyState, Icon, Screen, Txt } from '@/components/ui';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { closeEdit, downloadEdited, getEditorLaunch, getEditVersion, uploadForEdit, type EditorLaunch } from '@/lib/api';
+import {
+  closeEdit,
+  downloadEdited,
+  getEditorLaunch,
+  getEditVersion,
+  uploadForEdit,
+  type EditorLaunch,
+} from '@/lib/api';
 import { goBack } from '@/lib/nav';
 import { canShareFiles, downloadFile, shareFile } from '@/lib/share';
 import * as storage from '@/lib/storage';
@@ -39,9 +46,11 @@ export default function EditScreen() {
 
   useEffect(() => {
     if (file && isText) {
-      storage.readBytes(file.storageKey).then((bytes) => setText(decodeUtf8(bytes))).catch(() => setText(''));
+      storage
+        .readBytes(file.storageKey)
+        .then((bytes) => setText(decodeUtf8(bytes)))
+        .catch(() => setText(''));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file?.id]);
 
   useEffect(() => {
@@ -79,7 +88,6 @@ export default function EditScreen() {
       const s = session.current;
       if (s) void closeEdit(s.id, s.token);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file?.id, retryKey]);
 
   const saveText = async () => {
@@ -148,7 +156,12 @@ export default function EditScreen() {
     return (
       <Screen padded>
         <AppHeader showBack />
-        <EmptyState icon="file-remove-outline" title="File unavailable" actionLabel="Go back" onAction={goBack} />
+        <EmptyState
+          icon="file-remove-outline"
+          title="File unavailable"
+          actionLabel="Go back"
+          onAction={goBack}
+        />
       </Screen>
     );
   }
@@ -157,7 +170,11 @@ export default function EditScreen() {
     return (
       <Screen padded>
         <AppHeader title={file.name} showBack />
-        <EmptyState icon="pencil-off-outline" title="Not editable" subtitle={`${file.ext.toUpperCase()} files can't be edited in FileMint.`} />
+        <EmptyState
+          icon="pencil-off-outline"
+          title="Not editable"
+          subtitle={`${file.ext.toUpperCase()} files can't be edited in FileMint.`}
+        />
       </Screen>
     );
   }
@@ -167,7 +184,16 @@ export default function EditScreen() {
       <Screen
         padded
         edges={['top']}
-        footer={<Button title={busy ? 'Saving...' : 'Save'} icon="content-save-outline" onPress={saveText} loading={busy} full />}>
+        footer={
+          <Button
+            title={busy ? 'Saving...' : 'Save'}
+            icon="content-save-outline"
+            onPress={saveText}
+            loading={busy}
+            full
+          />
+        }
+      >
         <AppHeader title={`Edit - ${file.name}`} showBack />
         <View style={{ flex: 1, paddingBottom: Spacing.md }}>
           <TextInput
@@ -199,7 +225,11 @@ export default function EditScreen() {
     return (
       <Screen padded>
         <AppHeader title={file.name} showBack />
-        <EmptyState icon="monitor" title="Edit on the web app" subtitle="Editing Word/Excel/PowerPoint runs in the FileMint web app." />
+        <EmptyState
+          icon="monitor"
+          title="Edit on the web app"
+          subtitle="Editing Word/Excel/PowerPoint runs in the FileMint web app."
+        />
       </Screen>
     );
   }
@@ -234,7 +264,8 @@ export default function EditScreen() {
               borderRadius: Radius.md,
               padding: Spacing.md,
               marginBottom: Spacing.sm,
-            }}>
+            }}
+          >
             <Icon name="alert-circle-outline" size={18} color={theme.danger} />
             <Txt variant="caption" style={{ color: theme.text, flex: 1 }}>
               {saveError}
@@ -253,9 +284,28 @@ export default function EditScreen() {
             />
             <View style={{ gap: Spacing.sm, maxWidth: 520, alignSelf: 'center', width: '100%' }}>
               <Button title="Check again" icon="refresh" onPress={retryEditor} full />
-              <Button title="Preview file" icon="eye-outline" variant="secondary" onPress={() => router.replace(`/viewer/${file.id}`)} full />
-              <Button title="Download for Word" icon="download-outline" variant="secondary" onPress={() => void downloadFile(file)} full />
-              <Button title="Share" icon="share-variant" variant="secondary" onPress={() => void shareFile(file)} disabled={!shareSupported} full />
+              <Button
+                title="Preview file"
+                icon="eye-outline"
+                variant="secondary"
+                onPress={() => router.replace(`/viewer/${file.id}`)}
+                full
+              />
+              <Button
+                title="Download for Word"
+                icon="download-outline"
+                variant="secondary"
+                onPress={() => void downloadFile(file)}
+                full
+              />
+              <Button
+                title="Share"
+                icon="share-variant"
+                variant="secondary"
+                onPress={() => void shareFile(file)}
+                disabled={!shareSupported}
+                full
+              />
             </View>
           </View>
         ) : editorLaunch?.url && editorLaunch.frameAllowed ? (
@@ -271,11 +321,25 @@ export default function EditScreen() {
             <View style={{ gap: Spacing.sm, maxWidth: 560, alignSelf: 'center', width: '100%' }}>
               <Button title="Open Office editor" icon="open-in-new" onPress={openHostedEditor} full />
               <Button title="Check again" icon="refresh" variant="secondary" onPress={retryEditor} full />
-              <Button title="Download for Word" icon="download-outline" variant="secondary" onPress={() => void downloadFile(file)} full />
-              <Button title="Share" icon="share-variant" variant="secondary" onPress={() => void shareFile(file)} disabled={!shareSupported} full />
+              <Button
+                title="Download for Word"
+                icon="download-outline"
+                variant="secondary"
+                onPress={() => void downloadFile(file)}
+                full
+              />
+              <Button
+                title="Share"
+                icon="share-variant"
+                variant="secondary"
+                onPress={() => void shareFile(file)}
+                disabled={!shareSupported}
+                full
+              />
               {editorLaunch.framePolicy ? (
                 <Txt variant="tiny" muted center>
-                  Collabora frame policy must include {typeof window !== 'undefined' ? window.location.origin : 'this app origin'}.
+                  Collabora frame policy must include{' '}
+                  {typeof window !== 'undefined' ? window.location.origin : 'this app origin'}.
                 </Txt>
               ) : null}
             </View>

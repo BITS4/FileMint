@@ -33,7 +33,7 @@ export function ListRow({
   destructive,
 }: ListRowProps) {
   const theme = useTheme();
-  const tint = destructive ? theme.danger : iconColor ?? theme.primary;
+  const tint = destructive ? theme.danger : (iconColor ?? theme.primary);
   const titleColor = destructive ? theme.danger : theme.text;
 
   const content = (
@@ -72,7 +72,11 @@ export function ListRow({
         haptics.tap();
         onPress();
       }}
-      style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.backgroundElement : 'transparent' }]}>
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: pressed ? theme.backgroundElement : 'transparent' },
+      ]}
+    >
       {content}
     </Pressable>
   );

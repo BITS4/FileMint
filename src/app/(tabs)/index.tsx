@@ -73,7 +73,14 @@ interface QuickItem {
 }
 
 const QUICK_GRID: QuickItem[] = [
-  ...QUICK_TOOLS.map((t) => ({ id: t.id, title: t.title, icon: t.icon, accent: t.accent, route: t.route, premium: t.premium })),
+  ...QUICK_TOOLS.map((t) => ({
+    id: t.id,
+    title: t.title,
+    icon: t.icon,
+    accent: t.accent,
+    route: t.route,
+    premium: t.premium,
+  })),
   { id: 'more', title: 'More', icon: 'dots-horizontal-circle-outline', accent: 'slate', route: '/tools' },
 ];
 
@@ -118,7 +125,11 @@ export default function HomeScreen() {
         right={
           <>
             <IconButton name="magnify" onPress={() => router.push('/search')} accessibilityLabel="Search" />
-            <IconButton name="cog-outline" onPress={() => router.push('/settings')} accessibilityLabel="Settings" />
+            <IconButton
+              name="cog-outline"
+              onPress={() => router.push('/settings')}
+              accessibilityLabel="Settings"
+            />
           </>
         }
       />
@@ -132,7 +143,12 @@ export default function HomeScreen() {
             </Txt>
             <View style={styles.overviewActions}>
               <Button title="Import files" icon="file-import-outline" onPress={handleImport} />
-              <Button title="Scan" icon="line-scan" variant="secondary" onPress={() => router.push('/scan')} />
+              <Button
+                title="Scan"
+                icon="line-scan"
+                variant="secondary"
+                onPress={() => router.push('/scan')}
+              />
             </View>
           </Card>
           <View style={styles.statsGrid}>
@@ -162,12 +178,28 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.mobileHeroActions}>
-            <Button title="Import" icon="file-import-outline" size="sm" onPress={handleImport} style={{ flex: 1 }} />
-            <Button title="Scan" icon="line-scan" size="sm" variant="secondary" onPress={() => router.push('/scan')} style={{ flex: 1 }} />
+            <Button
+              title="Import"
+              icon="file-import-outline"
+              size="sm"
+              onPress={handleImport}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title="Scan"
+              icon="line-scan"
+              size="sm"
+              variant="secondary"
+              onPress={() => router.push('/scan')}
+              style={{ flex: 1 }}
+            />
           </View>
           <View style={styles.mobileStats}>
             {stats.map((item) => (
-              <View key={item.label} style={[styles.mobileStat, { backgroundColor: theme.backgroundElement }]}>
+              <View
+                key={item.label}
+                style={[styles.mobileStat, { backgroundColor: theme.backgroundElement }]}
+              >
                 <Txt variant="h3">{item.value}</Txt>
                 <Txt variant="tiny" muted>
                   {item.label}
@@ -252,7 +284,12 @@ const styles = {
     justifyContent: 'space-between' as const,
   },
   overviewCopy: { marginTop: Spacing.xs, maxWidth: 480 },
-  overviewActions: { flexDirection: 'row' as const, gap: Spacing.md, marginTop: Spacing.xl, flexWrap: 'wrap' as const },
+  overviewActions: {
+    flexDirection: 'row' as const,
+    gap: Spacing.md,
+    marginTop: Spacing.xl,
+    flexWrap: 'wrap' as const,
+  },
   statsGrid: { flex: 1, flexDirection: 'row' as const, gap: Spacing.md },
   statCard: { flex: 1, minHeight: 174, justifyContent: 'center' as const },
   recentPanel: {

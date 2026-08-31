@@ -32,7 +32,8 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
               haptics.tap();
               onChange(opt.value);
             }}
-            style={[styles.segment, active && { backgroundColor: theme.primary }]}>
+            style={[styles.segment, active && { backgroundColor: theme.primary }]}
+          >
             {opt.icon ? (
               <Icon name={opt.icon} size={16} color={active ? theme.primaryText : theme.textSecondary} />
             ) : null}

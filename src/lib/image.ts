@@ -17,7 +17,12 @@ export interface ImageEditOptions {
   filter?: 'none' | 'grayscale' | 'contrast' | 'bw';
 }
 
-async function normalizeOnServer(storageKey: string, ext: string, sig: ImageSig, edits: ImageEditOptions = {}): Promise<PreparedImage> {
+async function normalizeOnServer(
+  storageKey: string,
+  ext: string,
+  sig: ImageSig,
+  edits: ImageEditOptions = {},
+): Promise<PreparedImage> {
   const fileUri = await getUri(storageKey);
   try {
     const res = await convertFile({
@@ -41,7 +46,11 @@ function hasEdits(edits: ImageEditOptions = {}) {
   return (edits.rotate ?? 0) !== 0 || (!!edits.filter && edits.filter !== 'none');
 }
 
-export async function prepareImageForPdf(storageKey: string, ext: string, edits: ImageEditOptions = {}): Promise<PreparedImage> {
+export async function prepareImageForPdf(
+  storageKey: string,
+  ext: string,
+  edits: ImageEditOptions = {},
+): Promise<PreparedImage> {
   const bytes = await readBytes(storageKey);
   const sig = sniffImageType(bytes);
   if (!hasEdits(edits) && sig === 'jpg') return { bytes, ext: 'jpg' };

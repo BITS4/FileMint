@@ -36,7 +36,8 @@ export default function CompressScreen() {
       });
     });
 
-  const resultFile = runner.state === 'done' && runner.result && !Array.isArray(runner.result) ? runner.result : null;
+  const resultFile =
+    runner.state === 'done' && runner.result && !Array.isArray(runner.result) ? runner.result : null;
   const saved = file && resultFile ? file.size - resultFile.size : 0;
   const pct = file && saved > 0 ? Math.round((saved / file.size) * 100) : 0;
 
@@ -104,6 +105,11 @@ export default function CompressScreen() {
 }
 
 const styles = StyleSheet.create({
-  stats: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.lg },
+  stats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.lg,
+  },
   statCol: { alignItems: 'center', gap: 2 },
 });

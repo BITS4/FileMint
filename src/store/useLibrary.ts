@@ -124,7 +124,10 @@ export const useLibrary = create<LibraryState>()(
         const bytes = await storage.readBytes(original.storageKey);
         const ref = await storage.saveBytes(bytes, original.ext);
         const now = Date.now();
-        const name = uniqueName(`${baseName(original.name)} copy.${original.ext}`, existingNames(get().files));
+        const name = uniqueName(
+          `${baseName(original.name)} copy.${original.ext}`,
+          existingNames(get().files),
+        );
         const item: FileItem = {
           ...original,
           id: uid('f_'),
@@ -182,9 +185,7 @@ export const useLibrary = create<LibraryState>()(
 
       restoreFile: (id) =>
         set((s) => ({
-          files: s.files.map((f) =>
-            f.id === id ? { ...f, trashed: false, trashedAt: undefined } : f,
-          ),
+          files: s.files.map((f) => (f.id === id ? { ...f, trashed: false, trashedAt: undefined } : f)),
         })),
 
       deleteForever: async (id) => {

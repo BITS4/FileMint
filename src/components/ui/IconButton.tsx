@@ -46,7 +46,8 @@ export function IconButton({
         variant === 'surface' && { backgroundColor: theme.backgroundElement },
         { opacity: disabled ? 0.4 : pressed ? 0.6 : 1 },
         style,
-      ]}>
+      ]}
+    >
       <Icon name={name} size={size} color={color ?? theme.text} set={set} />
     </Pressable>
   );

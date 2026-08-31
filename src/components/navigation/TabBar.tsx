@@ -12,7 +12,9 @@ import { Txt } from '@/components/ui/Txt';
 
 interface NavLike {
   navigate: (name: string) => void;
-  emit: (event: { type: string; target?: string; canPreventDefault?: boolean }) => { defaultPrevented: boolean };
+  emit: (event: { type: string; target?: string; canPreventDefault?: boolean }) => {
+    defaultPrevented: boolean;
+  };
 }
 
 export interface TabBarProps {
@@ -41,7 +43,8 @@ export function TabBar({ state, navigation, descriptors }: TabBarProps) {
           height: TAB_BAR_HEIGHT + insets.bottom,
           paddingBottom: Math.max(insets.bottom, Spacing.sm),
         },
-      ]}>
+      ]}
+    >
       <View
         style={[
           styles.bar,
@@ -50,7 +53,8 @@ export function TabBar({ state, navigation, descriptors }: TabBarProps) {
             backgroundColor: theme.tabBar,
             borderColor: theme.tabBarBorder,
           },
-        ]}>
+        ]}
+      >
         {state.routes.map((route, index) => {
           const meta = ICONS[route.name] ?? { on: 'circle', off: 'circle-outline', label: route.name };
           const label = descriptors[route.key]?.options.title ?? meta.label;
@@ -64,7 +68,11 @@ export function TabBar({ state, navigation, descriptors }: TabBarProps) {
               icon={focused ? meta.on : meta.off}
               onPress={() => {
                 haptics.tap();
-                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
                 if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
               }}
             />
@@ -75,7 +83,17 @@ export function TabBar({ state, navigation, descriptors }: TabBarProps) {
   );
 }
 
-function TabButton({ focused, label, icon, onPress }: { focused: boolean; label: string; icon: string; onPress: () => void }) {
+function TabButton({
+  focused,
+  label,
+  icon,
+  onPress,
+}: {
+  focused: boolean;
+  label: string;
+  icon: string;
+  onPress: () => void;
+}) {
   const theme = useTheme();
   const active = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
@@ -93,7 +111,12 @@ function TabButton({ focused, label, icon, onPress }: { focused: boolean; label:
   const labelY = active.interpolate({ inputRange: [0, 1], outputRange: [1, -1] });
 
   return (
-    <Pressable accessibilityRole="button" accessibilityState={focused ? { selected: true } : {}} style={styles.tab} onPress={onPress}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={focused ? { selected: true } : {}}
+      style={styles.tab}
+      onPress={onPress}
+    >
       <Animated.View
         style={[
           styles.iconRail,
@@ -102,7 +125,8 @@ function TabButton({ focused, label, icon, onPress }: { focused: boolean; label:
             borderColor: focused ? withAlpha(theme.primary, 0.26) : 'transparent',
             transform: [{ scale: railScale }],
           },
-        ]}>
+        ]}
+      >
         <Icon name={icon} size={22} color={color} />
       </Animated.View>
       <Animated.View style={{ transform: [{ translateY: labelY }], maxWidth: '100%' }}>
@@ -132,7 +156,15 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     overflow: 'hidden',
   },
-  tab: { flex: 1, flexBasis: 0, flexShrink: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 0 },
+  tab: {
+    flex: 1,
+    flexBasis: 0,
+    flexShrink: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 0,
+  },
   iconRail: {
     minWidth: 42,
     height: 28,

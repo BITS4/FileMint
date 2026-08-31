@@ -122,19 +122,40 @@ export default function FilesScreen() {
         <FilterChips items={TABS} value={tab} onChange={setTab} />
       )}
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.md, marginBottom: Spacing.sm }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginTop: Spacing.md,
+          marginBottom: Spacing.sm,
+        }}
+      >
         <Txt variant="caption" muted>
           {files.length} {files.length === 1 ? 'item' : 'items'} · {SORT_LABEL[sort]}
         </Txt>
         {tab === 'trash' && files.length > 0 ? (
-          <IconButton name="delete-sweep-outline" size={20} onPress={() => void emptyTrash()} accessibilityLabel="Empty trash" />
+          <IconButton
+            name="delete-sweep-outline"
+            size={20}
+            onPress={() => void emptyTrash()}
+            accessibilityLabel="Empty trash"
+          />
         ) : null}
       </View>
 
       {files.length === 0 ? (
         <EmptyState
-          icon={tab === 'trash' ? 'trash-can-outline' : tab === 'favorites' ? 'star-outline' : 'folder-open-outline'}
-          title={tab === 'trash' ? 'Trash is empty' : tab === 'favorites' ? 'No favorites yet' : 'No files yet'}
+          icon={
+            tab === 'trash'
+              ? 'trash-can-outline'
+              : tab === 'favorites'
+                ? 'star-outline'
+                : 'folder-open-outline'
+          }
+          title={
+            tab === 'trash' ? 'Trash is empty' : tab === 'favorites' ? 'No favorites yet' : 'No files yet'
+          }
           subtitle={
             tab === 'all'
               ? 'Import documents or create new files to see them here.'
@@ -173,7 +194,12 @@ export default function FilesScreen() {
         </View>
       )}
 
-      <ActionSheet visible={sortOpen} onClose={() => setSortOpen(false)} title="Sort by" actions={sortActions} />
+      <ActionSheet
+        visible={sortOpen}
+        onClose={() => setSortOpen(false)}
+        title="Sort by"
+        actions={sortActions}
+      />
       <FileActionsSheet
         file={actionFile}
         onClose={() => setActionFile(null)}

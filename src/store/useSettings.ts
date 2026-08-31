@@ -29,7 +29,13 @@ export const PRODUCTION_SERVER_URL =
 function isHostedWeb(): boolean {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
   const host = window.location.hostname;
-  return !!host && host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]' && !/^(10|127)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  return (
+    !!host &&
+    host !== 'localhost' &&
+    host !== '127.0.0.1' &&
+    host !== '[::1]' &&
+    !/^(10|127)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  );
 }
 
 /** Default conversion-server origin. Production web points at the hosted

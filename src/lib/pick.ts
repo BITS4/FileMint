@@ -50,7 +50,10 @@ export async function pickImages(opts?: { multiple?: boolean }): Promise<PickedF
 }
 
 /** Import a picked file into the library and backfill PDF page counts. */
-export async function importIntoLibrary(picked: PickedFile, source: FileSource = 'import'): Promise<FileItem> {
+export async function importIntoLibrary(
+  picked: PickedFile,
+  source: FileSource = 'import',
+): Promise<FileItem> {
   const lib = useLibrary.getState();
   const item = await lib.importPicked({
     uri: picked.uri,

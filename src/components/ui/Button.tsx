@@ -75,12 +75,15 @@ export function Button({
         },
         full && styles.full,
         style,
-      ]}>
+      ]}
+    >
       {loading ? (
         <ActivityIndicator color={fg[variant]} />
       ) : (
         <View style={styles.content}>
-          {icon ? <Icon name={icon} set={iconSet} size={size === 'sm' ? 18 : 20} color={fg[variant]} /> : null}
+          {icon ? (
+            <Icon name={icon} set={iconSet} size={size === 'sm' ? 18 : 20} color={fg[variant]} />
+          ) : null}
           <Txt variant={size === 'sm' ? 'label' : 'h3'} weight="700" style={{ color: fg[variant] }}>
             {title}
           </Txt>

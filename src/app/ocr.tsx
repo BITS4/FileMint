@@ -7,7 +7,6 @@ import { AppHeader, Button, Card, Icon, ProgressBar, Screen, Txt } from '@/compo
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { convertFile } from '@/lib/api';
-import { withAlpha } from '@/lib/color';
 import { baseName } from '@/lib/format';
 import * as haptics from '@/lib/haptics';
 import { prepareImageForPdf } from '@/lib/image';
@@ -41,7 +40,11 @@ export default function OcrScreen() {
       let out = '';
       if (file.kind === 'image') {
         const image = await prepareImageForPdf(file.storageKey, file.ext);
-        const url = URL.createObjectURL(new Blob([image.bytes as unknown as BlobPart], { type: image.ext === 'png' ? 'image/png' : 'image/jpeg' }));
+        const url = URL.createObjectURL(
+          new Blob([image.bytes as unknown as BlobPart], {
+            type: image.ext === 'png' ? 'image/png' : 'image/jpeg',
+          }),
+        );
         try {
           out = await recognizeImage(url, lang, setProgress);
         } finally {
@@ -54,7 +57,9 @@ export default function OcrScreen() {
           let acc = '';
           for (let i = 0; i < images.length; i++) {
             const url = URL.createObjectURL(new Blob([images[i].bytes as unknown as BlobPart]));
-            acc += (await recognizeImage(url, lang, (p) => setProgress(0.3 + ((i + p) / images.length) * 0.7))) + '\n\n';
+            acc +=
+              (await recognizeImage(url, lang, (p) => setProgress(0.3 + ((i + p) / images.length) * 0.7))) +
+              '\n\n';
             URL.revokeObjectURL(url);
           }
           out = acc.trim();
@@ -112,7 +117,11 @@ export default function OcrScreen() {
         <Icon name="information-outline" size={16} color={theme.primary} />
         <Txt variant="caption" style={{ color: theme.primary, flex: 1 }}>
           Text recognition runs in the web app. To bake a text layer into a scanned PDF, use{' '}
-          <Txt variant="caption" style={{ color: theme.primary, fontWeight: '700' }} onPress={() => router.push('/tool/pdf-to-searchable')}>
+          <Txt
+            variant="caption"
+            style={{ color: theme.primary, fontWeight: '700' }}
+            onPress={() => router.push('/tool/pdf-to-searchable')}
+          >
             Searchable PDF
           </Txt>
           .
@@ -135,7 +144,14 @@ export default function OcrScreen() {
             <Txt variant="body" weight="600" numberOfLines={1} style={{ flex: 1 }}>
               {file.name}
             </Txt>
-            <Txt variant="caption" style={{ color: theme.primary }} onPress={() => { setFile(null); setText(null); }}>
+            <Txt
+              variant="caption"
+              style={{ color: theme.primary }}
+              onPress={() => {
+                setFile(null);
+                setText(null);
+              }}
+            >
               Change
             </Txt>
           </Card>
@@ -182,9 +198,21 @@ export default function OcrScreen() {
               </Txt>
               <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                 {Platform.OS === 'web' ? (
-                  <Button title="Copy" icon="content-copy" variant="secondary" onPress={copy} style={{ flex: 1 }} />
+                  <Button
+                    title="Copy"
+                    icon="content-copy"
+                    variant="secondary"
+                    onPress={copy}
+                    style={{ flex: 1 }}
+                  />
                 ) : null}
-                <Button title={saved ? 'Saved' : 'Save as TXT'} icon={saved ? 'check' : 'content-save-outline'} onPress={saveTxt} disabled={saved || !text} style={{ flex: 1 }} />
+                <Button
+                  title={saved ? 'Saved' : 'Save as TXT'}
+                  icon={saved ? 'check' : 'content-save-outline'}
+                  onPress={saveTxt}
+                  disabled={saved || !text}
+                  style={{ flex: 1 }}
+                />
               </View>
             </Card>
           ) : null}

@@ -30,7 +30,10 @@ const MODE_OPTIONS: SegmentedOption<Mode>[] = [
 ];
 
 function parseRanges(input: string, total: number): number[][] {
-  const groups = input.split(',').map((s) => s.trim()).filter(Boolean);
+  const groups = input
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (groups.length === 0) throw new Error('Enter at least one page or range, e.g. 1-3, 5.');
   return groups.map((g) => {
     const m = g.match(/^(\d+)\s*-\s*(\d+)$/);

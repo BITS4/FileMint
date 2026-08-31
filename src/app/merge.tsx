@@ -101,9 +101,26 @@ export default function MergeScreen() {
                       {formatPages(file.pageCount) || 'PDF'}
                     </Txt>
                   </View>
-                  <IconButton name="arrow-up" size={20} color={theme.textSecondary} disabled={index === 0} onPress={() => move(index, -1)} />
-                  <IconButton name="arrow-down" size={20} color={theme.textSecondary} disabled={index === pdfs.length - 1} onPress={() => move(index, 1)} />
-                  <IconButton name="close" size={20} color={theme.danger} onPress={() => setPdfs((p) => p.filter((_, i) => i !== index))} />
+                  <IconButton
+                    name="arrow-up"
+                    size={20}
+                    color={theme.textSecondary}
+                    disabled={index === 0}
+                    onPress={() => move(index, -1)}
+                  />
+                  <IconButton
+                    name="arrow-down"
+                    size={20}
+                    color={theme.textSecondary}
+                    disabled={index === pdfs.length - 1}
+                    onPress={() => move(index, 1)}
+                  />
+                  <IconButton
+                    name="close"
+                    size={20}
+                    color={theme.danger}
+                    onPress={() => setPdfs((p) => p.filter((_, i) => i !== index))}
+                  />
                 </View>
               ))}
             </Card>
@@ -149,5 +166,11 @@ export default function MergeScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
 });

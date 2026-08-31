@@ -95,7 +95,12 @@ export default function ImageToPdfScreen() {
     runner.run(async (onProgress) => {
       const prepared = [];
       for (let i = 0; i < images.length; i++) {
-        prepared.push(await prepareImageForPdf(images[i].storageKey, images[i].ext, { rotate: Number(imageRotation) as 0 | 90 | 180 | 270, filter }));
+        prepared.push(
+          await prepareImageForPdf(images[i].storageKey, images[i].ext, {
+            rotate: Number(imageRotation) as 0 | 90 | 180 | 270,
+            filter,
+          }),
+        );
         onProgress(((i + 1) / (images.length + 1)) * 0.75);
       }
       const pdf = await imagesToPdf(prepared, { pageSize, orientation, margin, fit });
@@ -142,9 +147,26 @@ export default function ImageToPdfScreen() {
                     <Txt variant="body" weight="600" style={{ flex: 1 }} numberOfLines={1}>
                       Page {index + 1}
                     </Txt>
-                    <IconButton name="arrow-up" size={20} color={theme.textSecondary} disabled={index === 0} onPress={() => move(index, -1)} />
-                    <IconButton name="arrow-down" size={20} color={theme.textSecondary} disabled={index === images.length - 1} onPress={() => move(index, 1)} />
-                    <IconButton name="close" size={20} color={theme.danger} onPress={() => removeImage(file.id)} />
+                    <IconButton
+                      name="arrow-up"
+                      size={20}
+                      color={theme.textSecondary}
+                      disabled={index === 0}
+                      onPress={() => move(index, -1)}
+                    />
+                    <IconButton
+                      name="arrow-down"
+                      size={20}
+                      color={theme.textSecondary}
+                      disabled={index === images.length - 1}
+                      onPress={() => move(index, 1)}
+                    />
+                    <IconButton
+                      name="close"
+                      size={20}
+                      color={theme.danger}
+                      onPress={() => removeImage(file.id)}
+                    />
                   </View>
                 ))}
               </Card>
@@ -206,5 +228,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const styles = StyleSheet.create({
-  imageRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
+  imageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
 });
