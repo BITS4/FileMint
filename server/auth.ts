@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import type { Context, Hono } from 'hono';
 import { Pool } from 'pg';
+import { emailSchema, loginSchema, schemaError, signupSchema, verificationSchema } from './auth.schemas';
 
 const scrypt = promisify(scryptCb);
 
@@ -218,16 +219,6 @@ function validateUsername(username: string): string | null {
   if (username.length < 6) return 'Username must be at least 6 characters.';
   if (!USERNAME_RE.test(username)) return 'Use only letters, numbers, and underscore.';
   return null;
-}
-
-function normalizePhone(value: unknown): string {
-  return String(value ?? '')
-    .trim()
-    .replace(/\s+/g, ' ');
-}
-
-function isPhone(value: string): boolean {
-  return /^\+?[0-9][0-9\s().-]{5,}$/.test(value);
 }
 
 function isEmail(value: string): boolean {
@@ -795,24 +786,12 @@ export function registerAuth(app: Hono): void {
 
   app.post('/auth/signup', async (c) => {
     const body = await readJson(c);
-    const email = normalizeEmail(body.email);
-    const username = normalizeUsername(body.username);
-    const password = String(body.password ?? '');
-    const fullName = String(body.fullName ?? '').trim();
-    const phone = normalizePhone(body.phone);
+    const parsed = signupSchema.safeParse(body);
+    if (!parsed.success) return c.json({ error: schemaError(parsed.error) }, 400);
+    const { email, username, password, fullName, phone } = parsed.data;
 
     const limited = rateLimited(c, 'signup', email);
     if (limited) return c.json({ error: limited }, 429);
-    if (!isEmail(email)) return c.json({ error: 'Enter a valid email address.' }, 400);
-    const usernameError = validateUsername(username);
-    if (usernameError) return c.json({ error: usernameError }, 400);
-    if (fullName.length < 2) return c.json({ error: 'Enter your full name.' }, 400);
-    if (!isPhone(phone)) return c.json({ error: 'Enter a valid phone number.' }, 400);
-    if (!isStrongPassword(password))
-      return c.json(
-        { error: 'Password must be at least 8 characters and include a letter and a number.' },
-        400,
-      );
 
     const result = await mutateDb(async (db) => {
       if (db.users.some((u) => u.email === email && !u.deletedAt)) {
@@ -857,10 +836,9 @@ export function registerAuth(app: Hono): void {
 
   app.post('/auth/verify-email', async (c) => {
     const body = await readJson(c);
-    const email = normalizeEmail(body.email);
-    const code = String(body.code ?? '').trim();
-    if (!isEmail(email) || !/^\d{6}$/.test(code))
-      return c.json({ error: 'Enter the 6-digit confirmation code.' }, 400);
+    const parsed = verificationSchema.safeParse(body);
+    if (!parsed.success) return c.json({ error: schemaError(parsed.error) }, 400);
+    const { email, code } = parsed.data;
 
     const result = await mutateDb((db) => {
       const user = db.users.find((u) => u.email === email && !u.deletedAt);
@@ -887,10 +865,11 @@ export function registerAuth(app: Hono): void {
 
   app.post('/auth/resend-code', async (c) => {
     const body = await readJson(c);
-    const email = normalizeEmail(body.email);
+    const parsed = emailSchema.safeParse(body);
+    if (!parsed.success) return c.json({ error: schemaError(parsed.error) }, 400);
+    const { email } = parsed.data;
     const limited = rateLimited(c, 'code', email);
     if (limited) return c.json({ error: limited }, 429);
-    if (!isEmail(email)) return c.json({ error: 'Enter a valid email address.' }, 400);
 
     const result = await mutateDb((db) => {
       const user = db.users.find((u) => u.email === email && !u.deletedAt);
@@ -921,11 +900,11 @@ export function registerAuth(app: Hono): void {
 
   app.post('/auth/login', async (c) => {
     const body = await readJson(c);
-    const email = normalizeEmail(body.email);
-    const password = String(body.password ?? '');
+    const parsed = loginSchema.safeParse(body);
+    if (!parsed.success) return c.json({ error: schemaError(parsed.error) }, 400);
+    const { email, password } = parsed.data;
     const limited = rateLimited(c, 'login', email);
     if (limited) return c.json({ error: limited }, 429);
-    if (!isEmail(email) || !password) return c.json({ error: 'Enter your email and password.' }, 400);
 
     const result = await mutateDb(async (db) => {
       const user = db.users.find((u) => u.email === email && !u.deletedAt);
