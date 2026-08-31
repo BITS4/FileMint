@@ -32,100 +32,25 @@ from statistics import median
 from typing import Any
 from xml.sax.saxutils import escape, unescape
 
-
-OCR_AUTO_LANGS = ["eng", "rus", "tgk", "fas", "ara", "chi_sim", "chi_tra", "kor"]
-OCR_AUTO_DOWNLOAD_LANGS = ["chi_sim", "kor"]
-LOCAL_TESSDATA_DIR = os.path.join(os.path.dirname(__file__), "tessdata")
-TESSDATA_FAST_BASE = "https://github.com/tesseract-ocr/tessdata_fast/raw/main"
-DOWNLOADABLE_TESSDATA = {"fas", "ara", "chi_sim", "chi_tra", "kor"}
-FAST_HOSTED_OCR = os.environ.get("FILEMINT_FAST_HOSTED_OCR", "").strip().lower() in {"1", "true", "yes", "on"} or os.environ.get("RENDER", "").strip().lower() == "true"
-LANG_ALIASES = {
-    "": "auto",
-    "auto": "auto",
-    "english": "eng",
-    "russian": "rus",
-    "tajik": "tgk",
-    "persian": "fas",
-    "farsi": "fas",
-    "arabic": "ara",
-    "chinese": "chi_sim",
-    "simplified_chinese": "chi_sim",
-    "korean": "kor",
-}
-MODE_ALIASES = {
-    "auto": "hybrid",
-    "pro": "high-accuracy",
-    "premium": "high-accuracy",
-    "ultra": "high-accuracy",
-    "premium-editable": "high-accuracy",
-    "max-editable": "high-accuracy",
-    "editable": "high-accuracy",
-    "editable-accurate": "high-accuracy",
-    "accurate": "high-accuracy",
-    "high": "high-accuracy",
-    "high-accuracy": "high-accuracy",
-    "high_accuracy": "high-accuracy",
-    "high-accuracy-editable": "high-accuracy",
-    "hybrid": "hybrid",
-    "hybrid-editable": "hybrid",
-    "exact": "exact",
-    "exact-visual": "exact",
-    "ocr": "ocr",
-    "ocr-editable": "ocr",
-    "image": "image",
-    "image-only": "image",
-}
+from pdf_to_docx_config import (
+    DOWNLOADABLE_TESSDATA,
+    FAST_HOSTED_OCR,
+    LANG_ALIASES,
+    LOCAL_TESSDATA_DIR,
+    OCR_AUTO_DOWNLOAD_LANGS,
+    OCR_AUTO_LANGS,
+    TESSDATA_FAST_BASE,
+    clean_choice,
+    effective_ocr_request,
+    engine_mode,
+    quality_dpi,
+    safe_mode,
+    truthy,
+)
 
 
 def log(*a: object) -> None:
     print(*a, file=sys.stderr)
-
-
-def truthy(v: str | bool | None, default: bool = True) -> bool:
-    if v is None:
-        return default
-    if isinstance(v, bool):
-        return v
-    return str(v).strip().lower() not in {"0", "false", "no", "off"}
-
-
-def safe_mode(mode: str) -> str:
-    return MODE_ALIASES.get((mode or "hybrid").strip().lower(), "hybrid")
-
-
-def engine_mode(mode: str) -> str:
-    if mode in {"high-accuracy", "hybrid"}:
-        return "premium"
-    return mode
-
-
-def clean_choice(value: str | None, allowed: set[str], default: str) -> str:
-    raw = (value or default).strip().lower()
-    return raw if raw in allowed else default
-
-
-def quality_dpi(quality: str, default: int = 300) -> int:
-    dpi = {
-        "low": 160,
-        "medium": 220,
-        "high": default,
-        "original": 360,
-    }.get(quality, default)
-    if FAST_HOSTED_OCR:
-        return min(dpi, 72)
-    return dpi
-
-
-def effective_ocr_request(lang: str, auto_detect: bool, report: dict[str, Any]) -> str:
-    requested = (lang or "auto").strip()
-    if auto_detect:
-        return requested or "auto"
-    if requested.lower() in {"", "auto", "mixed", "auto-mixed"}:
-        report["warnings"].append(
-            "OCR language auto-detect is off, but no manual language was selected. English OCR will be used."
-        )
-        return "eng"
-    return requested
 
 
 def find_tesseract() -> str | None:
