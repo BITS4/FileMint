@@ -14,12 +14,17 @@ backed by an optional **conversion server** for the heavy Office ⇆ PDF jobs.
 
 ## Quick start
 
+Prerequisites: Node.js 20.19 or newer, npm 10 or newer, and Python 3 for the
+optional conversion helpers. A fresh clone needs no provider credentials to run
+the app, quality checks, or automated tests.
+
 ```bash
-npm install          # already done if you cloned a set-up repo
+npm ci               # reproducible install from package-lock.json
+cp .env.example .env # optional local configuration (PowerShell: Copy-Item .env.example .env)
 npm run web          # open the web app  (http://localhost:8081)
 npm run ios          # iOS simulator (macOS)
 npm run android      # Android emulator/device
-npm run typecheck    # strict TypeScript check (app only)
+npm run typecheck    # strict TypeScript check (app and server)
 ```
 
 The app is fully usable **offline** for the client-side tools. Office
@@ -32,16 +37,28 @@ conversion server (below) and degrade gracefully when it isn't running.
 npm run server       # starts http://localhost:8787  (server:dev for watch)
 ```
 
+For a self-contained server plus PostgreSQL, with no external account needed:
+
+```bash
+docker compose up --build
+```
+
+The database is not published outside the private Compose network and uses
+passwordless development authentication there; provider keys remain unset.
+Wait for both services to become healthy, then run the Expo app with `npm run
+web`. Stop the stack with `docker compose down` (add `-v` only when you
+intentionally want to delete the local database volume).
+
 On startup it prints which engines it found. Install the ones you want:
 
-| Engine | Enables | Install (Windows) | Install (macOS) | Install (Linux) |
-| --- | --- | --- | --- | --- |
-| **LibreOffice** | DOCX/PPTX/XLSX -> PDF | `winget install TheDocumentFoundation.LibreOffice` | `brew install --cask libreoffice` | `apt install libreoffice` |
-| **qpdf** | Lock / unlock / permissions | `winget install qpdf.qpdf` | `brew install qpdf` | `apt install qpdf` |
-| **Ghostscript** | Repair PDF | `winget install ArtifexSoftware.GhostScript` | `brew install ghostscript` | `apt install ghostscript` |
-| **ocrmypdf** | Searchable PDF (OCR text layer) | `pip install ocrmypdf` | `brew install ocrmypdf` | `apt install ocrmypdf` |
-| **pdf2docx** | PDF -> Word (LibreOffice can't export PDF->Office) | `pip install pdf2docx` | `pip install pdf2docx` | `pip install pdf2docx` |
-| **PyMuPDF + openpyxl + python-pptx** | PDF -> Excel / PowerPoint / HTML | `pip install -r server/requirements.txt` | `pip install -r server/requirements.txt` | `pip install -r server/requirements.txt` |
+| Engine                               | Enables                                            | Install (Windows)                                  | Install (macOS)                          | Install (Linux)                          |
+| ------------------------------------ | -------------------------------------------------- | -------------------------------------------------- | ---------------------------------------- | ---------------------------------------- |
+| **LibreOffice**                      | DOCX/PPTX/XLSX -> PDF                              | `winget install TheDocumentFoundation.LibreOffice` | `brew install --cask libreoffice`        | `apt install libreoffice`                |
+| **qpdf**                             | Lock / unlock / permissions                        | `winget install qpdf.qpdf`                         | `brew install qpdf`                      | `apt install qpdf`                       |
+| **Ghostscript**                      | Repair PDF                                         | `winget install ArtifexSoftware.GhostScript`       | `brew install ghostscript`               | `apt install ghostscript`                |
+| **ocrmypdf**                         | Searchable PDF (OCR text layer)                    | `pip install ocrmypdf`                             | `brew install ocrmypdf`                  | `apt install ocrmypdf`                   |
+| **pdf2docx**                         | PDF -> Word (LibreOffice can't export PDF->Office) | `pip install pdf2docx`                             | `pip install pdf2docx`                   | `pip install pdf2docx`                   |
+| **PyMuPDF + openpyxl + python-pptx** | PDF -> Excel / PowerPoint / HTML                   | `pip install -r server/requirements.txt`           | `pip install -r server/requirements.txt` | `pip install -r server/requirements.txt` |
 
 For the high-fidelity PDF -> Word pipeline, install the Python helper packages:
 
@@ -60,6 +77,31 @@ Then point the app at the server in **Settings → Conversion server**:
 Uploaded files are processed in a temp directory and **deleted immediately**
 after the response is produced.
 
+### Quality checks and tests
+
+The test suite is isolated: it does not require Stripe, Resend, PostgreSQL,
+Collabora, or external network calls. Run the same checks used by GitHub Actions:
+
+```bash
+npm run format:check   # Prettier across app, server, config, and docs
+npm run lint           # ESLint; warnings fail the command
+npm run expo:check     # Expo SDK package compatibility
+npm run typecheck      # app and complete Hono server
+npm test               # unit and server middleware tests
+npm run test:coverage  # explicit 85/80/90/85 coverage gates
+npm run server:smoke   # /health and /metrics in-process smoke check
+npm run build:web      # production Expo web export
+npm run audit          # fail if high/critical production risk increases
+```
+
+`npm run verify` combines format, lint, typecheck, tests, and the production web
+build. CI runs those gates on every push and pull request, compiles the Python
+helpers, and uses `npm ci` so the committed lockfile is authoritative.
+
+Coverage thresholds are enforced in `vitest.config.mts`. Dependency update and
+audit policy is documented in [DEPENDENCIES.md](DEPENDENCIES.md), and security
+reports are handled according to [SECURITY.md](SECURITY.md).
+
 ### Production auth, email verification, and card payments
 
 FileMint can be deployed as a public web app, but real email delivery and real
@@ -75,16 +117,16 @@ FILEMINT_PUBLIC_URL=https://your-filemint-domain.com
 DATABASE_URL=postgresql://...sslmode=require
 
 # Email verification / password reset via Resend
-RESEND_API_KEY=re_...
+RESEND_API_KEY=<resend-api-key>
 FILEMINT_EMAIL_FROM="FileMint <verify@your-domain.com>"
 
 # Stripe Checkout for cards
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_WEEK=price_...
-STRIPE_PRICE_MONTH=price_...
-STRIPE_PRICE_YEAR=price_...
-STRIPE_PRICE_FOREVER=price_...
+STRIPE_SECRET_KEY=<stripe-secret-key>
+STRIPE_WEBHOOK_SECRET=<stripe-webhook-secret>
+STRIPE_PRICE_WEEK=<stripe-week-price-id>
+STRIPE_PRICE_MONTH=<stripe-month-price-id>
+STRIPE_PRICE_YEAR=<stripe-year-price-id>
+STRIPE_PRICE_FOREVER=<stripe-lifetime-price-id>
 ```
 
 Stripe webhook endpoint:
@@ -95,6 +137,10 @@ https://your-server-domain.com/auth/stripe/webhook
 
 For local development only, if you want to test the UI without Stripe, set
 `FILEMINT_ALLOW_DEV_PAYMENTS=true`. Do not set that in production.
+
+All supported variables, safe development defaults, observability settings,
+upload limits, and CORS origins are listed in [`.env.example`](.env.example).
+Never commit a populated `.env` file.
 
 For hosted conversion features, deploy the server with the repository
 `Dockerfile` instead of Render's plain Node runtime. The Docker image installs
@@ -156,7 +202,7 @@ low-confidence areas and visual fallback.
 
 Editing Word/Excel/PowerPoint in-app uses **Collabora Online** (a LibreOffice-based
 editor) embedded in an iframe. The FileMint server acts as a **WOPI host**: when
-you tap *Edit*, the file is uploaded to a temporary edit session, Collabora loads
+you tap _Edit_, the file is uploaded to a temporary edit session, Collabora loads
 and saves it over WOPI, and the edited bytes are pulled back into your library.
 
 1. Install **Docker Desktop** (Windows/macOS) — `winget install Docker.DockerDesktop` — and start it.
@@ -245,17 +291,17 @@ Every tool advertises an honest status in the UI:
 - **Server** – needs the conversion server engine above.
 - **Soon** – screen exists, processing not wired yet.
 
-| Area | Tools | Status |
-| --- | --- | --- |
-| Create | Image → PDF, Text → PDF, CSV → PDF, Smart Scan → PDF | Ready / Beta |
-| Organize | Merge, Split, Compress, Manage pages (reorder / rotate / delete / duplicate / blank / extract) | Ready |
-| Edit | Watermark, Page numbers, Flatten, Crop, Add text & stamp | Ready / Beta |
-| View | PDF (night mode, zoom), images, text, CSV table | Ready |
-| View Office | Word/Excel/PowerPoint rendered natively on web (docx-preview / SheetJS / pptx-preview); on native, converted to PDF via the server | Ready (web) |
-| OCR | Extract text from images & PDFs (web) | Beta (web) |
-| Convert | DOCX/PPTX/XLSX → PDF, PDF → DOCX/XLSX/PPTX/HTML, Batch Convert, Searchable PDF | Server |
-| Security | Lock, Unlock, Permissions, Repair | Server |
-| Files | Library, folders, favorites, trash, sort, grid/list, rename, duplicate, share | Ready |
+| Area        | Tools                                                                                                                                      | Status       |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| Create      | Image → PDF, Text → PDF, CSV → PDF, Smart Scan → PDF                                                                                       | Ready / Beta |
+| Organize    | Merge, Split, Compress, Manage pages (reorder / rotate / delete / duplicate / blank / extract)                                             | Ready        |
+| Edit        | Watermark, Page numbers, Flatten, Crop, Add text & stamp                                                                                   | Ready / Beta |
+| View        | PDF (night mode, zoom), images, text, CSV table                                                                                            | Ready        |
+| View Office | Word/Excel/PowerPoint rendered natively on web (docx-preview / read-excel-file / pptx-preview); on native, converted to PDF via the server | Ready (web)  |
+| OCR         | Extract text from images & PDFs (web)                                                                                                      | Beta (web)   |
+| Convert     | DOCX/PPTX/XLSX → PDF, PDF → DOCX/XLSX/PPTX/HTML, Batch Convert, Searchable PDF                                                             | Server       |
+| Security    | Lock, Unlock, Permissions, Repair                                                                                                          | Server       |
+| Files       | Library, folders, favorites, trash, sort, grid/list, rename, duplicate, share                                                              | Ready        |
 
 Drawing / signature / highlight / redaction and fillable-form editing are
 scaffolded and marked accordingly.
@@ -279,6 +325,10 @@ src/
                        pdf-render(.web).ts (pdf.js) · ocr(.web).ts (tesseract) · image(.web).ts
   store/               zustand: useLibrary (files) · useSettings
 server/                Hono conversion API (LibreOffice / qpdf / Ghostscript / ocrmypdf)
+  config.ts            Validated runtime configuration and CORS origin policy
+  middleware.ts        Request IDs, upload limits, secure headers, logs, errors, metrics
+  observability.ts     Structured Pino logs and optional Sentry reporting
+  start.ts             Node listener kept separate from the testable Hono app
 ```
 
 Platform differences are handled with Metro's `.web.ts` / `.ts` resolution:
@@ -291,9 +341,28 @@ device.
 Expo SDK 56 · React 19 · React Native 0.85 · Expo Router · TypeScript ·
 pdf-lib · pdf.js · tesseract.js · zustand · Hono.
 
+### Operations and observability
+
+The server exposes `GET /health` for capability/readiness checks and `GET
+/metrics` in Prometheus text format for request counts, failures, and duration.
+Every response receives an `X-Request-Id`. Production logs are structured JSON
+from Pino, redact credentials, and omit URL query strings; setting `SENTRY_DSN`
+enables unhandled-error reporting. CORS is restricted through `CORS_ORIGINS`,
+uploads are capped by `FILEMINT_MAX_UPLOAD_BYTES`,
+and standard security headers are enabled centrally.
+
 ---
 
 ## Known limitations
+
+- This branch intentionally targets Expo SDK 56. Expo Doctor currently notes an
+  upstream Hermes memory regression in the SDK 56 line; the eventual SDK 57
+  migration belongs in a dedicated, device-tested change rather than an
+  unrelated dependency update.
+- The production audit baseline currently contains four high-severity findings
+  inherited through Expo's Metro/image-size toolchain and zero critical
+  findings. `npm run audit` prevents that count from increasing; Dependabot will
+  surface a compatible fix when Expo publishes one.
 
 - **Android in-app PDF preview** depends on the platform WebView; if a page
   doesn't render inline, use the viewer's **Share / Open** action to open it

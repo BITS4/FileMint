@@ -1,0 +1,42 @@
+name: filemint
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: filemint
+      POSTGRES_USER: filemint
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - filemint-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U filemint -d filemint']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+    environment:
+      NODE_ENV: development
+      PORT: 8787
+      DATABASE_URL: postgresql://filemint@postgres:5432/filemint
+      FILEMINT_PUBLIC_URL: http://localhost:8081
+      CORS_ORIGINS: http://localhost:8081
+      LOG_LEVEL: info
+    ports:
+      - '8787:8787'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', 'http://localhost:8787/health']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  filemint-postgres:
