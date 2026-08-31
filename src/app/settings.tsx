@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useState } from 'react';
-import { Share, StyleSheet, Switch, View } from 'react-native';
+import { Share, Switch, View } from 'react-native';
 
 import {
   ActionSheet,
@@ -13,12 +13,20 @@ import {
   ListRow,
   PromptModal,
   Screen,
-  SectionHeader,
   TextField,
   type SheetAction,
   Txt,
 } from '@/components/ui';
-import { Radius, Spacing } from '@/constants/theme';
+import {
+  OCR_LANGS,
+  PLAN_LABEL,
+  QUALITY_LABEL,
+  SCAN_LABEL,
+  SettingsGroup as Group,
+  THEME_LABEL,
+  settingsStyles as styles,
+  type SettingsPicker as Picker,
+} from '@/components/settings/SettingsShared';
 import { type ServerStatus, checkServer } from '@/lib/api';
 import { withAlpha } from '@/lib/color';
 import { confirm } from '@/lib/confirm';
@@ -27,47 +35,6 @@ import { useTheme } from '@/hooks/use-theme';
 import { selectIsLoggedIn, selectIsPremium, useAuth } from '@/store/useAuth';
 import { useLibrary } from '@/store/useLibrary';
 import { type Quality, type ScanColorMode, type ThemeMode, useSettings } from '@/store/useSettings';
-
-type Picker = 'theme' | 'quality' | 'compression' | 'ocr' | 'scanColor' | null;
-
-const THEME_LABEL: Record<ThemeMode, string> = { system: 'System', dark: 'Dark', light: 'Light' };
-const QUALITY_LABEL: Record<Quality, string> = { high: 'High', medium: 'Medium', low: 'Low' };
-const SCAN_LABEL: Record<ScanColorMode, string> = {
-  color: 'Color',
-  grayscale: 'Grayscale',
-  bw: 'Black & White',
-};
-const OCR_LANGS: [string, string][] = [
-  ['eng', 'English'],
-  ['spa', 'Spanish'],
-  ['fra', 'French'],
-  ['deu', 'German'],
-  ['ita', 'Italian'],
-  ['por', 'Portuguese'],
-  ['rus', 'Russian'],
-  ['chi_sim', 'Chinese (Simplified)'],
-  ['jpn', 'Japanese'],
-  ['ara', 'Arabic'],
-  ['hin', 'Hindi'],
-];
-
-const PLAN_LABEL: Record<string, string> = {
-  week: '1 Week Plan',
-  month: '1 Month Plan',
-  year: '1 Year Plan',
-  forever: 'Forever Plan',
-};
-
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View>
-      <SectionHeader title={title} />
-      <Card padded={false} style={{ paddingVertical: 4, paddingHorizontal: 6 }}>
-        {children}
-      </Card>
-    </View>
-  );
-}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -527,22 +494,3 @@ export default function SettingsScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  upgrade: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.sm },
-  upgradeIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  authButtons: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.sm,
-    flexWrap: 'wrap',
-  },
-  passwordPanel: { gap: Spacing.md, paddingHorizontal: Spacing.sm, paddingBottom: Spacing.md },
-});
