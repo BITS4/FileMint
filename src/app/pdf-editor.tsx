@@ -38,6 +38,21 @@ import { withAlpha } from '@/lib/color';
 import { confirm } from '@/lib/confirm';
 import { baseName } from '@/lib/format';
 import {
+  clamp01,
+  cloneQuad,
+  cropEdgesFromQuad,
+  moveQuad,
+  parsePositiveNumber,
+  pointAt,
+  rectFromQuad,
+  targetPagesForScope,
+  type ApplyScope,
+  type CropPoint,
+  type CropPointKey,
+  type CropQuad,
+  type CropTarget,
+} from '@/lib/pdf-editor/geometry';
+import {
   applyPdfEditorObjects,
   applyPdfEditorTool,
   cropPdfEdges,
@@ -66,11 +81,6 @@ type EditorToolId =
   | 'redact'
   | 'fill-forms';
 type CropMode = 'free' | 'rectangle' | 'perspective';
-type ApplyScope = 'current' | 'selected' | 'range' | 'all';
-type CropPointKey = 'tl' | 'tr' | 'br' | 'bl';
-type CropTarget = CropPointKey | 'top' | 'right' | 'bottom' | 'left' | 'move';
-type CropPoint = { x: number; y: number };
-type CropQuad = Record<CropPointKey, CropPoint>;
 
 interface EditorOptions {
   text: string;
@@ -453,64 +463,6 @@ function normalizeTool(value: unknown): EditorToolId {
   return TOOL_IDS.includes(raw as EditorToolId) ? (raw as EditorToolId) : 'crop-pdf';
 }
 
-function cloneQuad(quad: CropQuad): CropQuad {
-  return {
-    tl: { ...quad.tl },
-    tr: { ...quad.tr },
-    br: { ...quad.br },
-    bl: { ...quad.bl },
-  };
-}
-
-function clamp01(value: number) {
-  return Math.max(0.02, Math.min(0.98, value));
-}
-
-function parsePositiveNumber(value: string, fallback: number, min: number, max: number) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.max(min, Math.min(max, parsed));
-}
-
-function parsePageRange(value: string, pageCount: number): number[] {
-  const pages = new Set<number>();
-  value
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .forEach((part) => {
-      const [startRaw, endRaw] = part.split('-').map((item) => Number(item.trim()));
-      if (!Number.isFinite(startRaw)) return;
-      const start = Math.max(1, Math.min(pageCount, startRaw));
-      const end = Number.isFinite(endRaw) ? Math.max(1, Math.min(pageCount, endRaw)) : start;
-      const lo = Math.min(start, end);
-      const hi = Math.max(start, end);
-      for (let i = lo; i <= hi; i++) pages.add(i - 1);
-    });
-  return [...pages].sort((a, b) => a - b);
-}
-
-function targetPagesForScope(scope: ApplyScope, pageIndex: number, pageCount: number, range: string) {
-  if (scope === 'all') return Array.from({ length: pageCount }, (_, index) => index);
-  if (scope === 'range') {
-    const parsed = parsePageRange(range, pageCount);
-    return parsed.length ? parsed : [pageIndex];
-  }
-  // A full selected-pages model can be layered on later; current page is the
-  // honest fallback for both Current and Selected in this editor shell.
-  return [pageIndex];
-}
-
-function cropEdgesFromQuad(quad: CropQuad) {
-  const xs = [quad.tl.x, quad.tr.x, quad.br.x, quad.bl.x];
-  const ys = [quad.tl.y, quad.tr.y, quad.br.y, quad.bl.y];
-  const left = Math.min(...xs) * 100;
-  const right = (1 - Math.max(...xs)) * 100;
-  const top = Math.min(...ys) * 100;
-  const bottom = (1 - Math.max(...ys)) * 100;
-  return { top, right, bottom, left, unit: 'percent' as const };
-}
-
 function redactionAreas(targetPages: number[]) {
   return targetPages.map((page) => ({ page, x: 0.22, y: 0.42, width: 0.48, height: 0.07 }));
 }
@@ -821,38 +773,6 @@ function splitDoodleObjectAt(object: EditorObject, point: EditorPoint, radius: n
     id: index === 0 ? object.id : makeObjectId(),
     points: group,
   }));
-}
-
-function pointAt(a: CropPoint, b: CropPoint, t: number): CropPoint {
-  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-}
-
-function rectFromQuad(quad: CropQuad): CropQuad {
-  const xs = [quad.tl.x, quad.tr.x, quad.br.x, quad.bl.x];
-  const ys = [quad.tl.y, quad.tr.y, quad.br.y, quad.bl.y];
-  const left = Math.min(...xs);
-  const right = Math.max(...xs);
-  const top = Math.min(...ys);
-  const bottom = Math.max(...ys);
-  return {
-    tl: { x: left, y: top },
-    tr: { x: right, y: top },
-    br: { x: right, y: bottom },
-    bl: { x: left, y: bottom },
-  };
-}
-
-function moveQuad(quad: CropQuad, dx: number, dy: number): CropQuad {
-  const xs = [quad.tl.x, quad.tr.x, quad.br.x, quad.bl.x];
-  const ys = [quad.tl.y, quad.tr.y, quad.br.y, quad.bl.y];
-  const safeDx = Math.max(-Math.min(...xs) + 0.02, Math.min(1 - Math.max(...xs) - 0.02, dx));
-  const safeDy = Math.max(-Math.min(...ys) + 0.02, Math.min(1 - Math.max(...ys) - 0.02, dy));
-  return {
-    tl: { x: quad.tl.x + safeDx, y: quad.tl.y + safeDy },
-    tr: { x: quad.tr.x + safeDx, y: quad.tr.y + safeDy },
-    br: { x: quad.br.x + safeDx, y: quad.br.y + safeDy },
-    bl: { x: quad.bl.x + safeDx, y: quad.bl.y + safeDy },
-  };
 }
 
 function imageToUri(image: RenderedImage) {
