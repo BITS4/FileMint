@@ -315,7 +315,9 @@ app.post('/edit/redact', async (c) => {
   const dir = await makeWorkdir();
   try {
     if (!PYTHON || !PY_PDF_EDIT)
-      throw new Error('PDF redaction needs Python + PyMuPDF. Run: pip install -r server/requirements.txt');
+      throw new Error(
+        'PDF redaction needs Python + PyMuPDF. Run: pip install -r server/requirements.lock.txt',
+      );
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
     const out = join(dir, 'redacted.pdf');
@@ -437,7 +439,7 @@ app.post('/convert', async (c) => {
     } else if (inputExt === 'pdf' && (target === 'xlsx' || target === 'pptx' || target === 'html')) {
       if (!PYTHON || !PY_PDF_EXPORT) {
         throw new Error(
-          `PDF -> ${target.toUpperCase()} needs the Python export helper. Run: pip install -r server/requirements.txt`,
+          `PDF -> ${target.toUpperCase()} needs the Python export helper. Run: pip install -r server/requirements.lock.txt`,
         );
       }
       out = join(dir, `out.${target}`);
@@ -495,7 +497,7 @@ app.post('/image/normalize', async (c) => {
   try {
     if (!PYTHON || !PY_IMAGE_NORMALIZE)
       throw new Error(
-        'Image normalization needs Python + Pillow. Run: pip install -r server/requirements.txt',
+        'Image normalization needs Python + Pillow. Run: pip install -r server/requirements.lock.txt',
       );
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
@@ -544,7 +546,9 @@ app.post('/pdf/render', async (c) => {
   const dir = await makeWorkdir();
   try {
     if (!PYTHON || !PY_PDF_UTILITY)
-      throw new Error('PDF rendering needs Python + PyMuPDF. Run: pip install -r server/requirements.txt');
+      throw new Error(
+        'PDF rendering needs Python + PyMuPDF. Run: pip install -r server/requirements.lock.txt',
+      );
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
     const format = String(body['format'] ?? 'png').toLowerCase() === 'jpg' ? 'jpg' : 'png';
@@ -595,7 +599,7 @@ app.post('/pdf/text', async (c) => {
   try {
     if (!PYTHON || !PY_PDF_UTILITY)
       throw new Error(
-        'PDF text extraction needs Python + PyMuPDF. Run: pip install -r server/requirements.txt',
+        'PDF text extraction needs Python + PyMuPDF. Run: pip install -r server/requirements.lock.txt',
       );
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
@@ -644,7 +648,7 @@ app.post('/ocr', async (c) => {
   try {
     if (!BIN.ocrmypdf || !PYTHON || !PY_SEARCHABLE_PDF) {
       throw new Error(
-        'Searchable PDF needs OCRmyPDF, Python, PyMuPDF and Tesseract. Run: pip install -r server/requirements.txt',
+        'Searchable PDF needs OCRmyPDF, Python, PyMuPDF and Tesseract. Run: pip install -r server/requirements.lock.txt',
       );
     }
     const body = await c.req.parseBody();

@@ -23,6 +23,7 @@ services:
       NODE_ENV: development
       PORT: 8787
       DATABASE_URL: postgresql://filemint@postgres:5432/filemint
+      DATABASE_POOL_MAX: 4
       FILEMINT_PUBLIC_URL: http://localhost:8081
       CORS_ORIGINS: http://localhost:8081
       LOG_LEVEL: info

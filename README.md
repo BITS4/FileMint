@@ -51,19 +51,19 @@ intentionally want to delete the local database volume).
 
 On startup it prints which engines it found. Install the ones you want:
 
-| Engine                               | Enables                                            | Install (Windows)                                  | Install (macOS)                          | Install (Linux)                          |
-| ------------------------------------ | -------------------------------------------------- | -------------------------------------------------- | ---------------------------------------- | ---------------------------------------- |
-| **LibreOffice**                      | DOCX/PPTX/XLSX -> PDF                              | `winget install TheDocumentFoundation.LibreOffice` | `brew install --cask libreoffice`        | `apt install libreoffice`                |
-| **qpdf**                             | Lock / unlock / permissions                        | `winget install qpdf.qpdf`                         | `brew install qpdf`                      | `apt install qpdf`                       |
-| **Ghostscript**                      | Repair PDF                                         | `winget install ArtifexSoftware.GhostScript`       | `brew install ghostscript`               | `apt install ghostscript`                |
-| **ocrmypdf**                         | Searchable PDF (OCR text layer)                    | `pip install ocrmypdf`                             | `brew install ocrmypdf`                  | `apt install ocrmypdf`                   |
-| **pdf2docx**                         | PDF -> Word (LibreOffice can't export PDF->Office) | `pip install pdf2docx`                             | `pip install pdf2docx`                   | `pip install pdf2docx`                   |
-| **PyMuPDF + openpyxl + python-pptx** | PDF -> Excel / PowerPoint / HTML                   | `pip install -r server/requirements.txt`           | `pip install -r server/requirements.txt` | `pip install -r server/requirements.txt` |
+| Engine                               | Enables                                            | Install (Windows)                                  | Install (macOS)                               | Install (Linux)                               |
+| ------------------------------------ | -------------------------------------------------- | -------------------------------------------------- | --------------------------------------------- | --------------------------------------------- |
+| **LibreOffice**                      | DOCX/PPTX/XLSX -> PDF                              | `winget install TheDocumentFoundation.LibreOffice` | `brew install --cask libreoffice`             | `apt install libreoffice`                     |
+| **qpdf**                             | Lock / unlock / permissions                        | `winget install qpdf.qpdf`                         | `brew install qpdf`                           | `apt install qpdf`                            |
+| **Ghostscript**                      | Repair PDF                                         | `winget install ArtifexSoftware.GhostScript`       | `brew install ghostscript`                    | `apt install ghostscript`                     |
+| **ocrmypdf**                         | Searchable PDF (OCR text layer)                    | `pip install ocrmypdf`                             | `brew install ocrmypdf`                       | `apt install ocrmypdf`                        |
+| **pdf2docx**                         | PDF -> Word (LibreOffice can't export PDF->Office) | `pip install pdf2docx`                             | `pip install pdf2docx`                        | `pip install pdf2docx`                        |
+| **PyMuPDF + openpyxl + python-pptx** | PDF -> Excel / PowerPoint / HTML                   | `pip install -r server/requirements.lock.txt`      | `pip install -r server/requirements.lock.txt` | `pip install -r server/requirements.lock.txt` |
 
 For the high-fidelity PDF -> Word pipeline, install the Python helper packages:
 
 ```bash
-pip install -r server/requirements.txt
+pip install -r server/requirements.lock.txt
 ```
 
 > Windows note: the server invokes LibreOffice via **`soffice.com`** (the blocking console launcher) and auto-discovers `pdf2docx.exe` in the Python `Scripts` folder even when it isn't on PATH.
@@ -95,8 +95,9 @@ npm run audit          # fail if high/critical production risk increases
 ```
 
 `npm run verify` combines format, lint, typecheck, tests, and the production web
-build. CI runs those gates on every push and pull request, compiles the Python
-helpers, and uses `npm ci` so the committed lockfile is authoritative.
+build. CI runs those gates on every push and pull request, installs the pinned
+Python dependencies, tests and compile-checks the conversion helpers, and uses
+`npm ci` so the committed lockfile is authoritative.
 
 Coverage thresholds are enforced in `vitest.config.mts`. Dependency update and
 audit policy is documented in [DEPENDENCIES.md](DEPENDENCIES.md), and security

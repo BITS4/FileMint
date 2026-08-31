@@ -36,8 +36,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY server/requirements.txt ./server/requirements.txt
-RUN python3 -m pip install --break-system-packages --no-cache-dir -r server/requirements.txt
+COPY server/requirements.lock.txt ./server/requirements.lock.txt
+RUN python3 -m pip install --break-system-packages --no-cache-dir -r server/requirements.lock.txt
 
 COPY . .
 
