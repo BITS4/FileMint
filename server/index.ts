@@ -9,7 +9,6 @@
  *
  * Run with:  npm run server   (or npm run server:dev for watch mode)
  */
-import { serve } from '@hono/node-server';
 import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -18,31 +17,11 @@ import { tmpdir } from 'node:os';
 import { basename, extname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 
 import { registerAuth } from './auth';
+import { COLLABORA_URL, VERSION, WOPI_HOST } from './config';
 import { detectCollabora, getLastCollaboraProbe, registerEdit } from './edit';
-
-const PORT = Number(process.env.PORT ?? 8787);
-const VERSION = '1.0.0';
-
-function cleanServiceUrl(value: string | undefined, fallback: string): string {
-  const raw = (value ?? fallback).trim().replace(/^['"]+|['"]+$/g, '').trim();
-  const candidate = raw || fallback;
-  try {
-    const url = new URL(candidate);
-    url.pathname = url.pathname.replace(/\/hosting\/discovery\/?$/i, '');
-    url.search = '';
-    url.hash = '';
-    return url.toString().replace(/\/+$/, '');
-  } catch {
-    return candidate.replace(/\/+$/, '');
-  }
-}
-
-// Browser -> Collabora; Collabora -> this server (Docker Desktop host alias).
-const COLLABORA_URL = cleanServiceUrl(process.env.COLLABORA_URL, 'http://localhost:9980');
-const WOPI_HOST = cleanServiceUrl(process.env.WOPI_HOST, `http://host.docker.internal:${PORT}`);
+import { registerCoreMiddleware } from './middleware';
 
 // ---------------------------------------------------------------- binaries
 function resolveBinary(candidates: string[], versionArgs: string[]): string | null {
@@ -120,7 +99,11 @@ const BIN = {
 function findPython(): string | null {
   const candidates: string[] = [];
   if (isWin) {
-    const roots = [join(process.env.LOCALAPPDATA ?? '', 'Programs', 'Python'), 'C:\\Program Files', 'C:\\Program Files (x86)'];
+    const roots = [
+      join(process.env.LOCALAPPDATA ?? '', 'Programs', 'Python'),
+      'C:\\Program Files',
+      'C:\\Program Files (x86)',
+    ];
     for (const root of roots) {
       try {
         for (const dir of readdirSync(root)) {
@@ -182,7 +165,7 @@ const PDF_REPAIR_AVAILABLE = !!BIN.gs || !!BIN.qpdf || !!(PYTHON && PY_PDF_REPAI
 const PY_PDF_EDIT = pythonCanImport(['fitz']);
 const PY_SEARCHABLE_PDF = pythonCanImport(['fitz']);
 
-const CAPABILITIES = {
+export const CAPABILITIES = {
   libreoffice: !!BIN.soffice,
   qpdf: PDF_SECURITY_AVAILABLE,
   ghostscript: !!BIN.gs,
@@ -196,7 +179,11 @@ const CAPABILITIES = {
 };
 
 // ------------------------------------------------------------------- utils
-function run(cmd: string, args: string[], timeout = 180000): Promise<{ code: number; stdout: string; stderr: string }> {
+function run(
+  cmd: string,
+  args: string[],
+  timeout = 180000,
+): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, args, { timeout });
     let stdout = '';
@@ -263,7 +250,15 @@ async function sendFile(
 async function libreConvert(dir: string, input: Upload, targetExt: string): Promise<string> {
   if (!BIN.soffice) throw new Error('LibreOffice is not installed on the server.');
   const profile = `-env:UserInstallation=${pathToFileURL(join(dir, 'lo-profile')).href}`;
-  const res = await run(BIN.soffice, ['--headless', profile, '--convert-to', targetExt, '--outdir', dir, input.path]);
+  const res = await run(BIN.soffice, [
+    '--headless',
+    profile,
+    '--convert-to',
+    targetExt,
+    '--outdir',
+    dir,
+    input.path,
+  ]);
   // LibreOffice writes <base>.<targetExt> into outdir
   const base = basename(input.name, extname(input.name));
   const candidate = join(dir, `${base}.${targetExt}`);
@@ -277,7 +272,7 @@ async function libreConvert(dir: string, input: Upload, targetExt: string): Prom
 
 // ------------------------------------------------------------------- routes
 export const app = new Hono();
-app.use('*', cors());
+registerCoreMiddleware(app);
 
 // Collabora runs in Docker and comes/goes independently — poll it in the
 // background so /health reflects current availability without slowing down.
@@ -319,12 +314,16 @@ registerEdit(app, { collaboraUrl: COLLABORA_URL, wopiHost: WOPI_HOST });
 app.post('/edit/redact', async (c) => {
   const dir = await makeWorkdir();
   try {
-    if (!PYTHON || !PY_PDF_EDIT) throw new Error('PDF redaction needs Python + PyMuPDF. Run: pip install -r server/requirements.txt');
+    if (!PYTHON || !PY_PDF_EDIT)
+      throw new Error('PDF redaction needs Python + PyMuPDF. Run: pip install -r server/requirements.txt');
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
     const out = join(dir, 'redacted.pdf');
     const areasJson = String(body['areasJson'] ?? '[]');
-    const color = String(body['color'] ?? '#000000').replace(/[^#a-fA-F0-9]/g, '').slice(0, 7) || '#000000';
+    const color =
+      String(body['color'] ?? '#000000')
+        .replace(/[^#a-fA-F0-9]/g, '')
+        .slice(0, 7) || '#000000';
     const label = String(body['label'] ?? 'Redacted').slice(0, 80);
     const res = await run(
       PYTHON,
@@ -372,8 +371,14 @@ app.post('/convert', async (c) => {
       const tableDetection = String(body['tableDetection'] ?? 'true') === 'true';
       const preserveLayout = String(body['preserveLayout'] ?? 'true') === 'true';
       const keepVisualObjects = String(body['keepVisualObjects'] ?? 'true') === 'true';
-      const visualObjectFormat = String(body['visualObjectFormat'] ?? 'png').replace(/[^\w-]/g, '').toLowerCase() || 'png';
-      const docxQuality = String(body['docxQuality'] ?? 'high').replace(/[^\w-]/g, '').toLowerCase() || 'high';
+      const visualObjectFormat =
+        String(body['visualObjectFormat'] ?? 'png')
+          .replace(/[^\w-]/g, '')
+          .toLowerCase() || 'png';
+      const docxQuality =
+        String(body['docxQuality'] ?? 'high')
+          .replace(/[^\w-]/g, '')
+          .toLowerCase() || 'high';
       if (PYTHON && PY_PDF_TO_DOCX) {
         // Layout-aware pipeline: detects digital vs scanned and dispatches
         // pdf2docx / OCR / image per the chosen mode, then writes a quality report.
@@ -406,7 +411,8 @@ app.post('/convert', async (c) => {
           ],
           600000,
         );
-        if (!existsSync(out)) throw new Error(`PDF → Word failed. ${res.stderr || res.stdout}`.slice(0, 1600));
+        if (!existsSync(out))
+          throw new Error(`PDF → Word failed. ${res.stderr || res.stdout}`.slice(0, 1600));
         if (existsSync(reportPath)) {
           const report = await readFile(reportPath, 'utf8');
           reportHeader = Buffer.from(report, 'utf8').toString('base64url');
@@ -423,13 +429,16 @@ app.post('/convert', async (c) => {
           }),
           'utf8',
         ).toString('base64url');
-        if (!existsSync(out)) throw new Error(`PDF → Word failed. ${res.stderr || res.stdout}`.slice(0, 1600));
+        if (!existsSync(out))
+          throw new Error(`PDF → Word failed. ${res.stderr || res.stdout}`.slice(0, 1600));
       } else {
         throw new Error('PDF → Word needs Python + pdf2docx. Install Python, then run: pip install pdf2docx');
       }
     } else if (inputExt === 'pdf' && (target === 'xlsx' || target === 'pptx' || target === 'html')) {
       if (!PYTHON || !PY_PDF_EXPORT) {
-        throw new Error(`PDF -> ${target.toUpperCase()} needs the Python export helper. Run: pip install -r server/requirements.txt`);
+        throw new Error(
+          `PDF -> ${target.toUpperCase()} needs the Python export helper. Run: pip install -r server/requirements.txt`,
+        );
       }
       out = join(dir, `out.${target}`);
       const reportPath = join(dir, 'report.json');
@@ -457,7 +466,8 @@ app.post('/convert', async (c) => {
         ],
         600000,
       );
-      if (!existsSync(out)) throw new Error(`PDF -> ${target.toUpperCase()} failed. ${res.stderr || res.stdout}`.slice(0, 400));
+      if (!existsSync(out))
+        throw new Error(`PDF -> ${target.toUpperCase()} failed. ${res.stderr || res.stdout}`.slice(0, 400));
       if (existsSync(reportPath)) {
         const report = await readFile(reportPath, 'utf8');
         reportHeader = Buffer.from(report, 'utf8').toString('base64url');
@@ -467,7 +477,13 @@ app.post('/convert', async (c) => {
     }
 
     const downloadName = `${basename(upload.name, extname(upload.name))}.${target}`;
-    return await sendFile(c, dir, out, downloadName, reportHeader ? { 'X-FileMint-Report': reportHeader } : {});
+    return await sendFile(
+      c,
+      dir,
+      out,
+      downloadName,
+      reportHeader ? { 'X-FileMint-Report': reportHeader } : {},
+    );
   } catch (e) {
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
     return c.json({ error: e instanceof Error ? e.message : 'Conversion failed.' }, 500);
@@ -477,7 +493,10 @@ app.post('/convert', async (c) => {
 app.post('/image/normalize', async (c) => {
   const dir = await makeWorkdir();
   try {
-    if (!PYTHON || !PY_IMAGE_NORMALIZE) throw new Error('Image normalization needs Python + Pillow. Run: pip install -r server/requirements.txt');
+    if (!PYTHON || !PY_IMAGE_NORMALIZE)
+      throw new Error(
+        'Image normalization needs Python + Pillow. Run: pip install -r server/requirements.txt',
+      );
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
     const rotate = Math.max(0, Math.min(270, Number(body['rotate'] ?? 0) || 0));
@@ -501,13 +520,20 @@ app.post('/image/normalize', async (c) => {
       ],
       180000,
     );
-    if (!existsSync(out)) throw new Error(`Image normalization failed. ${res.stderr || res.stdout}`.slice(0, 400));
+    if (!existsSync(out))
+      throw new Error(`Image normalization failed. ${res.stderr || res.stdout}`.slice(0, 400));
     let reportHeader: string | undefined;
     if (existsSync(reportPath)) {
       const report = await readFile(reportPath, 'utf8');
       reportHeader = Buffer.from(report, 'utf8').toString('base64url');
     }
-    return await sendFile(c, dir, out, `${basename(upload.name, extname(upload.name))}.png`, reportHeader ? { 'X-FileMint-Report': reportHeader } : {});
+    return await sendFile(
+      c,
+      dir,
+      out,
+      `${basename(upload.name, extname(upload.name))}.png`,
+      reportHeader ? { 'X-FileMint-Report': reportHeader } : {},
+    );
   } catch (e) {
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
     return c.json({ error: e instanceof Error ? e.message : 'Image normalization failed.' }, 500);
@@ -517,7 +543,8 @@ app.post('/image/normalize', async (c) => {
 app.post('/pdf/render', async (c) => {
   const dir = await makeWorkdir();
   try {
-    if (!PYTHON || !PY_PDF_UTILITY) throw new Error('PDF rendering needs Python + PyMuPDF. Run: pip install -r server/requirements.txt');
+    if (!PYTHON || !PY_PDF_UTILITY)
+      throw new Error('PDF rendering needs Python + PyMuPDF. Run: pip install -r server/requirements.txt');
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
     const format = String(body['format'] ?? 'png').toLowerCase() === 'jpg' ? 'jpg' : 'png';
@@ -543,13 +570,20 @@ app.post('/pdf/render', async (c) => {
       ],
       300000,
     );
-    if (!existsSync(out)) throw new Error(`PDF page rendering failed. ${res.stderr || res.stdout}`.slice(0, 400));
+    if (!existsSync(out))
+      throw new Error(`PDF page rendering failed. ${res.stderr || res.stdout}`.slice(0, 400));
     let reportHeader: string | undefined;
     if (existsSync(reportPath)) {
       const report = await readFile(reportPath, 'utf8');
       reportHeader = Buffer.from(report, 'utf8').toString('base64url');
     }
-    return await sendFile(c, dir, out, `${basename(upload.name, extname(upload.name))} pages.zip`, reportHeader ? { 'X-FileMint-Report': reportHeader } : {});
+    return await sendFile(
+      c,
+      dir,
+      out,
+      `${basename(upload.name, extname(upload.name))} pages.zip`,
+      reportHeader ? { 'X-FileMint-Report': reportHeader } : {},
+    );
   } catch (e) {
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
     return c.json({ error: e instanceof Error ? e.message : 'PDF page rendering failed.' }, 500);
@@ -559,7 +593,10 @@ app.post('/pdf/render', async (c) => {
 app.post('/pdf/text', async (c) => {
   const dir = await makeWorkdir();
   try {
-    if (!PYTHON || !PY_PDF_UTILITY) throw new Error('PDF text extraction needs Python + PyMuPDF. Run: pip install -r server/requirements.txt');
+    if (!PYTHON || !PY_PDF_UTILITY)
+      throw new Error(
+        'PDF text extraction needs Python + PyMuPDF. Run: pip install -r server/requirements.txt',
+      );
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
     const lang = String(body['language'] ?? 'auto').replace(/[^a-z_+]/gi, '') || 'auto';
@@ -582,13 +619,20 @@ app.post('/pdf/text', async (c) => {
       ],
       300000,
     );
-    if (!existsSync(out)) throw new Error(`PDF text extraction failed. ${res.stderr || res.stdout}`.slice(0, 400));
+    if (!existsSync(out))
+      throw new Error(`PDF text extraction failed. ${res.stderr || res.stdout}`.slice(0, 400));
     let reportHeader: string | undefined;
     if (existsSync(reportPath)) {
       const report = await readFile(reportPath, 'utf8');
       reportHeader = Buffer.from(report, 'utf8').toString('base64url');
     }
-    return await sendFile(c, dir, out, `${basename(upload.name, extname(upload.name))}.txt`, reportHeader ? { 'X-FileMint-Report': reportHeader } : {});
+    return await sendFile(
+      c,
+      dir,
+      out,
+      `${basename(upload.name, extname(upload.name))}.txt`,
+      reportHeader ? { 'X-FileMint-Report': reportHeader } : {},
+    );
   } catch (e) {
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
     return c.json({ error: e instanceof Error ? e.message : 'PDF text extraction failed.' }, 500);
@@ -599,7 +643,9 @@ app.post('/ocr', async (c) => {
   const dir = await makeWorkdir();
   try {
     if (!BIN.ocrmypdf || !PYTHON || !PY_SEARCHABLE_PDF) {
-      throw new Error('Searchable PDF needs OCRmyPDF, Python, PyMuPDF and Tesseract. Run: pip install -r server/requirements.txt');
+      throw new Error(
+        'Searchable PDF needs OCRmyPDF, Python, PyMuPDF and Tesseract. Run: pip install -r server/requirements.txt',
+      );
     }
     const body = await c.req.parseBody();
     const upload = await saveUpload(dir, body['file']);
@@ -663,7 +709,17 @@ app.post('/secure/lock', async (c) => {
     if (BIN.qpdf) {
       res = await run(BIN.qpdf, ['--encrypt', password, password, '256', '--', upload.path, out]);
     } else if (PYTHON && PY_PDF_SECURITY) {
-      res = await run(PYTHON, [PDF_SECURITY_SCRIPT, '--task', 'lock', '--input', upload.path, '--output', out, '--password', password]);
+      res = await run(PYTHON, [
+        PDF_SECURITY_SCRIPT,
+        '--task',
+        'lock',
+        '--input',
+        upload.path,
+        '--output',
+        out,
+        '--password',
+        password,
+      ]);
     } else {
       throw new Error('PDF security engine is not installed on the server.');
     }
@@ -686,7 +742,17 @@ app.post('/secure/unlock', async (c) => {
     if (BIN.qpdf) {
       res = await run(BIN.qpdf, [`--password=${password}`, '--decrypt', upload.path, out]);
     } else if (PYTHON && PY_PDF_SECURITY) {
-      res = await run(PYTHON, [PDF_SECURITY_SCRIPT, '--task', 'unlock', '--input', upload.path, '--output', out, '--password', password]);
+      res = await run(PYTHON, [
+        PDF_SECURITY_SCRIPT,
+        '--task',
+        'unlock',
+        '--input',
+        upload.path,
+        '--output',
+        out,
+        '--password',
+        password,
+      ]);
     } else {
       throw new Error('PDF security engine is not installed on the server.');
     }
@@ -770,24 +836,3 @@ app.post('/repair', async (c) => {
     return c.json({ error: e instanceof Error ? e.message : 'Repair failed.' }, 500);
   }
 });
-
-export const filemintServer = serve({ fetch: app.fetch, port: PORT, hostname: '0.0.0.0' });
-
-console.log(`\nFileMint conversion server → http://localhost:${PORT}`);
-console.log('Engines detected:');
-console.log(`  LibreOffice (Office ↔ PDF): ${CAPABILITIES.libreoffice ? '✓' : '✗  install LibreOffice'}`);
-console.log(`  PDF security (lock/unlock): ${CAPABILITIES.qpdf ? (BIN.qpdf ? '✓ qpdf' : '✓ PyMuPDF') : '✗  install qpdf or PyMuPDF'}`);
-console.log(`  Ghostscript (repair):       ${CAPABILITIES.ghostscript ? '✓' : '✗  install ghostscript'}`);
-console.log(`  ocrmypdf (searchable PDF):  ${CAPABILITIES.ocr ? '✓' : '✗  install ocrmypdf'}`);
-console.log(`  pdf2docx (PDF → Word):      ${CAPABILITIES.pdf2docx ? '✓' : '✗  pip install pdf2docx'}`);
-console.log(`  PDF export (XLSX/PPTX/HTML): ${CAPABILITIES.pdfExport ? '✓' : '✗  pip install -r server/requirements.txt'}`);
-console.log(`  Image normalize (HEIC/TIFF): ${CAPABILITIES.imageNormalize ? '✓' : '✗  pip install -r server/requirements.txt'}`);
-console.log(`  PDF utility (images/text):   ${CAPABILITIES.pdfUtility ? '✓' : '✗  pip install -r server/requirements.txt'}`);
-console.log(`  Collabora (edit Office):    polling ${COLLABORA_URL} (Docker)`);
-console.log(`  WOPI host for Collabora:    ${WOPI_HOST}`);
-console.log('');
-
-// Boot smoke test: `FILEMINT_SMOKE=1 npm run server` starts, logs, then exits.
-if (process.env.FILEMINT_SMOKE) {
-  setTimeout(() => filemintServer.close(() => process.exit(0)), 1500);
-}

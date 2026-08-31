@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.expo/
+test-files/
+server/tessdata/
+*.tsbuildinfo
+package-lock.json
+.editorconfig
+.gitattributes
+*.png
+*.pdf
+*.docx
+*.pptx

@@ -1,14 +1,14 @@
 /**
  * Web: render Office documents in their native form (not as PDF).
  *  - Word  -> docx-preview (faithful page layout)
- *  - Excel -> SheetJS sheet_to_html with sheet tabs
+ *  - Excel -> read-excel-file with safe DOM rendering and sheet tabs
  *  - PPT   -> pptx-preview (stacked slides)
  */
 import { renderAsync } from 'docx-preview';
 import * as pdfjsLib from 'pdfjs-dist';
 import { init as initPptx } from 'pptx-preview';
+import readExcelFile from 'read-excel-file/browser';
 import { useEffect, useRef, useState } from 'react';
-import * as XLSX from 'xlsx';
 
 import { convertFile } from '@/lib/api';
 import * as storage from '@/lib/storage';
@@ -25,12 +25,13 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-function renderXlsx(bytes: Uint8Array, container: HTMLElement) {
-  const wb = XLSX.read(bytes, { type: 'array' });
-  const names = wb.SheetNames;
+async function renderXlsx(bytes: Uint8Array, container: HTMLElement) {
+  const sheets = await readExcelFile(toArrayBuffer(bytes));
+  const names = sheets.map(({ sheet }) => sheet);
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;background:#fff;';
+  wrap.style.cssText =
+    'display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;background:#fff;';
 
   const tabs = document.createElement('div');
   tabs.style.cssText =
@@ -40,12 +41,28 @@ function renderXlsx(bytes: Uint8Array, container: HTMLElement) {
   tableWrap.style.cssText = 'flex:1 1 auto;overflow:auto;';
 
   const showSheet = (name: string) => {
-    tableWrap.innerHTML = XLSX.utils.sheet_to_html(wb.Sheets[name]);
-    const table = tableWrap.querySelector('table');
-    if (table) (table as HTMLElement).style.cssText = 'border-collapse:collapse;font-size:13px;color:#111;';
-    tableWrap.querySelectorAll('td,th').forEach((cell) => {
-      (cell as HTMLElement).style.cssText = 'border:1px solid #e0e0e0;padding:4px 8px;white-space:nowrap;';
+    const selected = sheets.find(({ sheet }) => sheet === name);
+    tableWrap.replaceChildren();
+
+    const table = document.createElement('table');
+    table.style.cssText = 'border-collapse:collapse;font-size:13px;color:#111;min-width:100%;';
+    selected?.data.forEach((row, rowIndex) => {
+      const tr = document.createElement('tr');
+      row.forEach((value) => {
+        const cell = document.createElement(rowIndex === 0 ? 'th' : 'td');
+        cell.textContent = value instanceof Date ? value.toLocaleDateString() : String(value ?? '');
+        cell.style.cssText = [
+          'border:1px solid #e0e0e0',
+          'padding:4px 8px',
+          'white-space:nowrap',
+          rowIndex === 0 ? 'background:#f5f5f5;text-align:left;font-weight:700' : '',
+        ].join(';');
+        tr.appendChild(cell);
+      });
+      table.appendChild(tr);
     });
+    tableWrap.appendChild(table);
+
     Array.from(tabs.children).forEach((btn, i) => {
       const active = names[i] === name;
       (btn as HTMLElement).style.background = active ? '#fff' : 'transparent';
@@ -56,7 +73,8 @@ function renderXlsx(bytes: Uint8Array, container: HTMLElement) {
   names.forEach((name) => {
     const btn = document.createElement('button');
     btn.textContent = name;
-    btn.style.cssText = 'border:1px solid #ddd;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;color:#111;';
+    btn.style.cssText =
+      'border:1px solid #ddd;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px;color:#111;';
     btn.onclick = () => showSheet(name);
     tabs.appendChild(btn);
   });
@@ -235,7 +253,11 @@ export function OfficeView({ file, night }: OfficeViewProps) {
             if (alive) setStatus(undefined);
             return;
           }
-          await renderAsync(toArrayBuffer(bytes), container, undefined, { className: 'docx', inWrapper: true, breakPages: true });
+          await renderAsync(toArrayBuffer(bytes), container, undefined, {
+            className: 'docx',
+            inWrapper: true,
+            breakPages: true,
+          });
           refineDocxPreview(container, Boolean(file.conversionReport?.hiddenTextLayer));
           if (file.source === 'convert' && docxPreviewLooksBlank(container)) {
             setStatus('Preparing Word preview...');
@@ -243,10 +265,14 @@ export function OfficeView({ file, night }: OfficeViewProps) {
             if (alive) setStatus(undefined);
           }
         } else if (file.kind === 'excel') {
-          renderXlsx(bytes, container);
+          await renderXlsx(bytes, container);
         } else if (file.kind === 'ppt') {
           const width = container.clientWidth || 960;
-          const previewer = initPptx(container, { width, height: Math.round((width * 9) / 16), mode: 'list' });
+          const previewer = initPptx(container, {
+            width,
+            height: Math.round((width * 9) / 16),
+            mode: 'list',
+          });
           previewer.preview(toArrayBuffer(bytes));
         }
       } catch (e) {
@@ -275,7 +301,9 @@ export function OfficeView({ file, night }: OfficeViewProps) {
 
   if (error) {
     return (
-      <div style={{ padding: 24, color: '#FF5C5C', fontFamily: 'system-ui, sans-serif', fontSize: 14 }}>{error}</div>
+      <div style={{ padding: 24, color: '#FF5C5C', fontFamily: 'system-ui, sans-serif', fontSize: 14 }}>
+        {error}
+      </div>
     );
   }
 
@@ -314,7 +342,8 @@ export function OfficeView({ file, night }: OfficeViewProps) {
             fontFamily: 'system-ui, sans-serif',
             fontSize: 14,
             pointerEvents: 'none',
-          }}>
+          }}
+        >
           {status}
         </div>
       ) : null}
