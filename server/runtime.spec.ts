@@ -15,6 +15,11 @@ vi.mock('node:fs', () => ({
 
 const originalPlatform = process.platform;
 const originalLocalAppData = process.env.LOCALAPPDATA;
+const pythonImports = ['pdf2docx', 'fitz', 'docx', 'PIL', 'openpyxl', 'pptx'];
+
+function importProbeOutput(results: Record<string, boolean>): string {
+  return `optional import noise\nFILEMINT_IMPORTS=${JSON.stringify(results)}`;
+}
 
 function setPlatform(platform: NodeJS.Platform) {
   Object.defineProperty(process, 'platform', { configurable: true, value: platform });
@@ -166,34 +171,98 @@ describe('conversion runtime discovery', () => {
     expect(findPython()).toBeNull();
   });
 
-  it('checks Python imports with a bounded synchronous probe and fails closed', async () => {
+  it('checks every Python import once and reuses partial capability results', async () => {
     runtimeMocks.spawnSync.mockImplementation((command, args) => {
       if (args?.[0] === '--version' && command === 'python3') {
         return { status: 0, stdout: 'Python 3.12.4', stderr: '' };
       }
-      return { status: 0 };
+      if (args?.[0] === '-c' && command === 'python3') {
+        return {
+          status: 0,
+          stdout: importProbeOutput({
+            PIL: true,
+            docx: false,
+            fitz: true,
+            openpyxl: false,
+            pdf2docx: true,
+            pptx: true,
+          }),
+        };
+      }
+      return { error: new Error('not installed'), status: null };
     });
-    const { pythonCanImport } = await importRuntime('linux');
-    runtimeMocks.spawnSync.mockClear();
-    runtimeMocks.spawnSync.mockReturnValueOnce({ status: 0 });
+    const runtime = await importRuntime('linux');
+    const importProbes = runtimeMocks.spawnSync.mock.calls.filter(([, args]) => args?.[0] === '-c');
 
-    expect(pythonCanImport(['fitz', 'PIL'])).toBe(true);
-    expect(runtimeMocks.spawnSync).toHaveBeenCalledWith('python3', ['-c', 'import fitz; import PIL'], {
+    expect(importProbes).toHaveLength(1);
+    expect(importProbes[0]?.[0]).toBe('python3');
+    expect(importProbes[0]?.[1]?.[1]).toContain('importlib.import_module');
+    expect(importProbes[0]?.[2]).toMatchObject({
+      encoding: 'utf8',
+      input: JSON.stringify(pythonImports),
+      maxBuffer: 64 * 1024,
       timeout: 8000,
+      windowsHide: true,
+    });
+    expect(runtime.PY_IMAGE_NORMALIZE).toBe(true);
+    expect(runtime.PY_PDF_UTILITY).toBe(true);
+    expect(runtime.PY_PDF_TO_DOCX).toBe(false);
+    expect(runtime.PY_PDF_EXPORT).toBe(false);
+
+    expect(runtime.pythonCanImport(['fitz', 'PIL'])).toBe(true);
+    expect(runtime.pythonCanImport(['missing_module'])).toBe(false);
+    expect(runtimeMocks.spawnSync.mock.calls.filter(([, args]) => args?.[0] === '-c')).toHaveLength(1);
+  });
+
+  it('never passes unsupported module names to the Python interpreter', async () => {
+    const runtime = await importRuntime('linux');
+    runtimeMocks.spawnSync.mockClear();
+    runtimeMocks.spawnSync.mockReturnValueOnce({
+      status: 0,
+      stdout: importProbeOutput({ fitz: true }),
     });
 
-    runtimeMocks.spawnSync.mockReturnValueOnce({ status: 1 });
-    expect(pythonCanImport(['missing_module'])).toBe(false);
-    runtimeMocks.spawnSync.mockReturnValueOnce({ error: new Error('spawn failed'), status: null });
-    expect(pythonCanImport(['fitz'])).toBe(false);
-    runtimeMocks.spawnSync.mockImplementationOnce(() => {
-      throw new Error('probe crashed');
+    const unsafeName = 'fitz; __import__("os").system("echo unsafe")';
+    expect(runtime.probePythonImports('python3', ['fitz', unsafeName])).toEqual({
+      fitz: true,
+      [unsafeName]: false,
     });
-    expect(pythonCanImport(['fitz'])).toBe(false);
+    expect(runtimeMocks.spawnSync).toHaveBeenCalledOnce();
+    expect(runtimeMocks.spawnSync.mock.calls[0]?.[2]).toMatchObject({ input: '["fitz"]' });
+  });
+
+  it.each([
+    ['missing marker', { status: 0, stdout: '{"fitz":true}' }],
+    ['malformed output', { status: 0, stdout: 'FILEMINT_IMPORTS={broken' }],
+    [
+      'timeout',
+      {
+        error: Object.assign(new Error('probe timed out'), { code: 'ETIMEDOUT' }),
+        status: null,
+        stdout: '',
+      },
+    ],
+  ])('fails every Python capability closed after %s', async (_caseName, probeResult) => {
+    runtimeMocks.spawnSync.mockImplementation((command, args) => {
+      if (args?.[0] === '--version' && command === 'python3') {
+        return { status: 0, stdout: 'Python 3.12.4', stderr: '' };
+      }
+      if (args?.[0] === '-c' && command === 'python3') return probeResult;
+      return { error: new Error('not installed'), status: null };
+    });
+
+    const runtime = await importRuntime('linux');
+
+    expect(Object.values(runtime.PYTHON_IMPORTS).every((available) => !available)).toBe(true);
+    expect(runtime.PY_PDF_TO_DOCX).toBe(false);
+    expect(runtime.PY_PDF_EXPORT).toBe(false);
+    expect(runtime.PY_PDF_EDIT).toBe(false);
+    expect(runtimeMocks.spawnSync.mock.calls.filter(([, args]) => args?.[0] === '-c')).toHaveLength(1);
   });
 
   it('skips import probes when Python is unavailable and reports all capabilities safely', async () => {
     const { CAPABILITIES, pythonCanImport } = await importRuntime('linux');
+    expect(runtimeMocks.spawnSync.mock.calls.filter(([, args]) => args?.[0] === '-c')).toHaveLength(0);
     runtimeMocks.spawnSync.mockClear();
 
     expect(pythonCanImport(['fitz'])).toBe(false);
@@ -216,6 +285,12 @@ describe('conversion runtime discovery', () => {
     runtimeMocks.spawnSync.mockImplementation((command, args) => {
       if (args?.[0] === '--version' && command === 'python3') {
         return { status: 0, stdout: 'Python 3.12.4', stderr: '' };
+      }
+      if (args?.[0] === '-c' && command === 'python3') {
+        return {
+          status: 0,
+          stdout: importProbeOutput(Object.fromEntries(pythonImports.map((name) => [name, true]))),
+        };
       }
       return { status: 0, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
     });

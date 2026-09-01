@@ -124,15 +124,73 @@ export const PDF_REPAIR_SCRIPT = fileURLToPath(new URL('./pdf_repair.py', import
 export const PDF_EDIT_SCRIPT = fileURLToPath(new URL('./pdf_edit.py', import.meta.url));
 export const SEARCHABLE_PDF_SCRIPT = fileURLToPath(new URL('./searchable_pdf.py', import.meta.url));
 
+const SUPPORTED_PYTHON_MODULES = ['pdf2docx', 'fitz', 'docx', 'PIL', 'openpyxl', 'pptx'] as const;
+const SUPPORTED_PYTHON_MODULE_SET = new Set<string>(SUPPORTED_PYTHON_MODULES);
+const PYTHON_IMPORT_RESULT_PREFIX = 'FILEMINT_IMPORTS=';
+const PYTHON_IMPORT_PROBE = [
+  'import importlib, json, sys',
+  'modules = json.loads(sys.stdin.read())',
+  'results = {}',
+  'for name in modules:',
+  '    try:',
+  '        importlib.import_module(name)',
+  '    except BaseException:',
+  '        results[name] = False',
+  '    else:',
+  '        results[name] = True',
+  `sys.stdout.write("\\n${PYTHON_IMPORT_RESULT_PREFIX}" + json.dumps(results, separators=(",", ":")))`,
+].join('\n');
+
+function unavailableImports(modules: readonly string[]): Record<string, boolean> {
+  return Object.fromEntries(modules.map((moduleName) => [moduleName, false]));
+}
+
+/**
+ * Probe the fixed, trusted conversion dependency allowlist in one bounded
+ * Python process. Module names are transported as JSON input rather than
+ * interpolated into Python source, and unknown names are never imported.
+ */
+export function probePythonImports(
+  python: string | null,
+  modules: readonly string[],
+): Record<string, boolean> {
+  const results = unavailableImports(modules);
+  if (!python || modules.length === 0) return results;
+
+  const trustedModules = [...new Set(modules.filter((name) => SUPPORTED_PYTHON_MODULE_SET.has(name)))];
+  if (trustedModules.length === 0) return results;
+
+  try {
+    const probe = spawnSync(python, ['-c', PYTHON_IMPORT_PROBE], {
+      encoding: 'utf8',
+      input: JSON.stringify(trustedModules),
+      maxBuffer: 64 * 1024,
+      timeout: 8000,
+      windowsHide: true,
+    });
+    if (probe.error || probe.status !== 0) return results;
+
+    const stdout = typeof probe.stdout === 'string' ? probe.stdout : '';
+    const resultStart = stdout.lastIndexOf(PYTHON_IMPORT_RESULT_PREFIX);
+    if (resultStart < 0) return results;
+    const parsed: unknown = JSON.parse(stdout.slice(resultStart + PYTHON_IMPORT_RESULT_PREFIX.length).trim());
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return results;
+
+    for (const moduleName of trustedModules) {
+      results[moduleName] = (parsed as Record<string, unknown>)[moduleName] === true;
+    }
+  } catch {
+    // A timeout, output overflow, or malformed result fails every import closed.
+  }
+  return results;
+}
+
+export const PYTHON_IMPORTS = Object.freeze(probePythonImports(PYTHON, SUPPORTED_PYTHON_MODULES));
+
+/** Read capability state from the single startup probe without spawning again. */
 export function pythonCanImport(modules: string[]): boolean {
   if (!PYTHON) return false;
-  try {
-    const code = modules.map((m) => `import ${m}`).join('; ');
-    const res = spawnSync(PYTHON, ['-c', code], { timeout: 8000 });
-    return !res.error && res.status === 0;
-  } catch {
-    return false;
-  }
+  return modules.every((moduleName) => PYTHON_IMPORTS[moduleName] === true);
 }
 
 export const PY_PDF_TO_DOCX = pythonCanImport(['pdf2docx', 'fitz', 'docx']);
