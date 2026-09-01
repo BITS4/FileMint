@@ -14,7 +14,7 @@ All notable changes follow Semantic Versioning.
   overlay workflow for text, checkbox, date, initials, and signature fields.
 - Added an isolated production server dependency graph, health-checked hardened
   container job, and API, deployment, and security configuration documentation.
-- Expanded the suite to 87 TypeScript spec files with 557 tests and 233 Python
+- Expanded the suite to 87 TypeScript spec files with 561 tests and 233 Python
   conversion tests, including component interactions, async runner races,
   conversion edge cases, feedback delivery, and Collabora session cleanup.
 
