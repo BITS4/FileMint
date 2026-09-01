@@ -40,6 +40,10 @@ describe('tool catalog', () => {
       'pdf-to-docx',
       'open-pdf',
     ]);
+    expect(findTool('fill-forms')).toMatchObject({
+      status: 'beta',
+      route: '/pdf-editor?tool=fill-forms',
+    });
   });
 
   it('publishes category and status metadata from the focused catalog module', () => {

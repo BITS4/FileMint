@@ -285,11 +285,11 @@ const TOOL_DEFS: ToolDef[] = [
   {
     id: 'fill-forms',
     title: 'Fill Forms',
-    subtitle: 'Complete PDF forms',
+    subtitle: 'Add text, checks, dates, and signatures',
     icon: 'form-select',
     accent: 'blue',
     category: 'edit',
-    status: 'soon',
+    status: 'beta',
     route: '/pdf-editor?tool=fill-forms',
     input: 'pdf',
     keywords: ['form', 'fields'],

@@ -84,7 +84,7 @@ export const EDITOR_TOOLS: Record<EditorToolId, ToolMeta> = {
   'fill-forms': {
     id: 'fill-forms',
     title: 'Fill Forms',
-    subtitle: 'Detected field navigation and form toolbar',
+    subtitle: 'Add text, checks, dates, initials, and signatures',
     icon: 'form-select',
     accent: 'blue',
   },
