@@ -1,6 +1,7 @@
-import type { AccentName } from '@/constants/theme';
 import type { ToolCategory, ToolDef } from '@/types';
 import { CONVERT_TOOLS } from './tools.convert';
+
+export { CATEGORIES, STATUS_LABEL, type CategoryMeta } from './tools.meta';
 
 /**
  * The full FileMint tool catalogue. This single list powers the Home quick
@@ -462,23 +463,6 @@ export const TOOLS: ToolDef[] = TOOL_DEFS.map((tool) =>
     : tool,
 );
 
-export interface CategoryMeta {
-  key: ToolCategory;
-  label: string;
-  icon: string;
-  accent: AccentName;
-}
-
-export const CATEGORIES: CategoryMeta[] = [
-  { key: 'convert', label: 'Convert', icon: 'swap-horizontal', accent: 'violet' },
-  { key: 'organize', label: 'Organize', icon: 'file-document-multiple-outline', accent: 'teal' },
-  { key: 'edit', label: 'Edit PDF', icon: 'pencil-outline', accent: 'green' },
-  { key: 'scan', label: 'Scan', icon: 'line-scan', accent: 'sky' },
-  { key: 'ocr', label: 'OCR', icon: 'text-recognition', accent: 'purple' },
-  { key: 'security', label: 'Security', icon: 'shield-lock-outline', accent: 'red' },
-  { key: 'view', label: 'View & Read', icon: 'book-open-variant', accent: 'cyan' },
-];
-
 export const QUICK_TOOLS = TOOLS.filter((t) => t.quick);
 
 export function toolsByCategory(category: ToolCategory): ToolDef[] {
@@ -503,10 +487,3 @@ export function searchTools(query: string): ToolDef[] {
     return haystack.includes(q);
   });
 }
-
-export const STATUS_LABEL: Record<ToolDef['status'], string> = {
-  ready: 'Ready',
-  beta: 'Beta',
-  backend: 'Server',
-  soon: 'Soon',
-};

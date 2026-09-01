@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { CONVERT_TOOLS } from './tools.convert';
-import { PREMIUM_TOOL_IDS, TOOLS, findTool, searchTools, toolsByCategory } from './tools';
+import {
+  CATEGORIES,
+  PREMIUM_TOOL_IDS,
+  STATUS_LABEL,
+  TOOLS,
+  findTool,
+  searchTools,
+  toolsByCategory,
+} from './tools';
 
 describe('tool catalog', () => {
   it('keeps every tool id unique', () => {
@@ -25,5 +33,18 @@ describe('tool catalog', () => {
     expect(findTool('pdf-to-docx')?.title).toBe('PDF to Word');
     expect(toolsByCategory('convert').every((tool) => tool.category === 'convert')).toBe(true);
     expect(searchTools('spreadsheet').some((tool) => tool.id === 'pdf-to-xlsx')).toBe(true);
+  });
+
+  it('publishes category and status metadata from the focused catalog module', () => {
+    expect(CATEGORIES.map((category) => category.key)).toEqual([
+      'convert',
+      'organize',
+      'edit',
+      'scan',
+      'ocr',
+      'security',
+      'view',
+    ]);
+    expect(STATUS_LABEL).toEqual({ ready: 'Ready', beta: 'Beta', backend: 'Server', soon: 'Soon' });
   });
 });
