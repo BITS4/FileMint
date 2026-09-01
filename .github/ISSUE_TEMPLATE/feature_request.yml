@@ -1,0 +1,41 @@
+name: Feature request
+description: Propose a focused, testable FileMint improvement.
+title: 'feat: '
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Explain the document workflow that is difficult today.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable behavior rather than an implementation preference.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Primary area
+      options:
+        - Create or scan
+        - Organize or edit PDF
+        - Convert or OCR
+        - Office editing
+        - Authentication or billing
+        - Accessibility or localization
+        - Developer experience
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance examples
+      description: List concrete success, failure, and edge cases that tests should cover.
+    validations:
+      required: true

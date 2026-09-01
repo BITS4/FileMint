@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a reproducible FileMint defect.
+title: 'fix: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping make FileMint more reliable. Do not attach sensitive documents.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What happened?
+      description: Include the expected and actual result.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Give the smallest repeatable sequence and use a non-sensitive fixture.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Web
+        - Android
+        - iOS
+        - Conversion server
+        - Docker deployment
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: FileMint version or commit
+      placeholder: v1.3.0 or a commit hash
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Add request IDs or redacted logs. Never include credentials or private document content.
