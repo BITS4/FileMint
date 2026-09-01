@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { ZodError } from 'zod';
 
 import {
   emailSchema,
   loginSchema,
   passwordResetSchema,
+  schemaError,
   signupSchema,
   verificationSchema,
 } from './auth.schemas';
@@ -51,5 +53,12 @@ describe('auth request schemas', () => {
       passwordResetSchema.safeParse({ email: 'person@example.com', code: '123456', password: 'changed123' })
         .success,
     ).toBe(true);
+  });
+
+  it('returns the first schema issue or a safe fallback', () => {
+    const invalid = emailSchema.safeParse({ email: 'invalid' });
+    expect(invalid.success).toBe(false);
+    if (!invalid.success) expect(schemaError(invalid.error)).toBe('Enter a valid email address.');
+    expect(schemaError(new ZodError([]))).toBe('Check the submitted values and try again.');
   });
 });
