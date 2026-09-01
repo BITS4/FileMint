@@ -128,33 +128,50 @@ export function activatePaidPlan(
   user.premiumExpiresAt = purchase.expiresAt ?? null;
   user.lifetimePremium = planId === 'forever';
   user.premiumStatus = 'active';
-  db.paymentEvents.push({
-    id: randomUUID(),
-    userId: user.id,
-    purchaseId: purchase.id,
-    provider,
-    type: 'checkout.verified',
-    status: 'paid',
-    createdAt: nowIso(),
-    payload: payload ?? { planId },
-  });
+  const eventId = typeof payload?.eventId === 'string' ? payload.eventId : null;
+  const alreadyRecorded = db.paymentEvents.some(
+    (event) =>
+      event.provider === provider &&
+      event.type === 'checkout.verified' &&
+      event.userId === user.id &&
+      (eventId ? event.payload?.eventId === eventId : event.payload?.providerRef === providerRef),
+  );
+  if (!alreadyRecorded) {
+    db.paymentEvents.push({
+      id: randomUUID(),
+      userId: user.id,
+      purchaseId: purchase.id,
+      provider,
+      type: 'checkout.verified',
+      status: 'paid',
+      createdAt: nowIso(),
+      payload: { planId, providerRef, ...payload },
+    });
+  }
   return purchase;
 }
 
-export function verifyStripeWebhook(rawBody: string, signatureHeader: string | undefined): boolean {
+export function verifyStripeWebhook(
+  rawBody: string,
+  signatureHeader: string | undefined,
+  nowSeconds = Math.floor(Date.now() / 1000),
+  toleranceSeconds = 300,
+): boolean {
   const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
   if (!secret || !signatureHeader) return false;
-  const parts = Object.fromEntries(
-    signatureHeader.split(',').map((part) => {
-      const [key, value] = part.split('=');
-      return [key, value];
-    }),
-  );
-  const timestamp = parts.t;
-  const signature = parts.v1;
-  if (!timestamp || !signature) return false;
+  const fields = signatureHeader.split(',').map((part) => part.trim().split('=', 2));
+  const timestamp = fields.find(([key]) => key === 't')?.[1];
+  const signatures = fields.filter(([key]) => key === 'v1').map(([, value]) => value);
+  if (!timestamp || !/^\d+$/.test(timestamp) || signatures.length === 0) return false;
+  const signedAt = Number(timestamp);
+  if (!Number.isSafeInteger(signedAt) || Math.abs(nowSeconds - signedAt) > toleranceSeconds) return false;
   const expected = createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
-  const expectedBuffer = Buffer.from(expected);
-  const signatureBuffer = Buffer.from(signature);
-  return expectedBuffer.length === signatureBuffer.length && timingSafeEqual(expectedBuffer, signatureBuffer);
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  return signatures.some((signature) => {
+    if (!/^[\da-f]+$/i.test(signature)) return false;
+    const signatureBuffer = Buffer.from(signature, 'hex');
+    return (
+      expectedBuffer.length === signatureBuffer.length && timingSafeEqual(expectedBuffer, signatureBuffer)
+    );
+  });
 }

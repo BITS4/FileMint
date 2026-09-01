@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Hono } from 'hono';
+import { z } from 'zod';
 import {
   authenticate,
   getUsage,
@@ -19,6 +20,22 @@ import {
   stripeRequest,
   verifyStripeWebhook,
 } from './auth.stripe';
+
+const stripeSessionSchema = z.object({
+  id: z.string().min(1).max(255),
+  payment_status: z.string().max(64).optional(),
+  status: z.string().max(64).optional(),
+  client_reference_id: z.string().max(255).nullable().optional(),
+  metadata: z
+    .object({ userId: z.string().max(255).optional(), planId: z.string().max(32).optional() })
+    .optional(),
+});
+
+const stripeEventSchema = z.object({
+  id: z.string().min(1).max(255),
+  type: z.string().min(1).max(255),
+  data: z.object({ object: stripeSessionSchema }).optional(),
+});
 
 export function registerPremiumRoutes(app: Hono): void {
   app.post('/premium/checkout', async (c) => {
@@ -94,19 +111,17 @@ export function registerPremiumRoutes(app: Hono): void {
       return c.json({ error: 'Missing Stripe Checkout session.' }, 400);
 
     try {
-      const session = await stripeRequest<{
-        id: string;
-        status?: string;
-        payment_status?: string;
-        client_reference_id?: string | null;
-        metadata?: { userId?: string; planId?: string };
-      }>(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+      const rawSession = await stripeRequest<unknown>(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+      const parsedSession = stripeSessionSchema.safeParse(rawSession);
+      if (!parsedSession.success)
+        return c.json({ error: 'Stripe returned an invalid checkout session.' }, 502);
+      const session = parsedSession.data;
       const planId = session.metadata?.planId as PlanId | undefined;
       if (session.client_reference_id !== auth.user.id && session.metadata?.userId !== auth.user.id)
         return c.json({ error: 'This checkout session belongs to another account.' }, 403);
       if (!planId || !PREMIUM_PLANS.some((plan) => plan.id === planId))
         return c.json({ error: 'Stripe session is missing the FileMint plan.' }, 400);
-      if (session.payment_status !== 'paid' && session.status !== 'complete')
+      if (session.payment_status !== 'paid')
         return c.json({ error: 'Stripe has not confirmed this payment yet.' }, 402);
 
       const result = await mutateDb((db) => {
@@ -135,31 +150,29 @@ export function registerPremiumRoutes(app: Hono): void {
     if (!verifyStripeWebhook(rawBody, c.req.header('stripe-signature'))) {
       return c.json({ error: 'Invalid Stripe webhook signature.' }, 400);
     }
-    const event = JSON.parse(rawBody) as {
-      id?: string;
-      type?: string;
-      data?: {
-        object?: {
-          id?: string;
-          payment_status?: string;
-          status?: string;
-          client_reference_id?: string | null;
-          metadata?: { userId?: string; planId?: string };
-        };
-      };
-    };
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(rawBody);
+    } catch {
+      return c.json({ error: 'Invalid Stripe webhook payload.' }, 400);
+    }
+    const parsedEvent = stripeEventSchema.safeParse(decoded);
+    if (!parsedEvent.success) return c.json({ error: 'Invalid Stripe webhook payload.' }, 400);
+    const event = parsedEvent.data;
     if (event.type === 'checkout.session.completed') {
       const session = event.data?.object;
       const userId = session?.metadata?.userId || session?.client_reference_id || null;
       const planId = session?.metadata?.planId as PlanId | undefined;
       const sessionId = session?.id;
-      if (
-        sessionId &&
-        userId &&
-        planId &&
-        (session.payment_status === 'paid' || session.status === 'complete')
-      ) {
+      if (sessionId && userId && planId && session.payment_status === 'paid') {
         await mutateDb((db) => {
+          if (
+            db.paymentEvents.some(
+              (paymentEvent) =>
+                paymentEvent.provider === 'stripe' && paymentEvent.payload?.eventId === event.id,
+            )
+          )
+            return;
           const user = db.users.find((item) => item.id === userId && !item.deletedAt);
           if (!user || !PREMIUM_PLANS.some((plan) => plan.id === planId)) return;
           activatePaidPlan(db, user, planId, sessionId, 'stripe', { eventId: event.id, sessionId });

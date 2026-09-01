@@ -47,14 +47,17 @@ describe('Stripe configuration', () => {
     expect(allowDevPayments()).toBe(false);
   });
 
-  it('accepts a valid Stripe signature and rejects malformed signatures', () => {
+  it('accepts a fresh Stripe signature and rejects malformed or stale signatures', () => {
     vi.stubEnv('STRIPE_WEBHOOK_SECRET', 'whsec_test');
     const body = JSON.stringify({ id: 'evt_1' });
     const timestamp = '1735689600';
     const signature = createHmac('sha256', 'whsec_test').update(`${timestamp}.${body}`).digest('hex');
 
-    expect(verifyStripeWebhook(body, `t=${timestamp},v1=${signature}`)).toBe(true);
-    expect(verifyStripeWebhook(body, `t=${timestamp},v1=wrong`)).toBe(false);
+    const now = Number(timestamp);
+    expect(verifyStripeWebhook(body, `t=${timestamp},v1=wrong,v1=${signature}`, now)).toBe(true);
+    expect(verifyStripeWebhook(body, `t=${timestamp},v1=wrong`, now)).toBe(false);
+    expect(verifyStripeWebhook(body, `t=${timestamp},v1=${signature}`, now + 301)).toBe(false);
+    expect(verifyStripeWebhook(body, `t=invalid,v1=${signature}`, now)).toBe(false);
     expect(verifyStripeWebhook(body, undefined)).toBe(false);
   });
 });
@@ -69,6 +72,7 @@ describe('Stripe purchases', () => {
 
     expect(second.id).toBe(first.id);
     expect(db.purchases).toHaveLength(1);
+    expect(db.paymentEvents).toHaveLength(1);
     expect(account).toMatchObject({ currentPlanId: 'month', premiumStatus: 'active' });
     expect(first.expiresAt).not.toBeNull();
   });

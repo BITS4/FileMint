@@ -189,13 +189,18 @@ describe('premium checkout routes', () => {
 
     vi.mocked(stripeRequest).mockResolvedValueOnce({
       id: 'cs_test_pending',
-      status: 'open',
+      status: 'complete',
       payment_status: 'unpaid',
       client_reference_id: account.id,
       metadata: { userId: account.id, planId: 'month' },
     });
     expect((await jsonRequest('/premium/checkout/confirm', { sessionId: 'cs_test_pending' })).status).toBe(
       402,
+    );
+
+    vi.mocked(stripeRequest).mockResolvedValueOnce({ unexpected: true });
+    expect((await jsonRequest('/premium/checkout/confirm', { sessionId: 'cs_test_invalid' })).status).toBe(
+      502,
     );
 
     vi.mocked(stripeRequest).mockResolvedValueOnce({
@@ -241,6 +246,9 @@ describe('premium webhook, management, and usage routes', () => {
     expect((await jsonRequest('/auth/stripe/webhook', completed)).status).toBe(200);
     expect(account.currentPlanId).toBe('year');
 
+    await jsonRequest('/auth/stripe/webhook', completed);
+    expect(activatePaidPlan).toHaveBeenCalledTimes(1);
+
     const calls = vi.mocked(activatePaidPlan).mock.calls.length;
     await jsonRequest('/auth/stripe/webhook', {
       ...completed,
@@ -251,6 +259,34 @@ describe('premium webhook, management, and usage routes', () => {
       data: { object: { ...completed.data.object, metadata: { planId: 'invalid' } } },
     });
     expect(activatePaidPlan).toHaveBeenCalledTimes(calls);
+  });
+
+  it('requires a valid paid webhook payload', async () => {
+    const account = user();
+    state.db?.users.push(account);
+    vi.mocked(verifyStripeWebhook).mockReturnValue(true);
+
+    const malformed = await app().request('/auth/stripe/webhook', {
+      method: 'POST',
+      body: '{not-json',
+    });
+    expect(malformed.status).toBe(400);
+
+    expect((await jsonRequest('/auth/stripe/webhook', { id: 'evt_missing_type' })).status).toBe(400);
+    await jsonRequest('/auth/stripe/webhook', {
+      id: 'evt_unpaid',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_unpaid',
+          status: 'complete',
+          payment_status: 'unpaid',
+          client_reference_id: account.id,
+          metadata: { planId: 'month' },
+        },
+      },
+    });
+    expect(account.currentPlanId).toBeNull();
   });
 
   it('restores and describes free and paid accounts', async () => {
