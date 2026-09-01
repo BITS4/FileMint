@@ -106,7 +106,7 @@ function shouldUseHostedServer(url: string): boolean {
     const pageHost = typeof window !== 'undefined' ? window.location.hostname : '';
     return (
       isLocalServerUrl(url) ||
-      (parsed.hostname === pageHost && (parsed.port === '8787' || parsed.port === '8788')) ||
+      (parsed.hostname === pageHost && parsed.port === '8787') ||
       parsed.hostname.endsWith('.vercel.app')
     );
   } catch {
@@ -120,7 +120,7 @@ function browserLanCandidates(): string[] {
   if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') return [];
   if (!isPrivateLanHost(hostname)) return [];
   const scheme = protocol === 'https:' ? 'https:' : 'http:';
-  return ['8788', '8787'].map((port) => `${scheme}//${hostname}:${port}`);
+  return [`${scheme}//${hostname}:8787`];
 }
 
 function hostFromDevUri(value: unknown): string | undefined {
@@ -149,7 +149,7 @@ function nativeLanCandidates(): string[] {
     Platform.OS === 'android' ? '10.0.2.2' : undefined,
   ].filter((host): host is string => !!host);
 
-  return [...new Set(hosts)].flatMap((host) => ['8788', '8787'].map((port) => `http://${host}:${port}`));
+  return [...new Set(hosts)].map((host) => `http://${host}:8787`);
 }
 
 function localServerCandidates(): string[] {
@@ -163,9 +163,7 @@ function localServerCandidates(): string[] {
   if (isLocalServerUrl(configured)) {
     try {
       const url = new URL(configured);
-      for (const port of ['8788', '8787']) {
-        candidates.push(`${url.protocol}//${url.hostname}:${port}`);
-      }
+      candidates.push(`${url.protocol}//${url.hostname}:8787`);
     } catch {
       // keep the configured URL only
     }

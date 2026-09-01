@@ -62,7 +62,7 @@ describe('operation execution helpers', () => {
       if (typeof mock === 'function' && 'mockReset' in mock) (mock as ReturnType<typeof vi.fn>).mockReset();
     }
     mocks.settings.ocrLanguage = 'eng';
-    mocks.getServerBaseUrl.mockReturnValue('http://localhost:8788');
+    mocks.getServerBaseUrl.mockReturnValue('http://localhost:8787');
     mocks.getUri.mockResolvedValue('file://source.pdf');
     mocks.readBytes.mockResolvedValue(new Uint8Array([1, 2, 3]));
     mocks.saveResult.mockImplementation(async (input) => ({
@@ -80,10 +80,10 @@ describe('operation execution helpers', () => {
     mocks.checkServer.mockResolvedValueOnce(status(false)).mockResolvedValueOnce(status(true));
 
     await expect(ensureServerCapability('ocr', 'OCR')).rejects.toThrow(
-      `Can't reach the conversion server at http://localhost:8788`,
+      `Can't reach the conversion server at http://localhost:8787`,
     );
     await expect(ensureServerCapability('pdfExport', 'PDF export')).rejects.toThrow(
-      'PDF export is not available on the server at http://localhost:8788',
+      'PDF export is not available on the server at http://localhost:8787',
     );
 
     mocks.checkServer.mockResolvedValue(status(true, { pdfExport: true }));
