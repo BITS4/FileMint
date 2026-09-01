@@ -88,7 +88,7 @@ npm run lint           # ESLint; warnings fail the command
 npm run expo:check     # Expo SDK package compatibility
 npm run typecheck      # app and complete Hono server
 npm test               # unit and server middleware tests
-npm run test:coverage  # explicit 85/80/90/85 coverage gates
+npm run test:coverage  # explicit 94/85/97/96 statement/branch/function/line gates
 npm run server:smoke   # /health and /metrics in-process smoke check
 npm run build:web      # production Expo web export
 npm run audit          # fail if high/critical production risk increases
@@ -99,7 +99,8 @@ build. CI runs those gates on every push and pull request, installs the pinned
 Python dependencies, tests and compile-checks the conversion helpers, and uses
 `npm ci` so the committed lockfile is authoritative.
 
-Coverage thresholds are enforced in `vitest.config.mts`. Dependency update and
+Coverage thresholds are enforced in `vitest.config.mts`; the current suite has
+52 TypeScript spec files plus Python conversion/export tests. Dependency update and
 audit policy is documented in [DEPENDENCIES.md](DEPENDENCIES.md), and security
 reports are handled according to [SECURITY.md](SECURITY.md).
 

@@ -3,7 +3,7 @@
 FileMint uses one npm manifest and one committed `package-lock.json`. Install with
 `npm ci`; do not use an unlocked install in CI or production images.
 
-Dependabot checks npm and GitHub Actions weekly. Before merging an update, run:
+Dependabot checks npm, pinned Python packages, and GitHub Actions weekly. Before merging an update, run:
 
 ```bash
 npm run verify
@@ -33,7 +33,7 @@ major updates are deliberately deferred:
 - ESLint 10 and TypeScript 7 need a separate tooling compatibility change.
 - `docx-preview` 0.4 needs fixture-based Word rendering comparison before use.
 
-The current production audit reports 14 moderate, 4 high, and 0 critical
+The current production audit reports 17 moderate, 4 high, and 0 critical
 findings. The high findings are inherited from Metro's `image-size` parser; the
 moderate findings are inherited from the Expo build toolchain and
 `pptx-preview`. `npm run audit` rejects any increase in high or critical risk,
