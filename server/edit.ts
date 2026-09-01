@@ -24,9 +24,14 @@ interface EditSession {
   ext: string;
   version: number;
   origin: string;
+  expiresAt: number;
+  expiryTimer?: ReturnType<typeof setTimeout>;
 }
 
-const sessions = new Map<string, EditSession>();
+const DEFAULT_EDIT_SESSION_TTL_MS = 2 * 60 * 60 * 1000;
+const MAX_EDIT_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_MAX_EDIT_SESSIONS = 128;
+const HARD_MAX_EDIT_SESSIONS = 1024;
 
 interface DiscoveryAction {
   urlsrc: string;
@@ -230,7 +235,69 @@ export async function detectCollabora(collaboraUrl: string): Promise<boolean> {
   }
 }
 
-export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: string }) {
+export function registerEdit(
+  app: Hono,
+  opts: {
+    collaboraUrl: string;
+    wopiHost: string;
+    sessionTtlMs?: number;
+    maxSessions?: number;
+  },
+) {
+  const positiveInteger = (value: number | undefined, fallback: number, maximum: number) => {
+    if (!Number.isFinite(value) || value === undefined || value <= 0) return fallback;
+    return Math.min(Math.floor(value), maximum);
+  };
+  const sessionTtlMs = positiveInteger(
+    opts.sessionTtlMs,
+    DEFAULT_EDIT_SESSION_TTL_MS,
+    MAX_EDIT_SESSION_TTL_MS,
+  );
+  const maxSessions = positiveInteger(opts.maxSessions, DEFAULT_MAX_EDIT_SESSIONS, HARD_MAX_EDIT_SESSIONS);
+  const sessions = new Map<string, EditSession>();
+
+  const removeSession = async (session: EditSession) => {
+    if (sessions.get(session.id) !== session) return;
+    sessions.delete(session.id);
+    if (session.expiryTimer) clearTimeout(session.expiryTimer);
+    await rm(session.dir, { recursive: true, force: true }).catch(() => undefined);
+  };
+
+  const scheduleExpiry = (session: EditSession) => {
+    const delay = Math.max(1, session.expiresAt - Date.now());
+    session.expiryTimer = setTimeout(() => {
+      if (Date.now() < session.expiresAt) {
+        scheduleExpiry(session);
+        return;
+      }
+      void removeSession(session);
+    }, delay);
+    session.expiryTimer.unref?.();
+  };
+
+  const pruneExpiredSessions = async (now = Date.now()) => {
+    const expired = [...sessions.values()].filter((session) => session.expiresAt <= now);
+    await Promise.all(expired.map(removeSession));
+  };
+
+  const enforceSessionLimit = async () => {
+    while (sessions.size > maxSessions) {
+      const oldest = sessions.values().next().value as EditSession | undefined;
+      if (!oldest) break;
+      await removeSession(oldest);
+    }
+  };
+
+  const findSession = async (id: string) => {
+    const session = sessions.get(id);
+    if (!session) return undefined;
+    if (session.expiresAt <= Date.now()) {
+      await removeSession(session);
+      return undefined;
+    }
+    return session;
+  };
+
   const authed = (token: string | undefined, s: EditSession) => token === s.token;
 
   // ---- Upload a file to start an edit session.
@@ -238,6 +305,7 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
     const body = await c.req.parseBody();
     const file = body['file'];
     if (!(file instanceof File)) return c.json({ error: 'No file uploaded.' }, 400);
+    await pruneExpiredSessions();
     const origin = String(body['origin'] ?? '*');
     const id = randomUUID().replace(/-/g, '');
     const token = randomUUID().replace(/-/g, '');
@@ -246,7 +314,7 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
     const fileName = (basename(file.name || 'document') || 'document').replace(/[^\w.\- ]+/g, '_');
     const filePath = join(dir, fileName);
     await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
-    sessions.set(id, {
+    const session: EditSession = {
       id,
       token,
       dir,
@@ -255,13 +323,17 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
       ext: extname(fileName).slice(1).toLowerCase(),
       version: 1,
       origin,
-    });
+      expiresAt: Date.now() + sessionTtlMs,
+    };
+    sessions.set(id, session);
+    scheduleExpiry(session);
+    await enforceSessionLimit();
     return c.json({ id, token, fileName });
   });
 
   // ---- Resolve the Collabora editor iframe URL for the session.
   app.get('/edit/url/:id', async (c) => {
-    const s = sessions.get(c.req.param('id'));
+    const s = await findSession(c.req.param('id'));
     if (!s) return c.json({ error: 'Session not found.' }, 404);
     if (!authed(c.req.query('access_token'), s)) return c.json({ error: 'Unauthorized.' }, 401);
     try {
@@ -272,7 +344,7 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
       const wopiHost = hostedWopiHostForSession(opts.wopiHost, requestOrigin);
       const wopiSrc = `${wopiHost}/wopi/files/${s.id}`;
       const sep = urlsrc.endsWith('?') ? '' : urlsrc.includes('?') ? '&' : '?';
-      const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${s.token}&access_token_ttl=0&lang=en-US`;
+      const url = `${urlsrc}${sep}WOPISrc=${encodeURIComponent(wopiSrc)}&access_token=${s.token}&access_token_ttl=${s.expiresAt}&lang=en-US`;
       const frame = await probeFramePolicy(url, s.origin);
       return c.json({
         url,
@@ -291,15 +363,15 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
     }
   });
 
-  app.get('/edit/status/:id', (c) => {
-    const s = sessions.get(c.req.param('id'));
+  app.get('/edit/status/:id', async (c) => {
+    const s = await findSession(c.req.param('id'));
     if (!s) return c.json({ error: 'Session not found.' }, 404);
     if (!authed(c.req.query('access_token'), s)) return c.json({ error: 'Unauthorized.' }, 401);
     return c.json({ version: s.version });
   });
 
   app.get('/edit/download/:id', async (c) => {
-    const s = sessions.get(c.req.param('id'));
+    const s = await findSession(c.req.param('id'));
     if (!s) return c.text('Session not found.', 404);
     if (!authed(c.req.query('access_token'), s)) return c.text('Unauthorized.', 401);
     const bytes = await readFile(s.filePath);
@@ -310,17 +382,16 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
   });
 
   app.post('/edit/close/:id', async (c) => {
-    const s = sessions.get(c.req.param('id'));
+    const s = await findSession(c.req.param('id'));
     if (s && authed(c.req.query('access_token'), s)) {
-      await rm(s.dir, { recursive: true, force: true }).catch(() => undefined);
-      sessions.delete(s.id);
+      await removeSession(s);
     }
     return c.json({ ok: true });
   });
 
   // ---- WOPI host endpoints (called by Collabora) -------------------------
   app.get('/wopi/files/:id', async (c) => {
-    const s = sessions.get(c.req.param('id'));
+    const s = await findSession(c.req.param('id'));
     if (!s) return c.json({ error: 'not found' }, 404);
     if (!authed(c.req.query('access_token'), s)) return c.json({ error: 'unauthorized' }, 401);
     const bytes = await readFile(s.filePath);
@@ -351,7 +422,7 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
   });
 
   app.get('/wopi/files/:id/contents', async (c) => {
-    const s = sessions.get(c.req.param('id'));
+    const s = await findSession(c.req.param('id'));
     if (!s) return c.text('not found', 404);
     if (!authed(c.req.query('access_token'), s)) return c.text('unauthorized', 401);
     const bytes = await readFile(s.filePath);
@@ -359,7 +430,7 @@ export function registerEdit(app: Hono, opts: { collaboraUrl: string; wopiHost: 
   });
 
   app.post('/wopi/files/:id/contents', async (c) => {
-    const s = sessions.get(c.req.param('id'));
+    const s = await findSession(c.req.param('id'));
     if (!s) return c.text('not found', 404);
     if (!authed(c.req.query('access_token'), s)) return c.text('unauthorized', 401);
     const buf = Buffer.from(await c.req.arrayBuffer());

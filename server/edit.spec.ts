@@ -1,10 +1,17 @@
+import { access } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Hono } from 'hono';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { detectCollabora, getLastCollaboraProbe, registerEdit } from './edit';
 
-function editApp(collaboraUrl = 'https://collabora.example.com', wopiHost = 'https://files.example.com') {
+function editApp(
+  collaboraUrl = 'https://collabora.example.com',
+  wopiHost = 'https://files.example.com',
+  lifecycle: { sessionTtlMs?: number; maxSessions?: number } = {},
+) {
   const app = new Hono();
-  registerEdit(app, { collaboraUrl, wopiHost });
+  registerEdit(app, { collaboraUrl, wopiHost, ...lifecycle });
   return app;
 }
 
@@ -24,6 +31,7 @@ async function upload(
 
 describe('Collabora edit sessions', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -89,8 +97,44 @@ describe('Collabora edit sessions', () => {
     expect((await app.request(`/edit/status/${session.id}?access_token=${session.token}`)).status).toBe(404);
   });
 
+  it('expires tokens at the server boundary and removes their temporary files', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-01T12:00:00.000Z'));
+    const app = editApp(undefined, undefined, { sessionTtlMs: 1000 });
+    const session = await upload(app, 'expires.docx');
+    const sessionDir = join(tmpdir(), `filemint-edit-${session.id}`);
+    await expect(access(sessionDir)).resolves.toBeUndefined();
+
+    vi.setSystemTime(new Date('2026-09-01T12:00:01.001Z'));
+    const expired = await app.request(`/wopi/files/${session.id}?access_token=${session.token}`);
+
+    expect(expired.status).toBe(404);
+    expect(await expired.json()).toEqual({ error: 'not found' });
+    expect((await app.request(`/edit/status/${session.id}?access_token=${session.token}`)).status).toBe(404);
+    await expect(access(sessionDir)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('bounds the registry and cleans up the oldest session on overflow', async () => {
+    const app = editApp(undefined, undefined, { maxSessions: 2 });
+    const oldest = await upload(app, 'oldest.docx');
+    const middle = await upload(app, 'middle.docx');
+    const newest = await upload(app, 'newest.docx');
+
+    expect((await app.request(`/edit/status/${oldest.id}?access_token=${oldest.token}`)).status).toBe(404);
+    expect((await app.request(`/edit/status/${middle.id}?access_token=${middle.token}`)).status).toBe(200);
+    expect((await app.request(`/edit/status/${newest.id}?access_token=${newest.token}`)).status).toBe(200);
+    await expect(access(join(tmpdir(), `filemint-edit-${oldest.id}`))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+
+    await app.request(`/edit/close/${middle.id}?access_token=${middle.token}`, { method: 'POST' });
+    await app.request(`/edit/close/${newest.id}?access_token=${newest.token}`, { method: 'POST' });
+  });
+
   it('chooses the edit discovery action and reports an allowed frame policy', async () => {
-    const app = editApp();
+    const ttlMs = 60_000;
+    const startedAt = Date.now();
+    const app = editApp(undefined, undefined, { sessionTtlMs: ttlMs });
     const session = await upload(app);
     const discovery = [
       '<wopi-discovery>',
@@ -120,6 +164,9 @@ describe('Collabora edit sessions', () => {
     expect(body.wopiHost).toBe('https://files.example.com');
     expect(body.url).toContain('https://collabora.example.com/edit?WOPISrc=');
     expect(body.url).toContain(`access_token=${session.token}`);
+    const tokenTtl = Number(new URL(body.url).searchParams.get('access_token_ttl'));
+    expect(tokenTtl).toBeGreaterThanOrEqual(startedAt + ttlMs);
+    expect(tokenTtl).toBeLessThanOrEqual(Date.now() + ttlMs);
     expect(body.frameAllowed).toBe(true);
     expect(body.framePolicy).toContain('frame-ancestors');
 
