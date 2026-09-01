@@ -17,6 +17,7 @@ import { Spacing } from '@/constants/theme';
 import { useRunner } from '@/hooks/use-runner';
 import { baseName } from '@/lib/format';
 import { getPageCount, splitPdf } from '@/lib/pdf';
+import { groupEachPage, groupEveryPages, parsePageRanges } from '@/lib/split-model';
 import * as storage from '@/lib/storage';
 import { useLibrary } from '@/store/useLibrary';
 import type { FileItem } from '@/types';
@@ -28,43 +29,6 @@ const MODE_OPTIONS: SegmentedOption<Mode>[] = [
   { label: 'Every N', value: 'every' },
   { label: 'Each page', value: 'each' },
 ];
-
-function parseRanges(input: string, total: number): number[][] {
-  const groups = input
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (groups.length === 0) throw new Error('Enter at least one page or range, e.g. 1-3, 5.');
-  return groups.map((g) => {
-    const m = g.match(/^(\d+)\s*-\s*(\d+)$/);
-    if (m) {
-      let a = parseInt(m[1], 10);
-      let b = parseInt(m[2], 10);
-      if (a > b) [a, b] = [b, a];
-      const arr: number[] = [];
-      for (let p = a; p <= b; p++) {
-        if (p < 1 || p > total) throw new Error(`Page ${p} is out of range (1–${total}).`);
-        arr.push(p - 1);
-      }
-      return arr;
-    }
-    const n = parseInt(g, 10);
-    if (Number.isNaN(n)) throw new Error(`“${g}” is not a valid page or range.`);
-    if (n < 1 || n > total) throw new Error(`Page ${n} is out of range (1–${total}).`);
-    return [n - 1];
-  });
-}
-
-function everyN(n: number, total: number): number[][] {
-  if (n < 1) throw new Error('Pages per file must be at least 1.');
-  const out: number[][] = [];
-  for (let i = 0; i < total; i += n) {
-    const group: number[] = [];
-    for (let j = i; j < Math.min(i + n, total); j++) group.push(j);
-    out.push(group);
-  }
-  return out;
-}
 
 export default function SplitScreen() {
   const runner = useRunner();
@@ -90,9 +54,9 @@ export default function SplitScreen() {
       if (!file || !pageCount) throw new Error('Could not read the PDF.');
       const bytes = await storage.readBytes(file.storageKey);
       let groups: number[][];
-      if (mode === 'each') groups = Array.from({ length: pageCount }, (_, i) => [i]);
-      else if (mode === 'every') groups = everyN(parseInt(perFile, 10) || 1, pageCount);
-      else groups = parseRanges(ranges, pageCount);
+      if (mode === 'each') groups = groupEachPage(pageCount);
+      else if (mode === 'every') groups = groupEveryPages(perFile, pageCount);
+      else groups = parsePageRanges(ranges, pageCount);
 
       if (groups.length === 0) throw new Error('Nothing to split.');
       onProgress(0.2);
