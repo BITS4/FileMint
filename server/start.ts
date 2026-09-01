@@ -1,7 +1,10 @@
 import { serve } from '@hono/node-server';
+import { assertAuthSecurityConfig } from './auth.helpers';
 import { COLLABORA_URL, PORT, WOPI_HOST } from './config';
 import { app, CAPABILITIES } from './index';
 import { logger } from './observability';
+
+assertAuthSecurityConfig();
 
 export const filemintServer = serve({
   fetch: app.fetch,

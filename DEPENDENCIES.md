@@ -1,18 +1,21 @@
 # Dependency policy
 
-FileMint uses one npm manifest and one committed `package-lock.json`. Python
-runtime and quality-tool graphs are fully pinned in
+FileMint uses a locked root npm graph for the Expo application and quality
+tooling. The conversion API has a separate, minimal production manifest and
+lockfile in `server/`, so its image does not ship the Expo/Metro build toolchain.
+Python runtime and quality-tool graphs are fully pinned in
 `server/requirements.lock.txt` and `server/requirements-dev.lock.txt`. Install
 with `npm ci` and the matching lockfiles; do not use unlocked installs in CI or
 production images.
 
-Dependabot checks npm, pinned Python packages, and GitHub Actions weekly. Before merging an update, run:
+Dependabot checks both npm graphs, pinned Python packages, Docker, and GitHub Actions weekly. Before merging an update, run:
 
 ```bash
 npm run verify
 npm run test:coverage
 npm run test:python:coverage
 npm run audit
+npm run audit --prefix server
 ```
 
 The audit gate prevents the production high/critical advisory count from

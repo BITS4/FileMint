@@ -93,6 +93,10 @@ function authCodePepper(): string {
   return LOCAL_CODE_PEPPER;
 }
 
+export function assertAuthSecurityConfig(): void {
+  authCodePepper();
+}
+
 export function codeHash(email: string, purpose: CodePurpose, code: string): string {
   return createHmac('sha256', authCodePepper())
     .update(`code:${purpose}:${normalizeEmail(email)}:${code}`)

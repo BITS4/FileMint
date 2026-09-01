@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: filemint
       POSTGRES_USER: filemint
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_PASSWORD: ${FILEMINT_DB_PASSWORD:-filemint-local-only}
     volumes:
       - filemint-postgres:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +15,8 @@ services:
       timeout: 3s
       retries: 12
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   server:
     build:
@@ -22,7 +24,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 8787
-      DATABASE_URL: postgresql://filemint@postgres:5432/filemint
+      DATABASE_URL: postgresql://filemint:${FILEMINT_DB_PASSWORD:-filemint-local-only}@postgres:5432/filemint
       DATABASE_POOL_MAX: 4
       FILEMINT_PUBLIC_URL: http://localhost:8081
       CORS_ORIGINS: http://localhost:8081
@@ -38,6 +40,14 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,size=1g
+      - /app/server/data:rw,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   filemint-postgres:

@@ -1,6 +1,7 @@
 # Fully pinned Python conversion dependencies.
 # Regenerate deliberately after exercising the document conversion fixtures.
 
+deprecation==2.1.0
 et-xmlfile==2.0.0
 fire==0.7.1
 fonttools==4.63.0
@@ -8,6 +9,7 @@ lxml==6.1.1
 numpy==2.4.6
 opencv-python-headless==4.13.0.92
 openpyxl==3.1.5
+packaging==26.3
 pdf2docx==0.5.13
 pillow==12.2.0
 pillow-heif==1.4.0
@@ -17,4 +19,3 @@ python-pptx==1.0.2
 termcolor==3.3.0
 typing-extensions==4.15.0
 XlsxWriter==3.2.9
-
