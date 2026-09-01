@@ -55,14 +55,14 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.4.0",
     "@types/pg": "^8.20.0",
     "@types/react": "~19.2.2",
     "@vitest/coverage-v8": "^4.1.11",
-    "eslint": "^9.0.0",
-    "eslint-config-expo": "~56.0.4",
+    "eslint": "^10.9.1",
+    "eslint-config-expo": "~57.0.2",
     "prettier": "^3.9.6",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "vitest": "^4.1.11"
   },
   "scripts": {
