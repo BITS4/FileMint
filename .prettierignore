@@ -6,6 +6,7 @@ coverage/
 test-files/
 server/tessdata/
 .venv/
+.venv*/
 venv/
 *.tsbuildinfo
 package-lock.json
