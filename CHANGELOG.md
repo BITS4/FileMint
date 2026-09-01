@@ -8,9 +8,10 @@ All notable changes follow Semantic Versioning.
 
 ### Added
 
-- Expanded regression coverage to 54 TypeScript spec files and 262 tests, with
-  enforced 94/85/97/96 statement, branch, function, and line gates across API,
-  storage, conversion, editor, runtime, and state modules.
+- Expanded regression coverage to 71 TypeScript spec files and 412 tests, with
+  enforced 94/85/97/96 statement, branch, function, and line gates across every
+  server module and the client business, storage, conversion, editor, runtime,
+  catalog, and state layers.
 - Added 197 Python conversion and export tests, an 85% Python branch-coverage
   gate, and root `test:python` / `test:all` workflows backed by pinned Python
   3.11 CI.
@@ -64,3 +65,7 @@ All notable changes follow Semantic Versioning.
   refreshed compatible server/tooling dependencies.
 - Split the conversion studio, operation registry, tool catalog, settings UI,
   PDF export models, and editor geometry into focused modules under 500 lines.
+
+[Unreleased]: https://github.com/BITS4/FileMint/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/BITS4/FileMint/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/BITS4/FileMint/releases/tag/v1.1.0
