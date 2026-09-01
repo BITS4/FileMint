@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
 import { DAY_MS, type AuthDb } from './auth.models';
+import { logger, reportException } from './observability';
 
 const DATA_DIR = fileURLToPath(new URL('./data', import.meta.url));
 const DB_PATH = join(DATA_DIR, 'auth-db.json');
@@ -96,7 +97,12 @@ export async function loadDb(): Promise<AuthDb> {
   try {
     const raw = await readFile(DB_PATH, 'utf8');
     return normalizeDb(JSON.parse(raw));
-  } catch {
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      logger.error({ err: error, path: DB_PATH }, 'failed to load local auth database');
+      reportException(error, { component: 'auth-store', path: DB_PATH });
+      throw error;
+    }
     await mkdir(dirname(DB_PATH), { recursive: true });
     const db = emptyDb();
     await writeDb(db);

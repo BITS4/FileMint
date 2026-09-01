@@ -35,11 +35,11 @@ Sentry.init({
 
 export function reportException(
   error: unknown,
-  context: { method?: string; path?: string; requestId?: string } = {},
+  context: { component?: string; method?: string; path?: string; requestId?: string } = {},
 ): void {
   Sentry.captureException(error, {
     tags: {
-      component: 'http',
+      component: context.component ?? 'http',
       method: context.method,
     },
     extra: {
