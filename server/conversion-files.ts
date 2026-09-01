@@ -9,6 +9,16 @@ import { pathToFileURL } from 'node:url';
 
 import { BIN } from './runtime';
 
+const DEFAULT_MAX_PROCESS_OUTPUT_BYTES = 1024 * 1024;
+
+function maxProcessOutputBytes(): number {
+  const configured = Number(process.env.FILEMINT_MAX_PROCESS_OUTPUT_BYTES);
+  if (!Number.isSafeInteger(configured) || configured < 1024 || configured > 16 * 1024 * 1024) {
+    return DEFAULT_MAX_PROCESS_OUTPUT_BYTES;
+  }
+  return configured;
+}
+
 // ------------------------------------------------------------------- utils
 export function run(
   cmd: string,
@@ -16,13 +26,41 @@ export function run(
   timeout = 180000,
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(cmd, args, { timeout });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout?.on('data', (d) => (stdout += d.toString()));
-    proc.stderr?.on('data', (d) => (stderr += d.toString()));
-    proc.on('error', reject);
-    proc.on('close', (code) => resolve({ code: code ?? 0, stdout, stderr }));
+    const proc = spawn(cmd, args, { timeout, windowsHide: true });
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    const outputLimit = maxProcessOutputBytes();
+    let outputBytes = 0;
+    let settled = false;
+
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      proc.kill('SIGKILL');
+      reject(error);
+    };
+    const capture = (target: Buffer[], chunk: unknown) => {
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+      outputBytes += bytes.length;
+      if (outputBytes > outputLimit) {
+        fail(new Error('Conversion process output exceeded the configured safety limit.'));
+        return;
+      }
+      target.push(bytes);
+    };
+
+    proc.stdout?.on('data', (chunk) => capture(stdout, chunk));
+    proc.stderr?.on('data', (chunk) => capture(stderr, chunk));
+    proc.on('error', fail);
+    proc.on('close', (code, signal) => {
+      if (settled) return;
+      settled = true;
+      resolve({
+        code: code ?? (signal ? 124 : 0),
+        stdout: Buffer.concat(stdout).toString(),
+        stderr: Buffer.concat(stderr).toString(),
+      });
+    });
   });
 }
 

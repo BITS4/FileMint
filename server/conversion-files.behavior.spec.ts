@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { libreConvert, makeWorkdir, run, saveUpload, sendFile } from './conversion-files';
 
@@ -37,9 +37,17 @@ interface ProcessOptions {
   code?: number | null;
   error?: Error;
   streams?: boolean;
+  signal?: NodeJS.Signals | null;
 }
 
-function processResult({ stdout = [], stderr = [], code = 0, error, streams = true }: ProcessOptions = {}) {
+function processResult({
+  stdout = [],
+  stderr = [],
+  code = 0,
+  error,
+  streams = true,
+  signal = null,
+}: ProcessOptions = {}) {
   const output = streams
     ? {
         on: vi.fn((event: string, listener: (chunk: string | Uint8Array) => void) => {
@@ -57,12 +65,15 @@ function processResult({ stdout = [], stderr = [], code = 0, error, streams = tr
   return {
     stdout: output,
     stderr: errors,
-    on: vi.fn((event: string, listener: (value?: unknown) => void) => {
+    on: vi.fn((event: string, listener: (value?: unknown, signal?: NodeJS.Signals | null) => void) => {
       if (event === 'error' && error) listener(error);
-      if (event === 'close' && !error) listener(code);
+      if (event === 'close' && !error) listener(code, signal);
     }),
+    kill: vi.fn(),
   };
 }
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe('conversion child-process and work-directory utilities', () => {
   beforeEach(() => {
@@ -98,13 +109,25 @@ describe('conversion child-process and work-directory utilities', () => {
     });
     expect(mocks.spawn).toHaveBeenCalledWith('/tools/converter', ['--input', 'file'], {
       timeout: 321,
+      windowsHide: true,
     });
   });
 
   it('defaults a null close code and tolerates missing output streams', async () => {
     mocks.spawn.mockReturnValue(processResult({ code: null, streams: false }));
     await expect(run('quiet', [])).resolves.toEqual({ code: 0, stdout: '', stderr: '' });
-    expect(mocks.spawn).toHaveBeenCalledWith('quiet', [], { timeout: 180000 });
+    expect(mocks.spawn).toHaveBeenCalledWith('quiet', [], { timeout: 180000, windowsHide: true });
+  });
+
+  it('reports signaled exits as failures and bounds captured process output', async () => {
+    mocks.spawn.mockReturnValueOnce(processResult({ code: null, signal: 'SIGTERM' }));
+    await expect(run('timed-out', [])).resolves.toMatchObject({ code: 124 });
+
+    vi.stubEnv('FILEMINT_MAX_PROCESS_OUTPUT_BYTES', '1024');
+    const noisy = processResult({ stdout: ['x'.repeat(1025)] });
+    mocks.spawn.mockReturnValueOnce(noisy);
+    await expect(run('noisy', [])).rejects.toThrow('safety limit');
+    expect(noisy.kill).toHaveBeenCalledWith('SIGKILL');
   });
 
   it('rejects when child-process spawning emits an error', async () => {
@@ -216,7 +239,7 @@ describe('conversion response and LibreOffice utilities', () => {
         dir,
         input.path,
       ],
-      { timeout: 180000 },
+      { timeout: 180000, windowsHide: true },
     );
     expect(mocks.readdir).not.toHaveBeenCalled();
   });
