@@ -1,0 +1,23 @@
+{
+  "name": "@filemint/server",
+  "version": "1.2.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --import tsx start.ts",
+    "audit": "npm audit --omit=dev --audit-level=high"
+  },
+  "engines": {
+    "node": ">=22.13.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@sentry/node": "^10.72.0",
+    "hono": "^4.13.5",
+    "pg": "^8.21.0",
+    "pino": "^10.3.1",
+    "tsx": "^4.22.4",
+    "zod": "^3.25.76"
+  }
+}
