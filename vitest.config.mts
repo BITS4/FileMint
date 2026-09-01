@@ -28,6 +28,7 @@ export default defineConfig({
         'src/components/ui/Segmented.tsx',
         'src/components/ui/TextField.tsx',
         'src/components/ui/Txt.tsx',
+        'src/hooks/use-runner.ts',
         'src/hooks/pdf-editor/object-state.ts',
         'src/lib/**/*.ts',
         'src/store/**/*.ts',
