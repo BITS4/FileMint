@@ -44,7 +44,18 @@ describe('server observability', () => {
     );
     const loggerOptions = mocks.pino.mock.calls[0][0] as { redact: { paths: string[] } };
     expect(loggerOptions.redact.paths).toEqual(
-      expect.arrayContaining(['authorization', '*.password', '*.token', '*.stripeSignature']),
+      expect.arrayContaining([
+        'authorization',
+        'password',
+        'token',
+        'code',
+        'stripeSignature',
+        '*.password',
+        '*.token',
+        '*.stripeSignature',
+        'req.headers.authorization',
+        'body.password',
+      ]),
     );
     expect(mocks.init).toHaveBeenCalledWith({
       dsn: 'https://public@example.ingest.sentry.io/1',

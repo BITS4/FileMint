@@ -3,6 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { appBaseUrl, deliverAuthCode } from './auth.email';
 
+const mocks = vi.hoisted(() => ({ loggerInfo: vi.fn() }));
+
+vi.mock('./observability', () => ({ logger: { info: mocks.loggerInfo } }));
+
 function baseApp() {
   const app = new Hono();
   app.get('/base', (context) => context.text(appBaseUrl(context)));
@@ -27,7 +31,7 @@ function deliveryApp(purpose: 'verify_email' | 'password_reset' = 'verify_email'
 beforeEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
-  vi.spyOn(console, 'info').mockImplementation(() => undefined);
+  mocks.loggerInfo.mockReset();
 });
 
 afterEach(() => {
@@ -70,17 +74,34 @@ describe('authentication email base URL', () => {
     );
     expect(await (await baseApp().request('/base')).text()).toBe('http://localhost:8787');
   });
+
+  it('rejects unsafe configured URLs and requires an explicit production URL', async () => {
+    vi.stubEnv('FILEMINT_PUBLIC_URL', 'javascript:alert(1)');
+    expect(() => appBaseUrl({} as never)).toThrow(/valid HTTP/);
+
+    vi.stubEnv('FILEMINT_PUBLIC_URL', '');
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(() => appBaseUrl({} as never)).toThrow(/required in production/);
+  });
 });
 
 describe('authentication code delivery', () => {
   it('returns development codes for verification and reset messages without network calls', async () => {
     const verify = await deliveryApp().request('/send', { method: 'POST' });
     expect(await verify.json()).toEqual({ sent: false, devCode: '123456' });
-    expect(console.info).toHaveBeenCalledWith(expect.stringContaining('Verification code'));
+    expect(mocks.loggerInfo).toHaveBeenCalledWith(
+      { purpose: 'verify_email', delivery: 'development' },
+      'Generated local authentication code',
+    );
 
     const reset = await deliveryApp('password_reset').request('/send', { method: 'POST' });
     expect(await reset.json()).toEqual({ sent: false, devCode: '123456' });
-    expect(console.info).toHaveBeenLastCalledWith(expect.stringContaining('Password reset code'));
+    expect(mocks.loggerInfo).toHaveBeenLastCalledWith(
+      { purpose: 'password_reset', delivery: 'development' },
+      'Generated local authentication code',
+    );
+    expect(JSON.stringify(mocks.loggerInfo.mock.calls)).not.toContain('123456');
+    expect(JSON.stringify(mocks.loggerInfo.mock.calls)).not.toContain('reader@example.com');
   });
 
   it('fails closed in production-like environments without provider credentials', async () => {

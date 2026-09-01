@@ -40,6 +40,7 @@ export function allowedOrigins(env: Environment = process.env): string[] {
     .map((value) => value?.trim().replace(/\/+$/, ''))
     .filter((value): value is string => Boolean(value));
 
+  if (isProduction(env) && configured.length > 0) return [...new Set(configured)];
   const defaults = isProduction(env) ? [DEFAULT_PUBLIC_ORIGIN] : [...LOCAL_ORIGINS, DEFAULT_PUBLIC_ORIGIN];
   return [...new Set([...configured, ...defaults])];
 }

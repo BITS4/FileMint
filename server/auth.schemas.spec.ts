@@ -35,6 +35,21 @@ describe('auth request schemas', () => {
     expect(signupSchema.safeParse({ ...validSignup, phone: 'abc' }).success).toBe(false);
   });
 
+  it('bounds every user-controlled identity field', () => {
+    expect(signupSchema.safeParse({ ...validSignup, email: `${'a'.repeat(250)}@example.com` }).success).toBe(
+      false,
+    );
+    expect(signupSchema.safeParse({ ...validSignup, username: 'a'.repeat(33) }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...validSignup, password: `Secure1${'x'.repeat(122)}` }).success).toBe(
+      false,
+    );
+    expect(signupSchema.safeParse({ ...validSignup, fullName: 'A'.repeat(121) }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...validSignup, phone: `+${'1'.repeat(33)}` }).success).toBe(false);
+    expect(loginSchema.safeParse({ email: validSignup.email, password: 'x'.repeat(129) }).success).toBe(
+      false,
+    );
+  });
+
   it('requires login credentials', () => {
     expect(loginSchema.safeParse({ email: 'person@example.com', password: '' }).success).toBe(false);
   });

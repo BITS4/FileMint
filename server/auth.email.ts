@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import type { CodePurpose } from './auth.models';
+import { logger } from './observability';
 
 function isProductionLike(): boolean {
   return process.env.NODE_ENV === 'production' || process.env.FILEMINT_PRODUCTION === 'true';
@@ -14,11 +15,32 @@ function escapeHtml(value: string): string {
 
 export function appBaseUrl(c: Context): string {
   const configured = process.env.FILEMINT_PUBLIC_URL || process.env.PUBLIC_APP_URL || process.env.APP_URL;
-  if (configured) return configured.replace(/\/+$/, '');
+  if (configured) {
+    try {
+      const url = new URL(configured);
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('unsupported protocol');
+      return url.toString().replace(/\/+$/, '');
+    } catch {
+      throw new Error('FILEMINT_PUBLIC_URL must be a valid HTTP(S) URL.');
+    }
+  }
+  if (isProductionLike()) throw new Error('FILEMINT_PUBLIC_URL is required in production.');
   const origin = c.req.header('origin');
-  if (origin) return origin.replace(/\/+$/, '');
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      if (['http:', 'https:'].includes(url.protocol)) return url.toString().replace(/\/+$/, '');
+    } catch {
+      // Ignore malformed development origins and use the local host fallback.
+    }
+  }
   const host = c.req.header('host') || `localhost:${process.env.PORT ?? 8787}`;
-  const proto = c.req.header('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+  const forwardedProto = c.req.header('x-forwarded-proto');
+  const proto = ['http', 'https'].includes(forwardedProto ?? '')
+    ? forwardedProto
+    : host.includes('localhost')
+      ? 'http'
+      : 'https';
   return `${proto}://${host}`.replace(/\/+$/, '');
 }
 
@@ -34,7 +56,17 @@ export async function deliverAuthCode(
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.FILEMINT_EMAIL_FROM || process.env.RESEND_FROM;
   const isVerify = options.purpose === 'verify_email';
-  const verifyUrl = isVerify ? buildVerifyUrl(c, options.email, options.code) : null;
+  let verifyUrl: string | null = null;
+  if (isVerify && apiKey && from) {
+    try {
+      verifyUrl = buildVerifyUrl(c, options.email, options.code);
+    } catch (error) {
+      return {
+        sent: false,
+        error: error instanceof Error ? error.message : 'Invalid public application URL.',
+      };
+    }
+  }
   const title = isVerify ? 'Verify your FileMint email' : 'Reset your FileMint password';
   const intro = isVerify
     ? 'Use this code to verify your FileMint account.'
@@ -81,8 +113,6 @@ export async function deliverAuthCode(
     };
   }
 
-  console.info(
-    `[FileMint auth] ${isVerify ? 'Verification' : 'Password reset'} code for ${options.email}: ${options.code}`,
-  );
+  logger.info({ purpose: options.purpose, delivery: 'development' }, 'Generated local authentication code');
   return { sent: false, devCode: options.code };
 }

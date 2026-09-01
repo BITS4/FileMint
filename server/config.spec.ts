@@ -22,7 +22,8 @@ describe('server configuration', () => {
         CORS_ORIGINS: 'https://app.example.com/, https://admin.example.com',
         FILEMINT_PUBLIC_URL: 'https://app.example.com',
       }),
-    ).toEqual(['https://app.example.com', 'https://admin.example.com', 'https://file-mint.vercel.app']);
+    ).toEqual(['https://app.example.com', 'https://admin.example.com']);
+    expect(allowedOrigins({ NODE_ENV: 'production' })).toEqual(['https://file-mint.vercel.app']);
   });
 
   it('accepts only explicitly allowed browser origins', () => {
