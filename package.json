@@ -73,6 +73,7 @@
     "web": "expo start --web",
     "preweb": "npm run assets:web",
     "build:web": "expo export --platform web --output-dir dist",
+    "postbuild:web": "node scripts/verify-web-build.mjs",
     "prebuild:web": "npm run assets:web",
     "assets:web": "node scripts/copy-pdf-worker.mjs",
     "format": "prettier --write .",

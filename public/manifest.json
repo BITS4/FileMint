@@ -1,0 +1,21 @@
+{
+  "name": "FileMint Document Studio",
+  "short_name": "FileMint",
+  "description": "Read, convert, scan, edit, organize, and secure documents.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B0F14",
+  "theme_color": "#0B0F14",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
