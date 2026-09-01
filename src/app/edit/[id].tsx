@@ -51,7 +51,7 @@ export default function EditScreen() {
         .then((bytes) => setText(decodeUtf8(bytes)))
         .catch(() => setText(''));
     }
-  }, [file?.id]);
+  }, [file, isText]);
 
   useEffect(() => {
     if (!file || !isOffice || Platform.OS !== 'web') return;
@@ -88,7 +88,7 @@ export default function EditScreen() {
       const s = session.current;
       if (s) void closeEdit(s.id, s.token);
     };
-  }, [file?.id, retryKey]);
+  }, [file, isOffice, retryKey]);
 
   const saveText = async () => {
     if (!file || text === null) return;

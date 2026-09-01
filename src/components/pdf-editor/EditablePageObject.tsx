@@ -183,6 +183,26 @@ export function EditablePageObject({
   );
 }
 
+function resizeFromDelta(
+  initial: EditorObject,
+  dx: number,
+  dy: number,
+  corner: 'nw' | 'ne' | 'sw' | 'se',
+): EditorObject {
+  const next = { ...initial };
+  if (corner.includes('e')) next.width = initial.width + dx;
+  if (corner.includes('s')) next.height = initial.height + dy;
+  if (corner.includes('w')) {
+    next.x = initial.x + dx;
+    next.width = initial.width - dx;
+  }
+  if (corner.includes('n')) {
+    next.y = initial.y + dy;
+    next.height = initial.height - dy;
+  }
+  return next;
+}
+
 function ResizeHandle({
   corner,
   object,
@@ -200,20 +220,6 @@ function ResizeHandle({
 }) {
   const start = useRef<EditorObject | null>(null);
   const pointerResize = useRef<{ start: EditorObject; startX: number; startY: number } | null>(null);
-  const resizeFromDelta = (initial: EditorObject, dx: number, dy: number) => {
-    const next = { ...initial };
-    if (corner.includes('e')) next.width = initial.width + dx;
-    if (corner.includes('s')) next.height = initial.height + dy;
-    if (corner.includes('w')) {
-      next.x = initial.x + dx;
-      next.width = initial.width - dx;
-    }
-    if (corner.includes('n')) {
-      next.y = initial.y + dy;
-      next.height = initial.height - dy;
-    }
-    return next;
-  };
   const beginResize = (clientX: number, clientY: number) => {
     pointerResize.current = { start: object, startX: clientX, startY: clientY };
     onInteractionStateChange(true);
@@ -222,7 +228,7 @@ function ResizeHandle({
     if (!pointerResize.current) return;
     const dx = (clientX - pointerResize.current.startX) / Math.max(1, layout.width);
     const dy = (clientY - pointerResize.current.startY) / Math.max(1, layout.height);
-    onPatch(object.id, resizeFromDelta(pointerResize.current.start, dx, dy));
+    onPatch(object.id, resizeFromDelta(pointerResize.current.start, dx, dy, corner));
   };
   const endResize = () => {
     pointerResize.current = null;
@@ -282,7 +288,7 @@ function ResizeHandle({
           const dy = gesture.dy / Math.max(1, layout.height);
           onPatch(object.id, (current) => {
             const initial = start.current ?? current;
-            return resizeFromDelta(initial, dx, dy);
+            return resizeFromDelta(initial, dx, dy, corner);
           });
         },
         onPanResponderRelease: () => {

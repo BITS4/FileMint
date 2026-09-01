@@ -107,7 +107,7 @@ export default function BatchConvertScreen() {
         return file ? canConvert(file, target) : false;
       }),
     );
-  }, [target]);
+  }, [libraryFiles, target]);
 
   const importFiles = async () => {
     const picked = await pickDocuments({ multiple: true, type: '*/*' });

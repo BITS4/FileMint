@@ -284,7 +284,7 @@ export function OfficeView({ file, night }: OfficeViewProps) {
     return () => {
       alive = false;
     };
-  }, [file.storageKey, file.kind, file.modifiedAt, file.size, night]);
+  }, [file, night]);
 
   useEffect(() => {
     const container = ref.current;
@@ -297,7 +297,7 @@ export function OfficeView({ file, night }: OfficeViewProps) {
       window.clearTimeout(id);
       observer.disconnect();
     };
-  }, [file.kind, file.storageKey, file.modifiedAt, file.size]);
+  }, [file.conversionReport?.hiddenTextLayer, file.kind, file.modifiedAt, file.size, file.storageKey]);
 
   if (error) {
     return (

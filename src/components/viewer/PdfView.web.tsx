@@ -90,7 +90,7 @@ export function PdfView({ storageKey, night }: PdfViewProps) {
 
   useEffect(() => {
     const target = pagesRef.current;
-    if (!bytes || !target || width < 120 || state.kind === 'native') return undefined;
+    if (!bytes || !target || width < 120) return undefined;
 
     let cancelled = false;
     let task: pdfjsLib.PDFDocumentLoadingTask | undefined;

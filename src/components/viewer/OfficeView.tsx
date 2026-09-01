@@ -55,7 +55,7 @@ export function OfficeView({ file, night }: OfficeViewProps) {
       alive = false;
       if (created) storage.remove(created).catch(() => undefined);
     };
-  }, [file.storageKey, file.modifiedAt, file.size]);
+  }, [file.mime, file.modifiedAt, file.name, file.size, file.storageKey]);
 
   if (previewKey) return <PdfView storageKey={previewKey} night={night} />;
   if (error) {

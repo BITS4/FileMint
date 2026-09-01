@@ -66,7 +66,7 @@ export default function ViewerScreen() {
 
   useEffect(() => {
     if (file) touch(file.id);
-  }, [file?.id]);
+  }, [file, touch]);
 
   useEffect(() => {
     if (!file) return;
@@ -85,7 +85,7 @@ export default function ViewerScreen() {
         })
         .catch(() => undefined);
     }
-  }, [file?.id]);
+  }, [file]);
 
   if (!file) {
     return (

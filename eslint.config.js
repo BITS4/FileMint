@@ -15,7 +15,7 @@ module.exports = defineConfig([
       'react-hooks/refs': 'off',
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/exhaustive-deps': 'off',
+      'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }],
       '@typescript-eslint/array-type': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
@@ -23,6 +23,7 @@ module.exports = defineConfig([
   {
     files: ['server/**/*.ts'],
     rules: {
+      'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },

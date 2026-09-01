@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -46,12 +46,12 @@ export function SignatureDrawPad({
     draftRef.current = [...draftRef.current, point];
     setDraft(draftRef.current);
   };
-  const end = () => {
+  const end = useCallback(() => {
     const next = draftRef.current;
     if (next.length > 1) onChange([...paths, next]);
     draftRef.current = [];
     setDraft([]);
-  };
+  }, [onChange, paths]);
 
   const pointerHandlers =
     Platform.OS === 'web'
@@ -117,7 +117,7 @@ export function SignatureDrawPad({
         onPanResponderRelease: end,
         onPanResponderTerminate: end,
       }),
-    [layout.height, layout.width, paths],
+    [end, layout.height, layout.width],
   );
 
   const strokeWidth = Math.max(1.2, Math.min(10, thickness));

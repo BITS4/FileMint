@@ -48,7 +48,7 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
   const readyRef = useRef(false);
   const hadEditsRef = useRef(false);
   const pendingSaveRef = useRef<PendingSave | null>(null);
-  const iframeName = useMemo(() => `filemint-collabora-${Math.random().toString(36).slice(2)}`, [url]);
+  const iframeName = useMemo(() => `filemint-collabora-${Math.random().toString(36).slice(2)}`, []);
 
   const launch = useMemo(() => {
     try {

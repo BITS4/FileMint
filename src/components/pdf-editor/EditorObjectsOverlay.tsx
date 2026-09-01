@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, G, Path } from 'react-native-svg';
 
@@ -67,38 +67,44 @@ export function EditorObjectsOverlay({
     };
   };
 
-  const beginDrawing = (point: EditorPoint) => {
-    if (!drawingEnabled) return;
-    if (eraserEnabled) {
+  const beginDrawing = useCallback(
+    (point: EditorPoint) => {
+      if (!drawingEnabled) return;
+      if (eraserEnabled) {
+        drawingRef.current = [point];
+        setDrawingPoints([point]);
+        onClearSelection();
+        onEraseDoodlesAt(pageIndex, point, eraserRadius);
+        onInteractionStateChange(true);
+        return;
+      }
       drawingRef.current = [point];
       setDrawingPoints([point]);
       onClearSelection();
-      onEraseDoodlesAt(pageIndex, point, eraserRadius);
       onInteractionStateChange(true);
-      return;
-    }
-    drawingRef.current = [point];
-    setDrawingPoints([point]);
-    onClearSelection();
-    onInteractionStateChange(true);
-  };
+    },
+    [drawingEnabled, eraserEnabled, onClearSelection, onEraseDoodlesAt, onInteractionStateChange, pageIndex],
+  );
 
-  const updateDrawing = (point: EditorPoint) => {
-    if (!drawingEnabled || !drawingRef.current.length) return;
-    if (eraserEnabled) {
-      drawingRef.current = [point];
-      setDrawingPoints([point]);
-      onEraseDoodlesAt(pageIndex, point, eraserRadius);
-      return;
-    }
-    drawingRef.current =
-      options.doodleMode === 'vector' || options.doodleMode === 'arrow'
-        ? [drawingRef.current[0], point]
-        : [...drawingRef.current, point];
-    setDrawingPoints(drawingRef.current);
-  };
+  const updateDrawing = useCallback(
+    (point: EditorPoint) => {
+      if (!drawingEnabled || !drawingRef.current.length) return;
+      if (eraserEnabled) {
+        drawingRef.current = [point];
+        setDrawingPoints([point]);
+        onEraseDoodlesAt(pageIndex, point, eraserRadius);
+        return;
+      }
+      drawingRef.current =
+        options.doodleMode === 'vector' || options.doodleMode === 'arrow'
+          ? [drawingRef.current[0], point]
+          : [...drawingRef.current, point];
+      setDrawingPoints(drawingRef.current);
+    },
+    [drawingEnabled, eraserEnabled, onEraseDoodlesAt, options.doodleMode, pageIndex],
+  );
 
-  const endDrawing = () => {
+  const endDrawing = useCallback(() => {
     if (!eraserEnabled && drawingRef.current.length > 1) {
       const object: EditorObject = {
         id: makeObjectId(),
@@ -120,7 +126,16 @@ export function EditorObjectsOverlay({
     drawingRef.current = [];
     setDrawingPoints([]);
     onInteractionStateChange(false);
-  };
+  }, [
+    eraserEnabled,
+    onAdd,
+    onInteractionStateChange,
+    options.doodleMode,
+    pageIndex,
+    strokeColor,
+    strokeOpacity,
+    strokeWidth,
+  ]);
 
   const pointerHandlers =
     Platform.OS === 'web' && drawingEnabled
@@ -186,18 +201,7 @@ export function EditorObjectsOverlay({
         onPanResponderRelease: endDrawing,
         onPanResponderTerminate: endDrawing,
       }),
-    [
-      drawingEnabled,
-      eraserEnabled,
-      layout.height,
-      layout.width,
-      onEraseDoodlesAt,
-      options.color,
-      options.doodleMode,
-      options.opacity,
-      options.thickness,
-      pageIndex,
-    ],
+    [beginDrawing, drawingEnabled, endDrawing, layout.height, layout.width, updateDrawing],
   );
 
   return (
