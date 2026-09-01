@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -39,6 +40,68 @@ class RuntimeAndReportingTests(unittest.TestCase):
             Path(tmp, "eng.traineddata").write_bytes(b"model")
             Path(tmp, "README.txt").write_text("ignore", encoding="utf-8")
             self.assertEqual(runtime.local_tesseract_languages(), {"eng"})
+
+    def test_tessdata_source_is_revision_pinned_with_complete_sha256_map(self) -> None:
+        from server import pdf_to_docx_config as config
+
+        self.assertRegex(config.TESSDATA_FAST_REVISION, r"^[0-9a-f]{40}$")
+        self.assertIn(config.TESSDATA_FAST_REVISION, config.TESSDATA_FAST_BASE)
+        self.assertNotIn("/main", config.TESSDATA_FAST_BASE)
+        self.assertEqual(set(config.TESSDATA_FAST_SHA256), config.DOWNLOADABLE_TESSDATA)
+        for digest in config.TESSDATA_FAST_SHA256.values():
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+
+    def test_tessdata_download_installs_only_matching_content(self) -> None:
+        payload = b"verified-model" * 200
+        expected = hashlib.sha256(payload).hexdigest()
+        report: dict[str, list[str]] = {"notes": [], "warnings": []}
+
+        def download(_url: str, destination: str) -> None:
+            Path(destination).write_bytes(payload)
+
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            patch.object(runtime, "LOCAL_TESSDATA_DIR", tmp),
+            patch.object(runtime, "TESSDATA_FAST_SHA256", {"fas": expected}),
+            patch.object(runtime, "installed_tesseract_languages", return_value=set()),
+            patch.object(runtime.urllib.request, "urlretrieve", side_effect=download),
+        ):
+            self.assertTrue(runtime.ensure_project_tessdata("fas", report))
+            self.assertEqual(Path(tmp, "fas.traineddata").read_bytes(), payload)
+        self.assertIn("Downloaded OCR language data: fas.", report["notes"])
+
+    def test_tessdata_download_rejects_and_removes_checksum_mismatch(self) -> None:
+        report: dict[str, list[str]] = {"notes": [], "warnings": []}
+
+        def download(_url: str, destination: str) -> None:
+            Path(destination).write_bytes(b"untrusted-model" * 200)
+
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            patch.object(runtime, "LOCAL_TESSDATA_DIR", tmp),
+            patch.object(runtime, "TESSDATA_FAST_SHA256", {"fas": "0" * 64}),
+            patch.object(runtime, "installed_tesseract_languages", return_value=set()),
+            patch.object(runtime.urllib.request, "urlretrieve", side_effect=download),
+        ):
+            self.assertFalse(runtime.ensure_project_tessdata("fas", report))
+            self.assertFalse(Path(tmp, "fas.traineddata").exists())
+            self.assertFalse(Path(tmp, "fas.traineddata.download").exists())
+        self.assertIn("checksum", report["warnings"][0])
+
+    def test_tessdata_valid_cached_model_skips_network(self) -> None:
+        payload = b"cached-model" * 200
+        expected = hashlib.sha256(payload).hexdigest()
+        report: dict[str, list[str]] = {"notes": [], "warnings": []}
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            patch.object(runtime, "LOCAL_TESSDATA_DIR", tmp),
+            patch.object(runtime, "TESSDATA_FAST_SHA256", {"fas": expected}),
+            patch.object(runtime, "installed_tesseract_languages", return_value=set()),
+            patch.object(runtime.urllib.request, "urlretrieve") as download,
+        ):
+            Path(tmp, "fas.traineddata").write_bytes(payload)
+            self.assertTrue(runtime.ensure_project_tessdata("fas", report))
+            download.assert_not_called()
 
     def test_resolve_language_keeps_installed_manual_languages_and_warns_for_missing(
         self,

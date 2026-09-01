@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import shutil
@@ -18,6 +19,7 @@ from .config import (
     OCR_AUTO_DOWNLOAD_LANGS,
     OCR_AUTO_LANGS,
     TESSDATA_FAST_BASE,
+    TESSDATA_FAST_SHA256,
 )
 
 
@@ -70,6 +72,24 @@ def installed_tesseract_languages(tess: str) -> set[str]:
     return system_tesseract_languages(tess) | local_tesseract_languages()
 
 
+def tessdata_checksum(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def valid_project_tessdata(path: str, lang: str) -> bool:
+    expected = TESSDATA_FAST_SHA256.get(lang)
+    return bool(
+        expected
+        and os.path.exists(path)
+        and os.path.getsize(path) > 1024
+        and tessdata_checksum(path) == expected
+    )
+
+
 def ensure_project_tessdata(lang: str, report: dict[str, Any]) -> bool:
     if lang in installed_tesseract_languages(find_tesseract() or ""):
         return True
@@ -77,15 +97,17 @@ def ensure_project_tessdata(lang: str, report: dict[str, Any]) -> bool:
         return False
     os.makedirs(LOCAL_TESSDATA_DIR, exist_ok=True)
     dst = os.path.join(LOCAL_TESSDATA_DIR, f"{lang}.traineddata")
-    if os.path.exists(dst) and os.path.getsize(dst) > 1024:
+    if valid_project_tessdata(dst, lang):
         return True
 
     url = f"{TESSDATA_FAST_BASE}/{lang}.traineddata"
     tmp = dst + ".download"
     try:
         urllib.request.urlretrieve(url, tmp)
-        if os.path.getsize(tmp) <= 1024:
-            raise RuntimeError("downloaded language data is empty")
+        if not valid_project_tessdata(tmp, lang):
+            raise RuntimeError(
+                "downloaded language data checksum does not match the pinned model"
+            )
         os.replace(tmp, dst)
         report["notes"].append(f"Downloaded OCR language data: {lang}.")
         return True
