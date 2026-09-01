@@ -28,7 +28,7 @@ Run `npm outdated` during scheduled maintenance. Major Expo upgrades require the
 matching versioned Expo migration guide, device testing, and a dedicated pull
 request.
 
-## Reviewed upgrade backlog (2026-08-31)
+## Reviewed upgrade backlog (2026-09-01)
 
 The lockfile is current within declared compatible ranges. The remaining direct
 major updates are deliberately deferred:
@@ -37,7 +37,12 @@ major updates are deliberately deferred:
   guide plus iOS and Android device testing.
 - Async Storage 3, React Native Gesture Handler 3, React Native WebView 14, and
   React Native Worklets 0.12 must be evaluated as part of that native upgrade.
-- ESLint 10 and TypeScript 7 need a separate tooling compatibility change.
+- React and React DOM remain pinned to Expo SDK 56's validated matrix even when
+  newer 19.2 patch releases exist.
+- Zod 4 changes validation and error APIs; migrate the auth, feedback, and
+  conversion request schemas together with their boundary tests.
+- ESLint 10, TypeScript 7, jsdom 30, and Node 26 types need a separate tooling
+  compatibility change against the Node 22 production runtime.
 - `docx-preview` 0.4 needs fixture-based Word rendering comparison before use.
 
 The current production audit reports 17 moderate, 4 high, and 0 critical
