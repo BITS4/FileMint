@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import FeedbackScreen from './feedback';
+import FeedbackScreen from '../../app/feedback';
 
 const mocks = vi.hoisted(() => ({
   authState: { token: 'session-token' as string | null },
