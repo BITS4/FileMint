@@ -82,4 +82,64 @@ describe('PDF annotations', () => {
       PDFDocument,
     );
   });
+
+  it('covers every text, number, and mark position with safe option defaults', async () => {
+    let bytes = await createPdf();
+
+    for (const position of ['top-left', 'bottom-left', 'center'] as const) {
+      bytes = await addTextToPage(bytes, {
+        pageIndex: -10,
+        text: position,
+        position,
+        fontSize: 12,
+        color: { r: 0, g: 0, b: 0 },
+      });
+    }
+
+    for (const position of ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const) {
+      bytes = await markAreaOnPage(bytes, {
+        pageIndex: 0,
+        position,
+        color: { r: 0.2, g: 0.4, b: 0.6 },
+        opacity: 0.25,
+        widthRatio: 0.3,
+        height: 20,
+      });
+    }
+
+    for (const position of ['top-center', 'top-right', 'bottom-left', 'bottom-right'] as const) {
+      bytes = await addPageNumbers(bytes, {
+        position,
+        startAt: 10,
+        fontSize: 9,
+        format: '{n}',
+        margin: 18,
+      });
+    }
+
+    await expect(PDFDocument.load(bytes)).resolves.toBeInstanceOf(PDFDocument);
+  });
+
+  it('handles point crops, omitted targets, and hostile edge values', async () => {
+    const cropped = await PDFDocument.load(
+      await cropPdfEdges(await createPdf(), {
+        left: -5,
+        right: Number.NaN,
+        bottom: 900,
+        top: 12,
+        unit: 'points',
+      }),
+    );
+
+    expect(cropped.getPage(0).getCropBox()).toMatchObject({ x: 0, y: 900, width: 600, height: 1 });
+    expect(cropped.getPage(1).getCropBox()).toMatchObject({ x: 0, y: 900, width: 400, height: 1 });
+
+    const clampedPercent = await PDFDocument.load(
+      await cropPdfEdges(await createPdf(), { left: 200, top: 200 }),
+    );
+    expect(clampedPercent.getPage(0).getCropBox()).toMatchObject({ x: 570, y: 0, width: 30, height: 40 });
+
+    const safeUniformCrop = await PDFDocument.load(await cropPdf(await createPdf(), -25));
+    expect(safeUniformCrop.getPage(0).getCropBox()).toMatchObject({ x: 0, y: 0, width: 600, height: 800 });
+  });
 });

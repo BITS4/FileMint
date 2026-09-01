@@ -1,6 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
-import { csvRowsToPdf, textToPdf } from './pdf';
+import { csvRowsToPdf, optimizePdf, textToPdf } from './pdf';
 
 describe('PDF content generation', () => {
   it('paginates long text and accepts characters outside WinAnsi safely', async () => {
@@ -26,5 +26,28 @@ describe('PDF content generation', () => {
     const document = await PDFDocument.load(await csvRowsToPdf(rows, 'Document inventory'));
 
     expect(document.getPageCount()).toBeGreaterThan(1);
+  });
+
+  it('uses document defaults for blank, monospace, and short content', async () => {
+    const bytes = await textToPdf('\n   \nshort', { mono: true });
+    const document = await PDFDocument.load(bytes);
+
+    expect(document.getPageCount()).toBe(1);
+  });
+
+  it('renders empty and sparse tables without requiring populated cells', async () => {
+    const empty = await PDFDocument.load(await csvRowsToPdf([]));
+    expect(empty.getPageCount()).toBe(1);
+
+    const sparse = await PDFDocument.load(await csvRowsToPdf([[], ['A very long heading that wraps']]));
+    expect(sparse.getPageCount()).toBe(1);
+  });
+
+  it('optimizes an existing PDF and records FileMint metadata', async () => {
+    const source = await textToPdf('Source document', { title: 'Before optimization' });
+    const document = await PDFDocument.load(await optimizePdf(source));
+
+    expect(document.getCreator()).toBe('FileMint');
+    expect(document.getTitle()).toBe('');
   });
 });
