@@ -1,17 +1,17 @@
 /**
- * Web: render Office documents in their native form (not as PDF).
+ * Web Office previews choose the safest useful renderer for each format.
  *  - Word  -> docx-preview (faithful page layout)
  *  - Excel -> read-excel-file with safe DOM rendering and sheet tabs
- *  - PPT   -> pptx-preview (stacked slides)
+ *  - PPT   -> server-rendered PDF, with a safe local text outline fallback
  */
 import { renderAsync } from 'docx-preview';
 import * as pdfjsLib from 'pdfjs-dist';
-import { init as initPptx } from 'pptx-preview';
 import readExcelFile from 'read-excel-file/browser';
 import { useEffect, useRef, useState } from 'react';
 
 import { convertFile } from '@/lib/api';
 import { configurePdfJsWorker } from '@/lib/pdfjs-worker';
+import { renderPptxPreview } from '@/lib/pptx-preview';
 import * as storage from '@/lib/storage';
 import type { FileItem } from '@/types';
 
@@ -220,7 +220,7 @@ async function renderPdfBytes(bytes: Uint8Array, container: HTMLElement, night =
   }
 }
 
-async function renderServerPdfWordPreview(file: FileItem, container: HTMLElement, night = false) {
+async function renderServerPdfOfficePreview(file: FileItem, container: HTMLElement, night = false) {
   const uri = await storage.getUri(file.storageKey);
   const res = await convertFile({
     endpoint: 'convert',
@@ -250,7 +250,7 @@ export function OfficeView({ file, night }: OfficeViewProps) {
         if (file.kind === 'word') {
           if (needsServerPdfWordPreview(file)) {
             setStatus('Preparing Word preview...');
-            await renderServerPdfWordPreview(file, container, night);
+            await renderServerPdfOfficePreview(file, container, night);
             if (alive) setStatus(undefined);
             return;
           }
@@ -262,19 +262,19 @@ export function OfficeView({ file, night }: OfficeViewProps) {
           refineDocxPreview(container, Boolean(file.conversionReport?.hiddenTextLayer));
           if (file.source === 'convert' && docxPreviewLooksBlank(container)) {
             setStatus('Preparing Word preview...');
-            await renderServerPdfWordPreview(file, container, night);
+            await renderServerPdfOfficePreview(file, container, night);
             if (alive) setStatus(undefined);
           }
         } else if (file.kind === 'excel') {
           await renderXlsx(bytes, container);
         } else if (file.kind === 'ppt') {
-          const width = container.clientWidth || 960;
-          const previewer = initPptx(container, {
-            width,
-            height: Math.round((width * 9) / 16),
-            mode: 'list',
+          setStatus('Preparing PowerPoint preview...');
+          await renderPptxPreview({
+            bytes,
+            container,
+            renderConvertedPdf: () => renderServerPdfOfficePreview(file, container, night),
           });
-          previewer.preview(toArrayBuffer(bytes));
+          if (alive) setStatus(undefined);
         }
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : 'Could not render this document.');

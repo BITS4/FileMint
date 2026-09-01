@@ -331,17 +331,17 @@ Every tool advertises an honest status in the UI:
 - **Server** – needs the conversion server engine above.
 - **Soon** – screen exists, processing not wired yet.
 
-| Area        | Tools                                                                                                                                      | Status       |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
-| Create      | Image → PDF, Text → PDF, CSV → PDF, Smart Scan → PDF                                                                                       | Ready / Beta |
-| Organize    | Merge, Split, Compress, Manage pages (reorder / rotate / delete / duplicate / blank / extract)                                             | Ready        |
-| Edit        | Watermark, Page numbers, Flatten, Crop, Add text & stamp, fill forms                                                                       | Ready / Beta |
-| View        | PDF (night mode, zoom), images, text, CSV table                                                                                            | Ready        |
-| View Office | Word/Excel/PowerPoint rendered natively on web (docx-preview / read-excel-file / pptx-preview); on native, converted to PDF via the server | Ready (web)  |
-| OCR         | Extract text from images & PDFs (web)                                                                                                      | Beta (web)   |
-| Convert     | DOCX/PPTX/XLSX → PDF, PDF → DOCX/XLSX/PPTX/HTML, Batch Convert, Searchable PDF                                                             | Server       |
-| Security    | Lock, Unlock, Permissions, Repair                                                                                                          | Server       |
-| Files       | Library, folders, favorites, trash, sort, grid/list, rename, duplicate, share                                                              | Ready        |
+| Area        | Tools                                                                                                                                                     | Status         |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Create      | Image → PDF, Text → PDF, CSV → PDF, Smart Scan → PDF                                                                                                      | Ready / Beta   |
+| Organize    | Merge, Split, Compress, Manage pages (reorder / rotate / delete / duplicate / blank / extract)                                                            | Ready          |
+| Edit        | Watermark, Page numbers, Flatten, Crop, Add text & stamp, fill forms                                                                                      | Ready / Beta   |
+| View        | PDF (night mode, zoom), images, text, CSV table                                                                                                           | Ready          |
+| View Office | Word/Excel rendered locally on web; PowerPoint prefers server-to-PDF rendering and falls back to a sanitized text-only outline; native uses server-to-PDF | Ready / Server |
+| OCR         | Extract text from images & PDFs (web)                                                                                                                     | Beta (web)     |
+| Convert     | DOCX/PPTX/XLSX → PDF, PDF → DOCX/XLSX/PPTX/HTML, Batch Convert, Searchable PDF                                                                            | Server         |
+| Security    | Lock, Unlock, Permissions, Repair                                                                                                                         | Server         |
+| Files       | Library, folders, favorites, trash, sort, grid/list, rename, duplicate, share                                                                             | Ready          |
 
 Fill Forms supports text, checkbox, date, initials, and signature overlays and
 exports the completed PDF. Drawing, highlighting, and freehand redaction remain

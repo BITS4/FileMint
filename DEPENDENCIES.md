@@ -45,8 +45,11 @@ major updates are deliberately deferred:
   compatibility change against the Node 22 production runtime.
 - `docx-preview` 0.4 needs fixture-based Word rendering comparison before use.
 
-The current production audit reports 17 moderate, 4 high, and 0 critical
+The current root audit reports 15 moderate, 4 high, and 0 critical
 findings. The high findings are inherited from Metro's `image-size` parser; the
-moderate findings are inherited from the Expo build toolchain and
-`pptx-preview`. `npm run audit` rejects any increase in high or critical risk,
-while Dependabot continues to propose compatible upstream fixes.
+moderate findings are inherited from the Expo build toolchain. FileMint no
+longer ships `pptx-preview`, ECharts, or its legacy UUID dependency: PowerPoint
+viewing now prefers the isolated conversion server and uses a bounded,
+textContent-only local outline when the server is unavailable. `npm run audit`
+rejects any increase in high or critical risk, while Dependabot continues to
+propose compatible upstream fixes.

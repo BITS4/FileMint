@@ -1,7 +1,7 @@
 /**
  * Native: Office documents can't be rendered in-process, so they're converted
- * to PDF on the server and shown in the PDF viewer. (The web build renders
- * them natively via docx-preview / SheetJS / pptx-preview — see OfficeView.web.tsx.)
+ * to PDF on the server and shown in the PDF viewer. The web build renders
+ * Word/Excel locally and uses PDF conversion with a safe PowerPoint outline fallback.
  */
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
