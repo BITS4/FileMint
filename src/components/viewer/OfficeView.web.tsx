@@ -11,6 +11,7 @@ import readExcelFile from 'read-excel-file/browser';
 import { useEffect, useRef, useState } from 'react';
 
 import { convertFile } from '@/lib/api';
+import { configurePdfJsWorker } from '@/lib/pdfjs-worker';
 import * as storage from '@/lib/storage';
 import type { FileItem } from '@/types';
 
@@ -23,7 +24,7 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+configurePdfJsWorker(pdfjsLib);
 
 async function renderXlsx(bytes: Uint8Array, container: HTMLElement) {
   const sheets = await readExcelFile(toArrayBuffer(bytes));

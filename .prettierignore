@@ -1,5 +1,6 @@
 node_modules/
 dist/
+public/pdf.worker.min.mjs
 coverage/
 .expo/
 test-files/

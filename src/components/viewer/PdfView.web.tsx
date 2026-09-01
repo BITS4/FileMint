@@ -1,6 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { useEffect, useRef, useState } from 'react';
 
+import { configurePdfJsWorker } from '@/lib/pdfjs-worker';
 import * as storage from '@/lib/storage';
 
 export interface PdfViewProps {
@@ -8,7 +9,7 @@ export interface PdfViewProps {
   night?: boolean;
 }
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+configurePdfJsWorker(pdfjsLib);
 
 type LoadState =
   | { kind: 'loading'; label: string }
