@@ -53,7 +53,9 @@ def save_unlocked(src: str, dst: str, password: str) -> None:
         doc.close()
 
 
-def save_permissions(src: str, dst: str, owner_password: str, allow_print: bool, allow_copy: bool) -> None:
+def save_permissions(
+    src: str, dst: str, owner_password: str, allow_print: bool, allow_copy: bool
+) -> None:
     if not owner_password:
         raise ValueError("An owner password is required.")
     permissions = 0
@@ -80,7 +82,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
-    parser.add_argument("--task", required=True, choices=["lock", "unlock", "permissions"])
+    parser.add_argument(
+        "--task", required=True, choices=["lock", "unlock", "permissions"]
+    )
     parser.add_argument("--password", default="")
     parser.add_argument("--owner-password", default="")
     parser.add_argument("--allow-print", action="store_true")
@@ -92,7 +96,13 @@ def main() -> None:
     elif args.task == "unlock":
         save_unlocked(args.input, args.output, args.password)
     else:
-        save_permissions(args.input, args.output, args.owner_password, args.allow_print, args.allow_copy)
+        save_permissions(
+            args.input,
+            args.output,
+            args.owner_password,
+            args.allow_print,
+            args.allow_copy,
+        )
 
 
 if __name__ == "__main__":

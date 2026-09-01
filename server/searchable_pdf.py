@@ -14,7 +14,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from pdf_to_docx import find_tesseract, inspect_pdf, resolve_ocr_language, tessdata_dir_for_lang
+from pdf_to_docx import (
+    find_tesseract,
+    inspect_pdf,
+    resolve_ocr_language,
+    tessdata_dir_for_lang,
+)
 
 
 def truthy(value: str | bool | None, default: bool = True) -> bool:
@@ -149,13 +154,25 @@ def run_ocrmypdf(
     osd_available = (
         os.path.exists(os.path.join(tessdata_dir, "osd.traineddata"))
         if tessdata_dir
-        else bool(tess and os.path.exists(os.path.join(str(Path(tess).parent), "tessdata", "osd.traineddata")))
+        else bool(
+            tess
+            and os.path.exists(
+                os.path.join(str(Path(tess).parent), "tessdata", "osd.traineddata")
+            )
+        )
     )
     if rotate_pages and osd_available:
         command.insert(-2, "--rotate-pages")
 
     try:
-        result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="ignore", env=env)
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="ignore",
+            env=env,
+        )
         return result.stdout or "", result.stderr or ""
     finally:
         if merged_tessdata:
@@ -179,105 +196,131 @@ def main() -> int:
     sidecar = os.path.join(tmpdir, "sidecar.txt")
 
     try:
-      input_info = inspect_pdf(args.input)
-      input_stats = text_stats(args.input)
-      report["pdfType"] = input_info.get("pdfType", "unknown")
-      report["pagesConverted"] = int(input_info.get("pages") or input_stats["pages"])
+        input_info = inspect_pdf(args.input)
+        input_stats = text_stats(args.input)
+        report["pdfType"] = input_info.get("pdfType", "unknown")
+        report["pagesConverted"] = int(input_info.get("pages") or input_stats["pages"])
 
-      lang = resolve_ocr_language(args.lang, report)
-      report["ocrLanguage"] = lang
+        lang = resolve_ocr_language(args.lang, report)
+        report["ocrLanguage"] = lang
 
-      ocrmypdf = find_ocrmypdf(args.ocrmypdf)
-      if not ocrmypdf:
-          raise RuntimeError("OCRmyPDF is not installed.")
+        ocrmypdf = find_ocrmypdf(args.ocrmypdf)
+        if not ocrmypdf:
+            raise RuntimeError("OCRmyPDF is not installed.")
 
-      force = truthy(args.force, default=False)
-      if str(args.force).strip().lower() in {"", "auto"}:
-          force = int(input_info.get("textCharacters") or 0) < 25 or int(input_info.get("imageBackedPages") or 0) > 0
+        force = truthy(args.force, default=False)
+        if str(args.force).strip().lower() in {"", "auto"}:
+            force = (
+                int(input_info.get("textCharacters") or 0) < 25
+                or int(input_info.get("imageBackedPages") or 0) > 0
+            )
 
-      stdout, stderr = run_ocrmypdf(
-          ocrmypdf,
-          args.input,
-          args.output,
-          sidecar,
-          lang,
-          input_info,
-          force=force,
-          deskew=truthy(args.deskew, default=True),
-          rotate_pages=truthy(args.rotate_pages, default=True),
-      )
+        stdout, stderr = run_ocrmypdf(
+            ocrmypdf,
+            args.input,
+            args.output,
+            sidecar,
+            lang,
+            input_info,
+            force=force,
+            deskew=truthy(args.deskew, default=True),
+            rotate_pages=truthy(args.rotate_pages, default=True),
+        )
 
-      if not os.path.exists(args.output):
-          message = (stderr or stdout or "OCRmyPDF did not create an output file.").strip()
-          raise RuntimeError(message[:1200])
+        if not os.path.exists(args.output):
+            message = (
+                stderr or stdout or "OCRmyPDF did not create an output file."
+            ).strip()
+            raise RuntimeError(message[:1200])
 
-      output_stats = text_stats(args.output)
-      sidecar_text = ""
-      if os.path.exists(sidecar):
-          try:
-              sidecar_text = Path(sidecar).read_text(encoding="utf-8", errors="ignore")
-          except Exception:
-              sidecar_text = ""
+        output_stats = text_stats(args.output)
+        sidecar_text = ""
+        if os.path.exists(sidecar):
+            try:
+                sidecar_text = Path(sidecar).read_text(
+                    encoding="utf-8", errors="ignore"
+                )
+            except Exception:
+                sidecar_text = ""
 
-      input_chars = int(input_stats["characters"])
-      output_chars = int(output_stats["characters"])
-      output_words = int(output_stats["words"])
-      sidecar_words = len(re.findall(r"\S+", sidecar_text))
+        input_chars = int(input_stats["characters"])
+        output_chars = int(output_stats["characters"])
+        output_words = int(output_stats["words"])
+        sidecar_words = len(re.findall(r"\S+", sidecar_text))
 
-      if input_chars < 8 and output_chars < 8 and sidecar_words < 1:
-          raise RuntimeError(
-              "OCR finished but no searchable text layer was detected. Try a clearer scan or install the correct Tesseract language data."
-          )
+        if input_chars < 8 and output_chars < 8 and sidecar_words < 1:
+            raise RuntimeError(
+                "OCR finished but no searchable text layer was detected. Try a clearer scan or install the correct Tesseract language data."
+            )
 
-      report["editableTextDetected"] = output_chars > 0
-      report["editableTextBoxes"] = int(output_stats["textPages"])
-      report["editableCharacters"] = output_chars
-      report["outputEditableCharacters"] = output_chars
-      report["outputTextRuns"] = output_words
-      report["ocrTextCandidates"] = max(output_words, sidecar_words)
-      report["hiddenTextLayer"] = input_chars < 8 and output_chars > 0
-      report["visibleEditableTextLayer"] = input_chars >= 8
-      report["textCoverageEstimate"] = min(100, round((output_stats["textPages"] / max(1, output_stats["pages"])) * 100))
-      report["ocrPasses"].append("ocrmypdf/force-ocr" if force else "ocrmypdf/skip-text")
+        report["editableTextDetected"] = output_chars > 0
+        report["editableTextBoxes"] = int(output_stats["textPages"])
+        report["editableCharacters"] = output_chars
+        report["outputEditableCharacters"] = output_chars
+        report["outputTextRuns"] = output_words
+        report["ocrTextCandidates"] = max(output_words, sidecar_words)
+        report["hiddenTextLayer"] = input_chars < 8 and output_chars > 0
+        report["visibleEditableTextLayer"] = input_chars >= 8
+        report["textCoverageEstimate"] = min(
+            100,
+            round((output_stats["textPages"] / max(1, output_stats["pages"])) * 100),
+        )
+        report["ocrPasses"].append(
+            "ocrmypdf/force-ocr" if force else "ocrmypdf/skip-text"
+        )
 
-      if input_chars >= 25 and not force:
-          report["resolvedMode"] = "already-searchable-or-mixed"
-          report["notes"].append("This PDF already had selectable text. Pages without text were OCR processed where needed.")
-      else:
-          report["notes"].append("OCR text layer added. The page appearance is intentionally preserved while text becomes searchable/selectable.")
+        if input_chars >= 25 and not force:
+            report["resolvedMode"] = "already-searchable-or-mixed"
+            report["notes"].append(
+                "This PDF already had selectable text. Pages without text were OCR processed where needed."
+            )
+        else:
+            report["notes"].append(
+                "OCR text layer added. The page appearance is intentionally preserved while text becomes searchable/selectable."
+            )
 
-      noisy = [line for line in (stderr or stdout).splitlines() if line.strip()]
-      winerror_noise = [line for line in noisy if "WinError 2" in line]
-      ignored_fragments = (
-          "WinError 2",
-          "Image optimization ratio",
-          "Total file size ratio",
-          "Parsing ",
-          "Postprocessing",
-          "Output file is a PDF",
-          "Auto mode:",
-          "Consider using the pymupdf_layout package",
-      )
-      meaningful = [line for line in noisy if not any(fragment in line for fragment in ignored_fragments)]
-      if winerror_noise:
-          report["notes"].append("OCRmyPDF reported non-fatal Windows helper warnings, but the searchable layer was verified.")
-      if meaningful:
-          report["warnings"].extend(meaningful[:3])
+        noisy = [line for line in (stderr or stdout).splitlines() if line.strip()]
+        winerror_noise = [line for line in noisy if "WinError 2" in line]
+        ignored_fragments = (
+            "WinError 2",
+            "Image optimization ratio",
+            "Total file size ratio",
+            "Parsing ",
+            "Postprocessing",
+            "Output file is a PDF",
+            "Auto mode:",
+            "Consider using the pymupdf_layout package",
+        )
+        meaningful = [
+            line
+            for line in noisy
+            if not any(fragment in line for fragment in ignored_fragments)
+        ]
+        if winerror_noise:
+            report["notes"].append(
+                "OCRmyPDF reported non-fatal Windows helper warnings, but the searchable layer was verified."
+            )
+        if meaningful:
+            report["warnings"].extend(meaningful[:3])
 
-      if args.report:
-          Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-      return 0
+        if args.report:
+            Path(args.report).write_text(
+                json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        return 0
     except Exception as exc:
-      report["warnings"].append(str(exc))
-      if args.report:
-          try:
-              Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-          except Exception:
-              pass
-      print(str(exc), file=sys.stderr)
-      return 1
+        report["warnings"].append(str(exc))
+        if args.report:
+            try:
+                Path(args.report).write_text(
+                    json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+            except Exception:
+                pass
+        print(str(exc), file=sys.stderr)
+        return 1
     finally:
-      shutil.rmtree(tmpdir, ignore_errors=True)
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,9 @@ def repair_pdf(src: str, dst: str) -> None:
     doc = fitz.open(src)
     try:
         if doc.needs_pass:
-            raise ValueError("This PDF is encrypted. Unlock it before running Repair PDF.")
+            raise ValueError(
+                "This PDF is encrypted. Unlock it before running Repair PDF."
+            )
         doc.save(dst, garbage=4, clean=True, deflate=True)
     finally:
         doc.close()

@@ -51,27 +51,35 @@ def write_report(path: str | None, report: dict[str, Any]) -> None:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
 
-def render_pages(src: str, dst_zip: str, fmt: str, dpi: int, report: dict[str, Any]) -> None:
+def render_pages(
+    src: str, dst_zip: str, fmt: str, dpi: int, report: dict[str, Any]
+) -> None:
     doc = fitz.open(src)
     try:
-      with tempfile.TemporaryDirectory() as tmpdir, zipfile.ZipFile(dst_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-        zoom = max(72, min(360, dpi)) / 72.0
-        matrix = fitz.Matrix(zoom, zoom)
-        for page in doc:
-            pix = page.get_pixmap(matrix=matrix, alpha=False)
-            name = f"page-{page.number + 1:03d}.{fmt}"
-            path = os.path.join(tmpdir, name)
-            if fmt == "jpg":
-                pix.save(path, jpg_quality=92)
-            else:
-                pix.save(path)
-            zf.write(path, name)
-        report["notes"].append(f"Rendered {len(doc)} page(s) to {fmt.upper()} images.")
+        with tempfile.TemporaryDirectory() as tmpdir, zipfile.ZipFile(
+            dst_zip, "w", zipfile.ZIP_DEFLATED
+        ) as zf:
+            zoom = max(72, min(360, dpi)) / 72.0
+            matrix = fitz.Matrix(zoom, zoom)
+            for page in doc:
+                pix = page.get_pixmap(matrix=matrix, alpha=False)
+                name = f"page-{page.number + 1:03d}.{fmt}"
+                path = os.path.join(tmpdir, name)
+                if fmt == "jpg":
+                    pix.save(path, jpg_quality=92)
+                else:
+                    pix.save(path)
+                zf.write(path, name)
+            report["notes"].append(
+                f"Rendered {len(doc)} page(s) to {fmt.upper()} images."
+            )
     finally:
         doc.close()
 
 
-def ocr_page_text(page: fitz.Page, tmpdir: str, lang: str, report: dict[str, Any]) -> str:
+def ocr_page_text(
+    page: fitz.Page, tmpdir: str, lang: str, report: dict[str, Any]
+) -> str:
     dpi = 220
     zoom = dpi / 72.0
     pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
@@ -120,7 +128,9 @@ def extract_text(src: str, dst: str, lang: str, report: dict[str, Any]) -> None:
         report["editableTextBoxes"] = len([c for c in ocr_chunks if c.strip()])
         report["editableCharacters"] = len(text)
         report["textCoverageEstimate"] = 100 if text else 0
-        report["notes"].append("Native text was unavailable, so OCR text extraction was used.")
+        report["notes"].append(
+            "Native text was unavailable, so OCR text extraction was used."
+        )
         with open(dst, "w", encoding="utf-8") as f:
             f.write(text)
     finally:

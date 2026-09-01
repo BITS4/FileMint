@@ -29,7 +29,9 @@ def apply_filter(image: Image.Image, filter_name: str) -> Image.Image:
     return image
 
 
-def normalize_image(src: str, dst: str, rotate: int = 0, filter_name: str = "none") -> dict[str, Any]:
+def normalize_image(
+    src: str, dst: str, rotate: int = 0, filter_name: str = "none"
+) -> dict[str, Any]:
     with Image.open(src) as image:
         first = next(ImageSequence.Iterator(image))
         first = ImageOps.exif_transpose(first)
@@ -61,7 +63,9 @@ def main() -> None:
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--rotate", type=int, default=0)
-    parser.add_argument("--filter", default="none", choices=["none", "grayscale", "contrast", "bw"])
+    parser.add_argument(
+        "--filter", default="none", choices=["none", "grayscale", "contrast", "bw"]
+    )
     parser.add_argument("--report")
     args = parser.parse_args()
 

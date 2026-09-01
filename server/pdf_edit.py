@@ -30,12 +30,14 @@ def hex_to_rgb(value: str) -> tuple[float, float, float]:
     )
 
 
-def redact(input_path: Path, output_path: Path, areas_json: str, color: str, label: str) -> None:
+def redact(
+    input_path: Path, output_path: Path, areas_json: str, color: str, label: str
+) -> None:
     try:
         areas = json.loads(areas_json or "[]")
     except json.JSONDecodeError:
         fixed = (areas_json or "[]").replace('\\"', '"')
-        fixed = re.sub(r'([{\[,]\s*)([A-Za-z_][\w-]*)(\s*:)', r'\1"\2"\3', fixed)
+        fixed = re.sub(r"([{\[,]\s*)([A-Za-z_][\w-]*)(\s*:)", r'\1"\2"\3', fixed)
         areas = json.loads(fixed)
     fill = hex_to_rgb(color)
     doc = fitz.open(input_path)
@@ -83,7 +85,9 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.task == "redact":
-      redact(Path(args.input), Path(args.output), args.areas_json, args.color, args.label)
+        redact(
+            Path(args.input), Path(args.output), args.areas_json, args.color, args.label
+        )
 
 
 if __name__ == "__main__":
