@@ -1,11 +1,5 @@
 /** Object-specific PDF editor renderers. */
-import {
-  LineCapStyle,
-  degrees,
-  rgb,
-  type PDFFont,
-  type PDFPage,
-} from 'pdf-lib';
+import { LineCapStyle, degrees, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 
 import { pageRect, safePdfText } from './pdf-editor.geometry';
 import type { PdfEditorObjectExport } from './pdf-editor.types';
