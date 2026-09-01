@@ -4,6 +4,14 @@ All notable changes follow Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-09-01
+
+### Fixed
+
+- Isolated authentication URL tests from deployment environment values so the
+  documented CI configuration and clean local environments exercise the same
+  precedence rules reliably.
+
 ## [1.2.0] - 2026-09-01
 
 ### Added
@@ -66,6 +74,7 @@ All notable changes follow Semantic Versioning.
 - Split the conversion studio, operation registry, tool catalog, settings UI,
   PDF export models, and editor geometry into focused modules under 500 lines.
 
-[Unreleased]: https://github.com/BITS4/FileMint/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/BITS4/FileMint/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/BITS4/FileMint/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/BITS4/FileMint/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/BITS4/FileMint/releases/tag/v1.1.0
