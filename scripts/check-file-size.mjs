@@ -4,13 +4,14 @@ import { extname, join, relative } from 'node:path';
 const MAX_LINES = 500;
 const ROOTS = ['src', 'server', 'scripts'];
 const CODE_EXTENSIONS = new Set(['.js', '.mjs', '.py', '.ts', '.tsx']);
+const IGNORED_DIRECTORIES = new Set(['node_modules', 'coverage', 'dist', 'data', '__pycache__']);
 
 async function codeFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(
     entries.map(async (entry) => {
       const path = join(directory, entry.name);
-      if (entry.isDirectory()) return codeFiles(path);
+      if (entry.isDirectory()) return IGNORED_DIRECTORIES.has(entry.name) ? [] : codeFiles(path);
       return CODE_EXTENSIONS.has(extname(entry.name)) ? [path] : [];
     }),
   );
