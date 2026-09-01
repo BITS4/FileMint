@@ -112,16 +112,15 @@ analyzes both TypeScript and Python on pushes, pull requests, and a weekly
 schedule with GitHub's extended security queries.
 
 Coverage thresholds are enforced in `vitest.config.mts`; the current suite has
-83 TypeScript spec files (508 tests) plus 233 Python conversion/export tests.
+87 TypeScript spec files (557 tests) plus 233 Python conversion/export tests.
 The TypeScript gate covers every server module, client business library,
-constant registry, persisted store, and pure editor state module at 96.32%
-statements, 87.73% branches, 98.42% functions, and 97.97% lines. Executable
+constant registry, persisted store, and pure editor state module at 96.85%
+statements, 89.99% branches, 98.48% functions, and 98.44% lines. Executable
 launchers are checked by build/smoke jobs, while three browser-specific storage
 and rendering adapters remain outside the Node coverage runner. Python branch
 coverage measures the complete `server` Python source and must remain at or
 above 92% under `.coveragerc` (currently 94.26%). Dependency update and audit
-policy is documented
-in [DEPENDENCIES.md](DEPENDENCIES.md), and security reports are handled
+policy is documented in [DEPENDENCIES.md](DEPENDENCIES.md), and security reports are handled
 according to [SECURITY.md](SECURITY.md).
 
 ### Production auth, email verification, and card payments
