@@ -4,6 +4,7 @@ import { CONVERT_TOOLS } from './tools.convert';
 import {
   CATEGORIES,
   PREMIUM_TOOL_IDS,
+  pickTools,
   STATUS_LABEL,
   TOOLS,
   findTool,
@@ -31,8 +32,14 @@ describe('tool catalog', () => {
 
   it('finds and filters tools by stable metadata', () => {
     expect(findTool('pdf-to-docx')?.title).toBe('PDF to Word');
+    expect(findTool()).toBeUndefined();
     expect(toolsByCategory('convert').every((tool) => tool.category === 'convert')).toBe(true);
     expect(searchTools('spreadsheet').some((tool) => tool.id === 'pdf-to-xlsx')).toBe(true);
+    expect(searchTools('   ')).toEqual([]);
+    expect(pickTools(['pdf-to-docx', 'missing', 'open-pdf']).map((tool) => tool.id)).toEqual([
+      'pdf-to-docx',
+      'open-pdf',
+    ]);
   });
 
   it('publishes category and status metadata from the focused catalog module', () => {
