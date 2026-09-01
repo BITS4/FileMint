@@ -14,7 +14,7 @@ backed by an optional **conversion server** for the heavy Office ⇆ PDF jobs.
 
 ## Quick start
 
-Prerequisites: Node.js 20.19 or newer, npm 10 or newer, and Python 3 for the
+Prerequisites: Node.js 20.19 or newer, npm 10 or newer, and Python 3.11 for the
 optional conversion helpers. A fresh clone needs no provider credentials to run
 the app, quality checks, or automated tests.
 
@@ -88,6 +88,8 @@ npm run lint           # ESLint; warnings fail the command
 npm run expo:check     # Expo SDK package compatibility
 npm run typecheck      # app and complete Hono server
 npm test               # unit and server middleware tests
+npm run test:python    # Python conversion and export tests
+npm run test:all       # TypeScript coverage gates plus every Python test
 npm run test:coverage  # explicit 94/85/97/96 statement/branch/function/line gates
 npm run server:smoke   # /health and /metrics in-process smoke check
 npm run build:web      # production Expo web export

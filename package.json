@@ -80,9 +80,11 @@
     "typecheck:app": "tsc --noEmit",
     "typecheck:server": "tsc -p server/tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:python": "python -m unittest discover -s server/tests -p \"test_*.py\"",
     "test:coverage": "vitest run --coverage",
+    "test:all": "npm run test:coverage && npm run test:python",
     "audit": "node scripts/check-audit-baseline.mjs",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build:web",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test:all && npm run build:web",
     "server": "node --import tsx server/start.ts",
     "server:dev": "node --import tsx --watch server/start.ts",
     "server:smoke": "node --import tsx server/smoke.ts"
