@@ -1,5 +1,12 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 
+import {
+  collaboraBooleanValue,
+  type CollaboraMessage,
+  parseCollaboraLaunch,
+  parseCollaboraMessage,
+} from '@/lib/collabora-protocol';
+
 export interface CollaboraEditorHandle {
   /** Ask Collabora to persist the document (WOPI PutFile) via postMessage. */
   save: () => Promise<CollaboraSaveResult>;
@@ -14,33 +21,10 @@ export interface CollaboraSaveResult {
   hadEdits: boolean;
 }
 
-interface CollaboraMessage {
-  MessageId?: string;
-  Values?: Record<string, unknown>;
-}
-
 interface PendingSave {
   hadEdits: boolean;
   resolve: (result: CollaboraSaveResult) => void;
   timer: ReturnType<typeof setTimeout>;
-}
-
-function parseMessage(data: unknown): CollaboraMessage | null {
-  try {
-    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-    if (!parsed || typeof parsed !== 'object') return null;
-    const msg = parsed as CollaboraMessage;
-    return typeof msg.MessageId === 'string' ? msg : null;
-  } catch {
-    return null;
-  }
-}
-
-function booleanValue(values: Record<string, unknown> | undefined, key: string): boolean | undefined {
-  const value = values?.[key];
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') return value.toLowerCase() === 'true';
-  return undefined;
 }
 
 export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditorProps>(({ url }, ref) => {
@@ -50,31 +34,13 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
   const pendingSaveRef = useRef<PendingSave | null>(null);
   const iframeName = useMemo(() => `filemint-collabora-${Math.random().toString(36).slice(2)}`, []);
 
-  const launch = useMemo(() => {
-    try {
-      const parsed = new URL(url);
-      const accessToken = parsed.searchParams.get('access_token') ?? '';
-      const accessTokenTtl = parsed.searchParams.get('access_token_ttl') ?? '0';
-      parsed.searchParams.delete('access_token');
-      parsed.searchParams.delete('access_token_ttl');
-      return { action: parsed.toString(), accessToken, accessTokenTtl };
-    } catch {
-      return { action: url, accessToken: '', accessTokenTtl: '0' };
-    }
-  }, [url]);
-
-  const targetOrigin = useMemo(() => {
-    try {
-      return new URL(launch.action).origin;
-    } catch {
-      return '*';
-    }
-  }, [launch.action]);
+  const launch = useMemo(() => parseCollaboraLaunch(url), [url]);
+  const targetOrigin = launch?.origin ?? null;
 
   const post = useCallback(
     (message: CollaboraMessage) => {
       const frame = iframeRef.current?.contentWindow;
-      if (!frame) return false;
+      if (!frame || !targetOrigin) return false;
       frame.postMessage(
         JSON.stringify({
           SendTime: Date.now(),
@@ -113,7 +79,7 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
 
   useEffect(() => {
     const frame = iframeRef.current;
-    if (!frame) return;
+    if (!frame || !launch) return;
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = launch.action;
@@ -150,8 +116,10 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (targetOrigin !== '*' && event.origin !== targetOrigin) return;
-      const msg = parseMessage(event.data);
+      const frameWindow = iframeRef.current?.contentWindow;
+      if (!targetOrigin || !frameWindow || event.origin !== targetOrigin || event.source !== frameWindow)
+        return;
+      const msg = parseCollaboraMessage(event.data);
       if (!msg?.MessageId) return;
 
       const values = msg.Values;
@@ -164,7 +132,7 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
       }
 
       if (msg.MessageId === 'Doc_ModifiedStatus') {
-        const modified = booleanValue(values, 'Modified');
+        const modified = collaboraBooleanValue(values, 'Modified');
         if (modified) {
           hadEditsRef.current = true;
         } else if (!pendingSaveRef.current) {
@@ -174,7 +142,8 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
       }
 
       if (msg.MessageId === 'Action_Save_Resp') {
-        const success = booleanValue(values, 'success') ?? booleanValue(values, 'Success') ?? true;
+        const success =
+          collaboraBooleanValue(values, 'success') ?? collaboraBooleanValue(values, 'Success') ?? true;
         finishSave(success);
       }
     };
@@ -220,6 +189,14 @@ export const CollaboraEditor = forwardRef<CollaboraEditorHandle, CollaboraEditor
     }),
     [announceReady, finishSave, post],
   );
+
+  if (!launch) {
+    return (
+      <div role="alert" style={{ padding: 24, color: '#FF7A7A', fontFamily: 'system-ui, sans-serif' }}>
+        The document editor returned an invalid launch URL.
+      </div>
+    );
+  }
 
   return (
     <iframe
