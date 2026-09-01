@@ -5,17 +5,29 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'react-native': 'react-native-web',
     },
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.spec.ts', 'server/**/*.spec.ts'],
+    include: ['src/**/*.spec.{ts,tsx}', 'server/**/*.spec.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary', 'lcov'],
       include: [
         'server/**/*.ts',
         'src/constants/**/*.ts',
+        'src/components/ui/Badge.tsx',
+        'src/components/ui/Button.tsx',
+        'src/components/ui/Card.tsx',
+        'src/components/ui/Chip.tsx',
+        'src/components/ui/EmptyState.tsx',
+        'src/components/ui/FilterChips.tsx',
+        'src/components/ui/IconButton.tsx',
+        'src/components/ui/PromptModal.tsx',
+        'src/components/ui/Segmented.tsx',
+        'src/components/ui/TextField.tsx',
+        'src/components/ui/Txt.tsx',
         'src/hooks/pdf-editor/object-state.ts',
         'src/lib/**/*.ts',
         'src/store/**/*.ts',
