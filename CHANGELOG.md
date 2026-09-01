@@ -11,8 +11,9 @@ All notable changes follow Semantic Versioning.
 - Expanded regression coverage to 54 TypeScript spec files and 262 tests, with
   enforced 94/85/97/96 statement, branch, function, and line gates across API,
   storage, conversion, editor, runtime, and state modules.
-- Added 126 Python conversion and export tests and a root `test:python` /
-  `test:all` workflow backed by pinned Python 3.11 CI.
+- Added 130 Python conversion and export tests, a 70% Python branch-coverage
+  gate, and root `test:python` / `test:all` workflows backed by pinned Python
+  3.11 CI.
 - Added weekly Dependabot updates for the pinned Python conversion stack.
 - Added repository-owned privacy and terms documents in place of placeholder
   application links.

@@ -36,12 +36,18 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
+          cache-dependency-path: server/requirements-dev.lock.txt
       - name: Install locked dependencies
         run: npm ci
+      - name: Install pinned Python quality tools
+        run: python -m pip install -r server/requirements-dev.lock.txt
       - name: Check formatting
         run: npm run format:check
       - name: Lint app and server
         run: npm run lint
+      - name: Lint and format-check Python helpers
+        run: npm run lint:python
       - name: Check Expo SDK package compatibility
         run: npm run expo:check
       - name: Typecheck app and server
@@ -66,12 +72,14 @@ jobs:
         with:
           python-version: '3.11'
           cache: pip
-          cache-dependency-path: server/requirements.lock.txt
+          cache-dependency-path: |
+            server/requirements.lock.txt
+            server/requirements-dev.lock.txt
       - name: Install locked dependencies
         run: npm ci
       - name: Install pinned Python dependencies
-        run: python -m pip install -r server/requirements.lock.txt
-      - name: Run TypeScript coverage and Python tests
+        run: python -m pip install -r server/requirements.lock.txt -r server/requirements-dev.lock.txt
+      - name: Run TypeScript and Python branch coverage gates
         run: npm run test:all
       - name: Verify server health and metrics
         run: npm run server:smoke

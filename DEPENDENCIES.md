@@ -1,13 +1,17 @@
 # Dependency policy
 
-FileMint uses one npm manifest and one committed `package-lock.json`. Install with
-`npm ci`; do not use an unlocked install in CI or production images.
+FileMint uses one npm manifest and one committed `package-lock.json`. Python
+runtime and quality-tool graphs are fully pinned in
+`server/requirements.lock.txt` and `server/requirements-dev.lock.txt`. Install
+with `npm ci` and the matching lockfiles; do not use unlocked installs in CI or
+production images.
 
 Dependabot checks npm, pinned Python packages, and GitHub Actions weekly. Before merging an update, run:
 
 ```bash
 npm run verify
 npm run test:coverage
+npm run test:python:coverage
 npm run audit
 ```
 

@@ -85,11 +85,13 @@ Collabora, or external network calls. Run the same checks used by GitHub Actions
 ```bash
 npm run format:check   # Prettier across app, server, config, and docs
 npm run lint           # ESLint; warnings fail the command
+npm run lint:python    # Black formatting and Pyflakes correctness checks
 npm run expo:check     # Expo SDK package compatibility
 npm run typecheck      # app and complete Hono server
 npm test               # unit and server middleware tests
 npm run test:python    # Python conversion and export tests
-npm run test:all       # TypeScript coverage gates plus every Python test
+npm run test:python:coverage # Python branch coverage with a 70% total gate
+npm run test:all       # TypeScript and Python coverage gates
 npm run test:coverage  # explicit 94/85/97/96 statement/branch/function/line gates
 npm run server:smoke   # /health and /metrics in-process smoke check
 npm run build:web      # production Expo web export
@@ -102,9 +104,11 @@ Python dependencies, tests and compile-checks the conversion helpers, and uses
 `npm ci` so the committed lockfile is authoritative.
 
 Coverage thresholds are enforced in `vitest.config.mts`; the current suite has
-54 TypeScript spec files (262 tests) plus 126 Python conversion/export tests. Dependency update and
-audit policy is documented in [DEPENDENCIES.md](DEPENDENCIES.md), and security
-reports are handled according to [SECURITY.md](SECURITY.md).
+54 TypeScript spec files (262 tests) plus 130 Python conversion/export tests.
+Python branch coverage is measured with Coverage.py and must remain at or above
+70% under `.coveragerc`. Dependency update and audit policy is documented in
+[DEPENDENCIES.md](DEPENDENCIES.md), and security reports are handled according
+to [SECURITY.md](SECURITY.md).
 
 ### Production auth, email verification, and card payments
 

@@ -1,0 +1,9 @@
+[run]
+branch = True
+
+[report]
+fail_under = 70
+omit =
+    server/tests/*
+precision = 2
+show_missing = True

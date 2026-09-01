@@ -38,6 +38,7 @@ yarn-error.*
 
 # test output
 coverage/
+.coverage
 
 # typescript
 *.tsbuildinfo
