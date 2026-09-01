@@ -101,7 +101,9 @@ npm run audit          # fail if high/critical production risk increases
 `npm run verify` combines format, lint, typecheck, tests, and the production web
 build. CI runs those gates on every push and pull request, installs the pinned
 Python dependencies, tests and compile-checks the conversion helpers, and uses
-`npm ci` so the committed lockfile is authoritative.
+`npm ci` so the committed lockfile is authoritative. A separate CodeQL workflow
+analyzes both TypeScript and Python on pushes, pull requests, and a weekly
+schedule with GitHub's extended security queries.
 
 Coverage thresholds are enforced in `vitest.config.mts`; the current suite has
 54 TypeScript spec files (262 tests) plus 130 Python conversion/export tests.

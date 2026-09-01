@@ -15,6 +15,8 @@ All notable changes follow Semantic Versioning.
   gate, and root `test:python` / `test:all` workflows backed by pinned Python
   3.11 CI.
 - Added weekly Dependabot updates for the pinned Python conversion stack.
+- Added CodeQL security-extended analysis for TypeScript and Python, and moved
+  CI to the current Node 24-based GitHub Action majors.
 - Added repository-owned privacy and terms documents in place of placeholder
   application links.
 
