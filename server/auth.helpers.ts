@@ -1,5 +1,6 @@
 import {
   createHash,
+  createHmac,
   randomBytes,
   randomInt,
   randomUUID,
@@ -27,6 +28,9 @@ import { loadDb, prune } from './auth.store';
 const scrypt = promisify(scryptCb);
 const USERNAME_RE = /^[A-Za-z0-9_]{6,}$/;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+const DEFAULT_MAX_RATE_BUCKETS = 10_000;
+const LOCAL_CODE_PEPPER = 'filemint-local-development-code-pepper';
+let lastRateBucketPrune = 0;
 
 export function normalizeEmail(value: unknown): string {
   return String(value ?? '')
@@ -71,8 +75,28 @@ export function tokenHash(token: string): string {
   return hash(`session:${token}`);
 }
 
+function isProductionLike(): boolean {
+  return process.env.NODE_ENV === 'production' || process.env.FILEMINT_PRODUCTION === 'true';
+}
+
+function authCodePepper(): string {
+  const configured = process.env.FILEMINT_AUTH_CODE_PEPPER?.trim();
+  if (configured) {
+    if (isProductionLike() && configured.length < 32) {
+      throw new Error('FILEMINT_AUTH_CODE_PEPPER must contain at least 32 characters in production.');
+    }
+    return configured;
+  }
+  if (isProductionLike()) {
+    throw new Error('FILEMINT_AUTH_CODE_PEPPER is required in production.');
+  }
+  return LOCAL_CODE_PEPPER;
+}
+
 export function codeHash(email: string, purpose: CodePurpose, code: string): string {
-  return hash(`code:${purpose}:${email}:${code}`);
+  return createHmac('sha256', authCodePepper())
+    .update(`code:${purpose}:${normalizeEmail(email)}:${code}`)
+    .digest('hex');
 }
 
 export function syncPremium(user: UserRecord): void {
@@ -155,10 +179,35 @@ export function expiryFor(planId: PlanId, start: Date): string | null {
   return end.toISOString();
 }
 
-function requestKey(c: Context, action: string, email?: string): string {
+function requestClient(c: Context): string {
+  if (process.env.FILEMINT_TRUST_PROXY !== 'true') return 'direct';
   const forwarded = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
-  const ip = forwarded || c.req.header('cf-connecting-ip') || c.req.header('x-real-ip') || 'local';
-  return `${action}:${ip}:${email ?? ''}`;
+  return forwarded || c.req.header('cf-connecting-ip') || c.req.header('x-real-ip') || 'proxy';
+}
+
+function maxRateBuckets(): number {
+  const configured = Number(process.env.FILEMINT_RATE_LIMIT_BUCKETS);
+  if (!Number.isSafeInteger(configured) || configured < 100 || configured > 100_000) {
+    return DEFAULT_MAX_RATE_BUCKETS;
+  }
+  return configured;
+}
+
+function pruneRateBuckets(now: number): void {
+  if (now - lastRateBucketPrune < 60_000 && rateBuckets.size < maxRateBuckets()) return;
+  for (const [key, bucket] of rateBuckets) {
+    if (bucket.resetAt <= now) rateBuckets.delete(key);
+  }
+  while (rateBuckets.size >= maxRateBuckets()) {
+    const oldest = rateBuckets.keys().next().value as string | undefined;
+    if (!oldest) break;
+    rateBuckets.delete(oldest);
+  }
+  lastRateBucketPrune = now;
+}
+
+function requestKey(c: Context, action: string, email?: string): string {
+  return `${action}:${requestClient(c)}:${normalizeEmail(email)}`;
 }
 
 export function rateLimited(c: Context, action: keyof typeof LIMITS, email?: string): string | null {
@@ -167,6 +216,7 @@ export function rateLimited(c: Context, action: keyof typeof LIMITS, email?: str
   const now = Date.now();
   const bucket = rateBuckets.get(key);
   if (!bucket || bucket.resetAt <= now) {
+    pruneRateBuckets(now);
     rateBuckets.set(key, { count: 1, resetAt: now + limit.windowMs });
     return null;
   }

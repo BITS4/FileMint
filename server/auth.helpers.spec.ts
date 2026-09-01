@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { Hono } from 'hono';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   addMs,
@@ -14,6 +15,7 @@ import {
   normalizeEmail,
   normalizeUsername,
   publicUser,
+  rateLimited,
   syncPremium,
   tokenHash,
   validateUsername,
@@ -21,6 +23,11 @@ import {
 } from './auth.helpers';
 import type { UserRecord } from './auth.models';
 import { emptyDb } from './auth.store';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
 
 function user(overrides: Partial<UserRecord> = {}): UserRecord {
   return {
@@ -72,6 +79,39 @@ describe('auth validation and security helpers', () => {
     expect(db.codes[0].codeHash).not.toContain(code);
     expect(tokenHash('secret')).toHaveLength(64);
     expect(new Date(db.codes[0].expiresAt).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it('keys one-time codes with a deployment secret and fails closed in production', () => {
+    vi.stubEnv('FILEMINT_AUTH_CODE_PEPPER', 'a-secure-deployment-pepper-that-is-long-enough');
+    const first = codeHash('READER@example.com', 'verify_email', '123456');
+    expect(first).toBe(codeHash('reader@example.com', 'verify_email', '123456'));
+
+    vi.stubEnv('FILEMINT_AUTH_CODE_PEPPER', 'a-different-deployment-pepper-long-enough');
+    expect(codeHash('reader@example.com', 'verify_email', '123456')).not.toBe(first);
+
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('FILEMINT_AUTH_CODE_PEPPER', 'short');
+    expect(() => codeHash('reader@example.com', 'verify_email', '123456')).toThrow(/32 characters/);
+    vi.stubEnv('FILEMINT_AUTH_CODE_PEPPER', '');
+    expect(() => codeHash('reader@example.com', 'verify_email', '123456')).toThrow(/required/);
+  });
+
+  it('ignores spoofable forwarding headers unless a trusted proxy is configured', async () => {
+    const app = new Hono();
+    app.get('/limit', (c) => c.text(rateLimited(c, 'signup', 'proxy-test@example.com') ?? 'ok'));
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const response = await app.request('/limit', {
+        headers: { 'x-forwarded-for': `198.51.100.${attempt}` },
+      });
+      expect(await response.text()).toBe('ok');
+    }
+    const blocked = await app.request('/limit', { headers: { 'x-forwarded-for': '203.0.113.9' } });
+    expect(await blocked.text()).toMatch(/Too many attempts/);
+
+    vi.stubEnv('FILEMINT_TRUST_PROXY', 'true');
+    const proxied = await app.request('/limit', { headers: { 'x-forwarded-for': '203.0.113.10' } });
+    expect(await proxied.text()).toBe('ok');
   });
 });
 
