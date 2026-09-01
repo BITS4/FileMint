@@ -137,13 +137,7 @@ describe('conversion runtime discovery', () => {
     runtimeMocks.readdirSync.mockImplementation((root) =>
       `${root}`.includes('AppData') ? ['Python', 'Python310', 'Python312'] : [],
     );
-    const expected = join(
-      process.env.LOCALAPPDATA,
-      'Programs',
-      'Python',
-      'Python312',
-      'python.exe',
-    );
+    const expected = join(process.env.LOCALAPPDATA, 'Programs', 'Python', 'Python312', 'python.exe');
     runtimeMocks.existsSync.mockImplementation((candidate) => candidate === expected);
     runtimeMocks.spawnSync.mockClear();
 
@@ -184,11 +178,9 @@ describe('conversion runtime discovery', () => {
     runtimeMocks.spawnSync.mockReturnValueOnce({ status: 0 });
 
     expect(pythonCanImport(['fitz', 'PIL'])).toBe(true);
-    expect(runtimeMocks.spawnSync).toHaveBeenCalledWith(
-      'python3',
-      ['-c', 'import fitz; import PIL'],
-      { timeout: 8000 },
-    );
+    expect(runtimeMocks.spawnSync).toHaveBeenCalledWith('python3', ['-c', 'import fitz; import PIL'], {
+      timeout: 8000,
+    });
 
     runtimeMocks.spawnSync.mockReturnValueOnce({ status: 1 });
     expect(pythonCanImport(['missing_module'])).toBe(false);
