@@ -30,32 +30,13 @@ import {
   type ToolOperation,
 } from './operations.helpers';
 import { booleanValue as bool, numberValue as num, stringValue as str } from './operations.values';
+import { VIEW_OPERATIONS } from './operations.view';
 
 export type { ToolField, ToolOperation } from './operations.helpers';
 export type { FieldValues } from './operations.values';
 
 const OPERATIONS: Record<string, ToolOperation> = {
-  // --- view / open
-  'import-pdf': {
-    mode: 'open',
-    libraryKinds: ['pdf'],
-    deviceTypes: 'application/pdf',
-    pickTitle: 'Import a PDF',
-  },
-  'open-pdf': {
-    mode: 'open',
-    libraryKinds: ['pdf'],
-    deviceTypes: 'application/pdf',
-    pickTitle: 'Open a PDF',
-  },
-  'open-document': {
-    mode: 'open',
-    libraryKinds: ['pdf', 'image', 'word', 'excel', 'ppt', 'text', 'csv', 'other'],
-    deviceTypes: '*/*',
-    pickTitle: 'Open a document',
-    pickSubtitle: 'Read PDFs, Word, PowerPoint, Excel, CSV, HTML, text, and code files.',
-    pickIcon: 'file-eye-outline',
-  },
+  ...VIEW_OPERATIONS,
 
   // --- compose
   'txt-to-pdf': {
