@@ -17,6 +17,7 @@ export default defineConfig({
       include: [
         'server/**/*.ts',
         'src/constants/**/*.ts',
+        'src/app/feedback.tsx',
         'src/components/ui/Badge.tsx',
         'src/components/ui/Button.tsx',
         'src/components/ui/Card.tsx',
