@@ -3,7 +3,7 @@ branch = True
 source = server
 
 [report]
-fail_under = 85
+fail_under = 92
 omit =
     server/tests/*
 precision = 2
