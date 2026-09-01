@@ -1,6 +1,4 @@
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useState } from 'react';
 import { Share, Switch, View } from 'react-native';
 
@@ -27,6 +25,7 @@ import {
   settingsStyles as styles,
   type SettingsPicker as Picker,
 } from '@/components/settings/SettingsShared';
+import { AboutSettingsGroup } from '@/components/settings/AboutSettingsGroup';
 import { type ServerStatus, checkServer } from '@/lib/api';
 import { withAlpha } from '@/lib/color';
 import { confirm } from '@/lib/confirm';
@@ -451,25 +450,7 @@ export default function SettingsScreen() {
         />
       </Group>
 
-      <Group title="About">
-        <ListRow
-          icon="shield-check-outline"
-          title="Privacy policy"
-          onPress={() => void WebBrowser.openBrowserAsync('https://example.com/privacy')}
-          showChevron
-        />
-        <ListRow
-          icon="file-document-outline"
-          title="Terms of service"
-          onPress={() => void WebBrowser.openBrowserAsync('https://example.com/terms')}
-          showChevron
-        />
-        <ListRow
-          icon="information-outline"
-          title="Version"
-          value={Constants.expoConfig?.version ?? '1.0.0'}
-        />
-      </Group>
+      <AboutSettingsGroup />
 
       <ActionSheet
         visible={picker !== null}

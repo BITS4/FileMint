@@ -6,6 +6,7 @@ import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppHeader, Badge, Button, Card, Icon, Screen, Txt } from '@/components/ui';
 import { Accents, Radius, Spacing } from '@/constants/theme';
 import { findTool } from '@/constants/tools';
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '@/constants/legal';
 import type { PlanId, PremiumPlan } from '@/lib/auth-api';
 import { withAlpha } from '@/lib/color';
 import { goBack } from '@/lib/nav';
@@ -287,21 +288,13 @@ export default function UpgradeScreen() {
         </View>
         <Button title="Maybe Later" variant="ghost" onPress={goBack} />
         <View style={styles.legal}>
-          <Txt
-            variant="tiny"
-            muted
-            onPress={() => void WebBrowser.openBrowserAsync('https://example.com/terms')}
-          >
+          <Txt variant="tiny" muted onPress={() => void WebBrowser.openBrowserAsync(TERMS_OF_USE_URL)}>
             Terms
           </Txt>
           <Txt variant="tiny" muted>
             |
           </Txt>
-          <Txt
-            variant="tiny"
-            muted
-            onPress={() => void WebBrowser.openBrowserAsync('https://example.com/privacy')}
-          >
+          <Txt variant="tiny" muted onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}>
             Privacy
           </Txt>
         </View>

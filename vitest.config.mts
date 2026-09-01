@@ -20,6 +20,7 @@ export default defineConfig({
         'server/runtime.ts',
         'src/constants/tools.convert.ts',
         'src/constants/tools.meta.ts',
+        'src/constants/legal.ts',
         'src/lib/base64.ts',
         'src/lib/color.ts',
         'src/lib/format.ts',
