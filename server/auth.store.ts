@@ -32,6 +32,11 @@ function databaseUrl(): string | null {
   return process.env.DATABASE_URL?.trim() || null;
 }
 
+function databasePoolMax(): number {
+  const configured = Number(process.env.DATABASE_POOL_MAX);
+  return Number.isSafeInteger(configured) && configured >= 1 && configured <= 50 ? configured : 4;
+}
+
 function getPgPool(): Pool | null {
   const url = databaseUrl();
   if (!url) return null;
@@ -40,9 +45,9 @@ function getPgPool(): Pool | null {
       connectionString: url,
       ssl:
         url.includes('sslmode=require') || /neon\.tech/i.test(url)
-          ? { rejectUnauthorized: false }
+          ? { rejectUnauthorized: process.env.DATABASE_TLS_REJECT_UNAUTHORIZED !== 'false' }
           : undefined,
-      max: Number(process.env.DATABASE_POOL_MAX ?? 4),
+      max: databasePoolMax(),
     });
   }
   return pgPool;

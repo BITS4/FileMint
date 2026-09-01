@@ -143,10 +143,25 @@ describe('authentication PostgreSQL persistence', () => {
     expect(db.users).toEqual([{ id: 'pg-user' }]);
     expect(mocks.poolOptions[0]).toMatchObject({
       connectionString: expect.stringContaining('neon.tech'),
-      ssl: { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: true },
       max: 9,
     });
     expect(mocks.query.mock.calls.some(([sql]) => String(sql).includes('CREATE TABLE'))).toBe(true);
+  });
+
+  it('only disables TLS certificate verification through an explicit escape hatch', async () => {
+    vi.stubEnv('DATABASE_URL', 'postgres://user:pass@database.example/main?sslmode=require');
+    vi.stubEnv('DATABASE_TLS_REJECT_UNAUTHORIZED', 'false');
+    vi.stubEnv('DATABASE_POOL_MAX', 'unbounded');
+    mocks.query.mockResolvedValue({ rows: [{ data: {} }] });
+    const { loadDb } = await import('./auth.store');
+
+    await loadDb();
+
+    expect(mocks.poolOptions[0]).toMatchObject({
+      ssl: { rejectUnauthorized: false },
+      max: 4,
+    });
   });
 
   it('initializes missing PostgreSQL data and writes subsequent updates without filesystem access', async () => {
