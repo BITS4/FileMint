@@ -128,19 +128,15 @@ describe('authentication store', () => {
     mocks.asyncStorage.setItem.mockReset().mockResolvedValue(undefined);
     await resetStore();
   });
-
   afterEach(() => {
     vi.useRealTimers();
   });
-
   it('manages local session state and evaluates login and premium selectors', () => {
     const { selectIsLoggedIn, selectIsPremium, useAuth } = authModule;
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'));
-
     useAuth.getState().setError('old error');
     expect(useAuth.getState().error).toBe('old error');
-
     const account = user({ lifetimePremium: true });
     useAuth.setState({
       user: account,
@@ -152,14 +148,12 @@ describe('authentication store', () => {
     expect(selectIsLoggedIn(useAuth.getState())).toBe(true);
     expect(selectIsPremium(useAuth.getState())).toBe(true);
     expect(mocks.isPremiumUser).toHaveBeenCalledWith(account);
-
     useAuth.setState({ sessionExpiresAt: '2026-06-01T11:59:59.000Z' });
     expect(selectIsLoggedIn(useAuth.getState())).toBe(false);
     useAuth.setState({ sessionExpiresAt: null });
     expect(selectIsLoggedIn(useAuth.getState())).toBe(true);
     useAuth.setState({ token: null });
     expect(selectIsLoggedIn(useAuth.getState())).toBe(false);
-
     useAuth.getState().clearSession();
     expect(useAuth.getState()).toMatchObject({
       user: null,
@@ -228,7 +222,6 @@ describe('authentication store', () => {
     mocks.authApi.resendCode
       .mockResolvedValueOnce({ sent: true, devCode: '222222' })
       .mockResolvedValueOnce({ sent: true });
-
     await authModule.useAuth.getState().signup({
       email: pending.email,
       username: pending.username!,
@@ -242,7 +235,6 @@ describe('authentication store', () => {
       loading: false,
       error: null,
     });
-
     await expect(authModule.useAuth.getState().checkUsername('reader_1')).resolves.toEqual({
       valid: true,
       available: true,
@@ -270,13 +262,11 @@ describe('authentication store', () => {
       error: 'Something went wrong.',
       loading: false,
     });
-
     mocks.authApi.verifyEmail.mockRejectedValue(new Error('Invalid code.'));
     await expect(
       authModule.useAuth.getState().verifyEmail({ email: 'reader@example.com', code: 'bad' }),
     ).rejects.toThrow('Invalid code.');
     expect(authModule.useAuth.getState()).toMatchObject({ error: 'Invalid code.', loading: false });
-
     mocks.authApi.resendCode.mockRejectedValue(new Error('Please wait.'));
     await expect(authModule.useAuth.getState().resendCode('reader@example.com')).rejects.toThrow(
       'Please wait.',
@@ -294,7 +284,6 @@ describe('authentication store', () => {
         warningAt: '2026-12-31T23:55:00.000Z',
       },
     });
-
     await authModule.useAuth.getState().login({ email: account.email, password: 'FileMint9' });
     expect(authModule.useAuth.getState()).toMatchObject({
       user: account,
@@ -304,7 +293,6 @@ describe('authentication store', () => {
       devCode: null,
       loading: false,
     });
-
     const verificationError = new mocks.ApiError('Verify your email.', 403, { devCode: '333333' });
     mocks.authApi.login.mockRejectedValueOnce(verificationError);
     await expect(
@@ -315,7 +303,6 @@ describe('authentication store', () => {
       devCode: '333333',
       loading: false,
     });
-
     const genericError = new mocks.ApiError('Denied.', 401, null);
     mocks.authApi.login.mockRejectedValueOnce(genericError);
     await expect(
