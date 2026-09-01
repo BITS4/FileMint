@@ -83,8 +83,10 @@ jobs:
         run: npm ci
       - name: Install pinned Python dependencies
         run: python -m pip install -r server/requirements.lock.txt -r server/requirements-dev.lock.txt
-      - name: Run TypeScript and Python branch coverage gates
-        run: npm run test:all
+      - name: Run TypeScript tests with coverage
+        run: npm run test:coverage
+      - name: Run Python tests with branch coverage
+        run: npm run test:python:coverage
       - name: Verify server health and metrics
         run: npm run server:smoke
 

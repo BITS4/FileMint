@@ -20,6 +20,8 @@ the app, quality checks, or automated tests.
 
 ```bash
 npm ci               # reproducible install from package-lock.json
+python -m pip install -r server/requirements.lock.txt
+python -m pip install -r server/requirements-dev.lock.txt
 cp .env.example .env # optional local configuration (PowerShell: Copy-Item .env.example .env)
 npm run web          # open the web app  (http://localhost:8081)
 npm run ios          # iOS simulator (macOS)
@@ -90,7 +92,7 @@ npm run expo:check     # Expo SDK package compatibility
 npm run typecheck      # app and complete Hono server
 npm test               # unit and server middleware tests
 npm run test:python    # Python conversion and export tests
-npm run test:python:coverage # Python branch coverage with a 70% total gate
+npm run test:python:coverage # Python branch coverage with an 85% total gate
 npm run test:all       # TypeScript and Python coverage gates
 npm run test:coverage  # explicit 94/85/97/96 statement/branch/function/line gates
 npm run server:smoke   # /health and /metrics in-process smoke check
@@ -106,9 +108,9 @@ analyzes both TypeScript and Python on pushes, pull requests, and a weekly
 schedule with GitHub's extended security queries.
 
 Coverage thresholds are enforced in `vitest.config.mts`; the current suite has
-54 TypeScript spec files (262 tests) plus 130 Python conversion/export tests.
+54 TypeScript spec files (262 tests) plus 197 Python conversion/export tests.
 Python branch coverage is measured with Coverage.py and must remain at or above
-70% under `.coveragerc`. Dependency update and audit policy is documented in
+85% under `.coveragerc`. Dependency update and audit policy is documented in
 [DEPENDENCIES.md](DEPENDENCIES.md), and security reports are handled according
 to [SECURITY.md](SECURITY.md).
 
