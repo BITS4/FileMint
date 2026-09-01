@@ -162,11 +162,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          auth_code_pepper="$(openssl rand -hex 32)"
           docker run --detach --name filemint-ci --publish 8787:8787 \
             --env FILEMINT_PUBLIC_URL=http://localhost:8081 \
             --env CORS_ORIGINS=http://localhost:8081 \
             --env LOG_LEVEL=silent \
-            --env FILEMINT_AUTH_CODE_PEPPER=filemint-ci-only-auth-code-pepper-123456 \
+            --env "FILEMINT_AUTH_CODE_PEPPER=${auth_code_pepper}" \
             filemint:ci
           trap 'docker logs filemint-ci; docker rm --force filemint-ci' EXIT
           for attempt in {1..30}; do

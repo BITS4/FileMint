@@ -37,6 +37,16 @@ jobs:
           cache-dependency-path: |
             server/requirements.lock.txt
             server/requirements-dev.lock.txt
+      - name: Verify tag and manifest versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          root_version="$(node -p "require('./package.json').version")"
+          app_version="$(node -p "require('./app.json').expo.version")"
+          server_version="$(node -p "require('./server/package.json').version")"
+          test "${GITHUB_REF_NAME}" = "v${root_version}"
+          test "${app_version}" = "${root_version}"
+          test "${server_version}" = "${root_version}"
       - name: Install locked dependencies
         run: npm ci
       - name: Install pinned Python dependencies
