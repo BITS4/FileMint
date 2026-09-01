@@ -51,6 +51,10 @@ describe('authentication email base URL', () => {
   });
 
   it('uses request origins, forwarded protocols, and safe local defaults', async () => {
+    vi.stubEnv('FILEMINT_PUBLIC_URL', '');
+    vi.stubEnv('PUBLIC_APP_URL', '');
+    vi.stubEnv('APP_URL', '');
+
     expect(
       await (await baseApp().request('/base', { headers: { origin: 'https://origin.example.com/' } })).text(),
     ).toBe('https://origin.example.com');
