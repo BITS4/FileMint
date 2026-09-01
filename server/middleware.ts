@@ -65,7 +65,7 @@ export function registerCoreMiddleware(app: Hono): void {
     const requestId = c.res.headers.get('X-Request-Id') ?? undefined;
     const path = sanitizeRequestPath(c.req.url);
     reportException(error, { method: c.req.method, path, requestId });
-    logger.error({ error, method: c.req.method, path, requestId }, 'request failed');
+    logger.error({ err: error, method: c.req.method, path, requestId }, 'request failed');
     return c.json({ error: 'Internal server error.' }, 500);
   });
 }
