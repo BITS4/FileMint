@@ -1,6 +1,14 @@
 {
   "name": "@filemint/server",
   "version": "1.2.1",
+  "description": "Hardened document conversion and account API for FileMint.",
+  "author": "BITS4",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BITS4/FileMint.git",
+    "directory": "server"
+  },
   "private": true,
   "type": "module",
   "scripts": {

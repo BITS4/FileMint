@@ -2,6 +2,18 @@
   "name": "filemint",
   "main": "expo-router/entry",
   "version": "1.2.1",
+  "description": "Cross-platform document conversion, editing, OCR, organization, and security studio.",
+  "author": "BITS4",
+  "license": "MIT",
+  "homepage": "https://file-mint.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BITS4/FileMint.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BITS4/FileMint/issues"
+  },
+  "keywords": ["documents", "expo", "ocr", "pdf", "react-native", "typescript"],
   "dependencies": {
     "@expo/ui": "~56.0.26",
     "@expo/vector-icons": "^15.0.2",
