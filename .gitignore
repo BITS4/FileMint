@@ -46,6 +46,8 @@ coverage/
 # Python
 __pycache__/
 *.pyc
+.venv/
+venv/
 server/data/
 
 example

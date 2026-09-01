@@ -4,6 +4,8 @@ coverage/
 .expo/
 test-files/
 server/tessdata/
+.venv/
+venv/
 *.tsbuildinfo
 package-lock.json
 .editorconfig
