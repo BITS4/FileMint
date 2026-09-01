@@ -193,6 +193,13 @@ export const authApi = {
   manage(token: string) {
     return request<{ user: AuthUser; message: string }>('/premium/manage', { method: 'POST', token });
   },
+  submitFeedback(token: string, input: { type: 'feedback' | 'feature'; message: string }) {
+    return request<{ ok: true; id: string }>('/feedback', {
+      method: 'POST',
+      token,
+      body: jsonBody(input),
+    });
+  },
 };
 
 export function isPremiumUser(user: AuthUser | null | undefined): boolean {

@@ -20,12 +20,13 @@ export function normalizeDb(value: unknown): AuthDb {
     sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
     purchases: Array.isArray(parsed.purchases) ? parsed.purchases : [],
     paymentEvents: Array.isArray(parsed.paymentEvents) ? parsed.paymentEvents : [],
+    feedback: Array.isArray(parsed.feedback) ? parsed.feedback : [],
     usage: Array.isArray(parsed.usage) ? parsed.usage : [],
   };
 }
 
 export function emptyDb(): AuthDb {
-  return { users: [], codes: [], sessions: [], purchases: [], paymentEvents: [], usage: [] };
+  return { users: [], codes: [], sessions: [], purchases: [], paymentEvents: [], feedback: [], usage: [] };
 }
 
 function databaseUrl(): string | null {

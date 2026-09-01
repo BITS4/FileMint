@@ -78,6 +78,15 @@ export interface PaymentEventRecord {
   payload?: Record<string, unknown>;
 }
 
+export interface FeedbackRecord {
+  id: string;
+  userId: string;
+  type: 'feedback' | 'feature';
+  message: string;
+  status: 'new' | 'reviewed' | 'closed';
+  createdAt: string;
+}
+
 export interface UsageRecord {
   userId: string;
   date: string;
@@ -94,6 +103,7 @@ export interface AuthDb {
   sessions: SessionRecord[];
   purchases: PurchaseRecord[];
   paymentEvents: PaymentEventRecord[];
+  feedback: FeedbackRecord[];
   usage: UsageRecord[];
 }
 
@@ -155,6 +165,7 @@ export const LIMITS = {
   code: { count: 5, windowMs: 60 * 60 * 1000 },
   passwordReset: { count: 5, windowMs: 60 * 60 * 1000 },
   checkout: { count: 12, windowMs: 10 * 60 * 1000 },
+  feedback: { count: 10, windowMs: 60 * 60 * 1000 },
 };
 
 export const FREE_USAGE_LIMITS: Record<keyof Omit<UsageRecord, 'userId' | 'date'>, number> = {

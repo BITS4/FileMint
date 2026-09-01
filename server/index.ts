@@ -17,6 +17,7 @@ import { Hono } from 'hono';
 import { registerAuth } from './auth';
 import { COLLABORA_URL, WOPI_HOST } from './config';
 import { registerEdit } from './edit';
+import { registerFeedbackRoutes } from './feedback';
 import { registerCoreMiddleware } from './middleware';
 import { registerHealthRoute } from './health';
 import { registerRedactionRoute } from './redaction';
@@ -48,6 +49,7 @@ registerCoreMiddleware(app);
 registerHealthRoute(app);
 
 registerAuth(app);
+registerFeedbackRoutes(app);
 registerEdit(app, { collaboraUrl: COLLABORA_URL, wopiHost: WOPI_HOST });
 
 registerRedactionRoute(app);

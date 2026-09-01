@@ -64,7 +64,15 @@ describe('authentication file persistence', () => {
 
     const db = await loadDb();
 
-    expect(db).toEqual({ users: [], codes: [], sessions: [], purchases: [], paymentEvents: [], usage: [] });
+    expect(db).toEqual({
+      users: [],
+      codes: [],
+      sessions: [],
+      purchases: [],
+      paymentEvents: [],
+      feedback: [],
+      usage: [],
+    });
     expect(mocks.mkdir).toHaveBeenCalled();
     expect(mocks.writeFile).toHaveBeenCalledWith(
       expect.stringMatching(/auth-db\.json\.\d+\.\d+\.tmp$/),

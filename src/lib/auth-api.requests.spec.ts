@@ -85,6 +85,7 @@ describe('authentication API contract', () => {
     await authApi.confirmPasswordReset({ email: 'person@example.com', code: '123456', password: 'newpass1' });
     await authApi.restore('token');
     await authApi.manage('token');
+    await authApi.submitFeedback('token', { type: 'feature', message: 'Add batch signing' });
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       'http://localhost:8787/auth/resend-code',
@@ -92,6 +93,7 @@ describe('authentication API contract', () => {
       'http://localhost:8787/auth/password-reset/confirm',
       'http://localhost:8787/premium/restore',
       'http://localhost:8787/premium/manage',
+      'http://localhost:8787/feedback',
     ]);
     for (const [, options] of fetchMock.mock.calls) {
       expect(options!.method).toBe('POST');
