@@ -86,6 +86,7 @@ Collabora, or external network calls. Run the same checks used by GitHub Actions
 
 ```bash
 npm run format:check   # Prettier across app, server, config, and docs
+npm run check:file-size # reject code files above 500 physical lines
 npm run lint           # ESLint; warnings fail the command
 npm run lint:python    # Black formatting and Pyflakes correctness checks
 npm run expo:check     # Expo SDK package compatibility

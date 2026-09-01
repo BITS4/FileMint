@@ -26,7 +26,8 @@ All notable changes follow Semantic Versioning.
   authentication service, runtime routes, PDF core, and remaining registries
   into focused production modules below 500 physical lines.
 - Raised CI coverage thresholds, enforced React hook dependency safety and a
-  500-line ESLint ceiling, and aligned Docker with the Node 20 CI runtime.
+  repository-wide 500-line code ceiling, and aligned Docker with the Node 20
+  CI runtime.
 - Completed environment documentation and hardened Windows fresh-clone line
   endings for reproducible formatting checks.
 

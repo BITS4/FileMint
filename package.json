@@ -74,6 +74,7 @@
     "build:web": "expo export --platform web --output-dir dist",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "check:file-size": "node scripts/check-file-size.mjs",
     "lint": "eslint src server --max-warnings=0",
     "lint:python": "python -m black --check server && python -m pyflakes server",
     "expo:check": "expo install --check",
@@ -86,7 +87,7 @@
     "test:coverage": "vitest run --coverage",
     "test:all": "npm run test:coverage && npm run test:python:coverage",
     "audit": "node scripts/check-audit-baseline.mjs",
-    "verify": "npm run format:check && npm run lint && npm run lint:python && npm run typecheck && npm run test:all && npm run build:web",
+    "verify": "npm run format:check && npm run check:file-size && npm run lint && npm run lint:python && npm run typecheck && npm run test:all && npm run build:web",
     "server": "node --import tsx server/start.ts",
     "server:dev": "node --import tsx --watch server/start.ts",
     "server:smoke": "node --import tsx server/smoke.ts"
