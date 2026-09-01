@@ -1,6 +1,6 @@
 # Contributing
 
-Use Node.js 20.19 or newer with Python 3.11, then install the locked graphs with
+Use Node.js 22.13 or newer with Python 3.11, then install the locked graphs with
 `npm ci`, `python -m pip install -r server/requirements.lock.txt`, and
 `python -m pip install -r server/requirements-dev.lock.txt`.
 
@@ -11,9 +11,11 @@ Before opening a pull request, run:
 
 ```bash
 npm run verify
+npm run expo:check
 npm run test:coverage
 npm run test:python:coverage
 npm run audit
+npm run audit --prefix server
 npm run server:smoke
 ```
 

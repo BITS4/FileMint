@@ -14,7 +14,7 @@ backed by an optional **conversion server** for the heavy Office ⇆ PDF jobs.
 
 ## Quick start
 
-Prerequisites: Node.js 20.19 or newer, npm 10 or newer, and Python 3.11 for the
+Prerequisites: Node.js 22.13 or newer, npm 10 or newer, and Python 3.11 for the
 optional conversion helpers. A fresh clone needs no provider credentials to run
 the app, quality checks, or automated tests.
 
@@ -29,9 +29,10 @@ npm run android      # Android emulator/device
 npm run typecheck    # strict TypeScript check (app and server)
 ```
 
-The app is fully usable **offline** for the client-side tools. Office
-conversions, OCR-to-searchable-PDF and PDF password tools talk to the
-conversion server (below) and degrade gracefully when it isn't running.
+After one successful online load, the installable web app keeps its local shell
+and locked PDF worker available offline. Client-side PDF tools continue to work;
+Office conversions, OCR-to-searchable-PDF and PDF password tools require the
+conversion server below and fail with an actionable message when it is absent.
 
 ### Conversion server (optional, for Office/OCR/security)
 
@@ -45,8 +46,9 @@ For a self-contained server plus PostgreSQL, with no external account needed:
 docker compose up --build
 ```
 
-The database is not published outside the private Compose network and uses
-passwordless development authentication there; provider keys remain unset.
+The database is not published outside the private Compose network and uses the
+password from `FILEMINT_DB_PASSWORD` (with a local-only default); provider keys
+remain unset.
 Wait for both services to become healthy, then run the Expo app with `npm run
 web`. Stop the stack with `docker compose down` (add `-v` only when you
 intentionally want to delete the local database volume).
@@ -93,12 +95,13 @@ npm run expo:check     # Expo SDK package compatibility
 npm run typecheck      # app and complete Hono server
 npm test               # unit and server middleware tests
 npm run test:python    # Python conversion and export tests
-npm run test:python:coverage # Python branch coverage with an 85% total gate
+npm run test:python:coverage # Python branch coverage with a 92% total gate
 npm run test:all       # TypeScript and Python coverage gates
-npm run test:coverage  # explicit 94/85/97/96 statement/branch/function/line gates
+npm run test:coverage  # explicit 95/86/98/97 statement/branch/function/line gates
 npm run server:smoke   # /health and /metrics in-process smoke check
 npm run build:web      # production Expo web export
 npm run audit          # fail if high/critical production risk increases
+npm run audit --prefix server # zero-high production API dependency audit
 ```
 
 `npm run verify` combines format, lint, typecheck, tests, and the production web
@@ -109,14 +112,15 @@ analyzes both TypeScript and Python on pushes, pull requests, and a weekly
 schedule with GitHub's extended security queries.
 
 Coverage thresholds are enforced in `vitest.config.mts`; the current suite has
-71 TypeScript spec files (412 tests) plus 197 Python conversion/export tests.
+83 TypeScript spec files (508 tests) plus 233 Python conversion/export tests.
 The TypeScript gate covers every server module, client business library,
-constant registry, persisted store, and pure editor state module at 96.38%
-statements, 87.89% branches, 98.52% functions, and 97.94% lines. Executable
+constant registry, persisted store, and pure editor state module at 96.32%
+statements, 87.73% branches, 98.42% functions, and 97.97% lines. Executable
 launchers are checked by build/smoke jobs, while three browser-specific storage
 and rendering adapters remain outside the Node coverage runner. Python branch
 coverage measures the complete `server` Python source and must remain at or
-above 85% under `.coveragerc`. Dependency update and audit policy is documented
+above 92% under `.coveragerc` (currently 94.26%). Dependency update and audit
+policy is documented
 in [DEPENDENCIES.md](DEPENDENCIES.md), and security reports are handled
 according to [SECURITY.md](SECURITY.md).
 
@@ -133,6 +137,10 @@ Set these before deploying the server:
 NODE_ENV=production
 FILEMINT_PUBLIC_URL=https://your-filemint-domain.com
 DATABASE_URL=postgresql://...sslmode=require
+DATABASE_TLS_REJECT_UNAUTHORIZED=true
+FILEMINT_AUTH_CODE_PEPPER=<unique-random-secret-at-least-32-characters>
+# Set true only behind a trusted proxy that overwrites forwarding headers.
+FILEMINT_TRUST_PROXY=false
 
 # Email verification / password reset via Resend
 RESEND_API_KEY=<resend-api-key>
@@ -164,6 +172,20 @@ For hosted conversion features, deploy the server with the repository
 `Dockerfile` instead of Render's plain Node runtime. The Docker image installs
 LibreOffice, qpdf, Ghostscript, OCRmyPDF, Tesseract and the Python conversion
 packages required by premium PDF/Office tools.
+
+### Deployment
+
+`npm run build:web` creates a verified static export in `dist/`, including the
+manifest, service worker, icons, and same-origin PDF worker. Deploy that folder
+to any static host and set `EXPO_PUBLIC_FILEMINT_SERVER_URL` at build time when
+the conversion API is hosted separately.
+
+Deploy the API from the repository `Dockerfile`, or use `docker-compose.yml` for
+a health-checked API and PostgreSQL pair. Production startup rejects missing or
+weak auth-code peppers, verifies PostgreSQL TLS certificates by default, limits
+uploads and child-process output, and exposes `/health` for an orchestrator
+readiness probe. Provider credentials are required only for the corresponding
+email and payment features.
 
 ### PDF → editable Word (digital & scanned)
 
@@ -227,7 +249,7 @@ and saves it over WOPI, and the edited bytes are pulled back into your library.
 2. Run Collabora, allowing it to call back to the FileMint server:
    ```bash
    docker run -t -d -p 9980:9980 \
-     -e "aliasgroup1=http://host.docker.internal:8787,http://host.docker.internal:8788" \
+     -e "aliasgroup1=http://host.docker.internal:8787" \
      -e "extra_params=--o:ssl.enable=false --o:ssl.termination=false" \
      --name filemint-collabora collabora/code
    ```
@@ -313,7 +335,7 @@ Every tool advertises an honest status in the UI:
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
 | Create      | Image → PDF, Text → PDF, CSV → PDF, Smart Scan → PDF                                                                                       | Ready / Beta |
 | Organize    | Merge, Split, Compress, Manage pages (reorder / rotate / delete / duplicate / blank / extract)                                             | Ready        |
-| Edit        | Watermark, Page numbers, Flatten, Crop, Add text & stamp                                                                                   | Ready / Beta |
+| Edit        | Watermark, Page numbers, Flatten, Crop, Add text & stamp, fill forms                                                                       | Ready / Beta |
 | View        | PDF (night mode, zoom), images, text, CSV table                                                                                            | Ready        |
 | View Office | Word/Excel/PowerPoint rendered natively on web (docx-preview / read-excel-file / pptx-preview); on native, converted to PDF via the server | Ready (web)  |
 | OCR         | Extract text from images & PDFs (web)                                                                                                      | Beta (web)   |
@@ -321,8 +343,9 @@ Every tool advertises an honest status in the UI:
 | Security    | Lock, Unlock, Permissions, Repair                                                                                                          | Server       |
 | Files       | Library, folders, favorites, trash, sort, grid/list, rename, duplicate, share                                                              | Ready        |
 
-Drawing / signature / highlight / redaction and fillable-form editing are
-scaffolded and marked accordingly.
+Fill Forms supports text, checkbox, date, initials, and signature overlays and
+exports the completed PDF. Drawing, highlighting, and freehand redaction remain
+beta workflows and are labeled accordingly.
 
 ---
 
@@ -369,6 +392,24 @@ enables unhandled-error reporting. CORS is restricted through `CORS_ORIGINS`,
 uploads are capped by `FILEMINT_MAX_UPLOAD_BYTES`,
 and standard security headers are enabled centrally.
 
+### API reference
+
+| Endpoint group               | Purpose                                           | Input / access                         |
+| ---------------------------- | ------------------------------------------------- | -------------------------------------- |
+| `GET /health`, `/metrics`    | Readiness, converter capabilities, and telemetry  | Public operational endpoints           |
+| `POST /convert`              | Office/PDF conversion                             | Multipart file plus validated options  |
+| `/image/*`, `/pdf/*`, `/ocr` | Normalize, render, extract text, and run OCR      | Multipart file plus validated options  |
+| `/repair`, `/secure/*`       | Repair, lock, unlock, or set PDF permissions      | Multipart file plus validated options  |
+| `POST /edit/redact`          | Permanently redact selected PDF regions           | Multipart file plus validated regions  |
+| `/auth/*`                    | Register, verify, sign in, recovery, and profile  | Validated JSON; session where required |
+| `/auth/stripe/webhook`       | Replay-resistant signed Stripe event delivery     | Verified webhook signature             |
+| `/premium/*`, `/feedback`    | Checkout, entitlements, and product feedback      | Authenticated JSON                     |
+| `/edit/*`, `/wopi/*`         | Temporary Collabora sessions and WOPI file access | Short-lived signed edit token          |
+
+Request bodies are size-limited, JSON and multipart inputs are schema-validated,
+and errors return a request ID without leaking secrets. The implementation and
+route-level tests live under `server/`.
+
 ---
 
 ## Known limitations
@@ -377,10 +418,11 @@ and standard security headers are enabled centrally.
   upstream Hermes memory regression in the SDK 56 line; the eventual SDK 57
   migration belongs in a dedicated, device-tested change rather than an
   unrelated dependency update.
-- The production audit baseline currently contains four high-severity findings
-  inherited through Expo's Metro/image-size toolchain and zero critical
-  findings. `npm run audit` prevents that count from increasing; Dependabot will
-  surface a compatible fix when Expo publishes one.
+- The Expo build-tool audit baseline currently contains four high-severity
+  findings inherited through Metro's `image-size` dependency and zero critical
+  findings. The isolated production server dependency graph has zero known
+  vulnerabilities. `npm run audit` prevents the build-tool baseline from
+  increasing while Dependabot watches for the compatible upstream fix.
 
 - **Android in-app PDF preview** depends on the platform WebView; if a page
   doesn't render inline, use the viewer's **Share / Open** action to open it
@@ -388,7 +430,7 @@ and standard security headers are enabled centrally.
 - **Native OCR** and **PDF → image/text** run in the web app or via the server
   (the heavy rasterizer isn't bundled for native in this build).
 - The web PDF viewer renders with the browser's built-in PDF UI (zoom, search,
-  print). pdf.js loads its worker from a CDN for PDF→image/text; bundle it for
-  a fully offline deployment.
+  print). PDF-to-image/text uses the locked same-origin PDF.js worker copied
+  into the verified web build.
 - Non-JPG/PNG images are converted to PNG via canvas on web; on native, use
   JPG/PNG (HEIC normalization is a planned enhancement).
