@@ -6,7 +6,7 @@ import type { FileItem } from '@/types';
 const mocks = vi.hoisted(() => ({
   addPageNumbers: vi.fn(async () => new Uint8Array([2])),
   addWatermark: vi.fn(async () => new Uint8Array([3])),
-  backendConvert: vi.fn(async () => ({ id: 'server-result' })),
+  backendConvert: vi.fn(async (..._args: unknown[]) => ({ id: 'server-result' })),
   backendPdfText: vi.fn(async () => ({ id: 'text-fallback' })),
   cropPdf: vi.fn(async () => new Uint8Array([4])),
   csvRowsToPdf: vi.fn(async () => new Uint8Array([5])),
