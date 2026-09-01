@@ -27,12 +27,12 @@ describe('settings store defaults', () => {
     vi.stubGlobal('window', { location: { hostname: 'localhost' } });
     const { DEFAULT_SERVER_URL, useSettings } = await import('./useSettings');
 
-    expect(DEFAULT_SERVER_URL).toBe('http://localhost:8788');
+    expect(DEFAULT_SERVER_URL).toBe('http://localhost:8787');
     expect(useSettings.getState()).toMatchObject({
       themeMode: 'dark',
       defaultPdfQuality: 'high',
       ocrLanguage: 'eng',
-      serverUrl: 'http://localhost:8788',
+      serverUrl: 'http://localhost:8787',
       premium: false,
     });
     useSettings.getState().update({ themeMode: 'light', ocrLanguage: 'tgk' });
@@ -51,6 +51,6 @@ describe('settings store defaults', () => {
   it('keeps private LAN web sessions pointed at the local conversion service', async () => {
     vi.stubGlobal('window', { location: { hostname: '172.20.1.5' } });
     const { DEFAULT_SERVER_URL } = await import('./useSettings');
-    expect(DEFAULT_SERVER_URL).toBe('http://localhost:8788');
+    expect(DEFAULT_SERVER_URL).toBe('http://localhost:8787');
   });
 });

@@ -461,9 +461,9 @@ export default function SettingsScreen() {
       <PromptModal
         visible={editingServer}
         title="Conversion server"
-        message="Point this at the FileMint server. On a real device use your computer's LAN IP, e.g. http://192.168.1.20:8788"
+        message="Point this at the FileMint server. On a real device use your computer's LAN IP, e.g. http://192.168.1.20:8787"
         initialValue={settings.serverUrl}
-        placeholder="http://localhost:8788"
+        placeholder="http://localhost:8787"
         submitLabel="Save"
         onSubmit={(value) => {
           const url = value.trim();

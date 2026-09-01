@@ -40,7 +40,7 @@ function isHostedWeb(): boolean {
 
 /** Default conversion-server origin. Production web points at the hosted
  *  Render conversion stack; local/dev still defaults to localhost. */
-export const DEFAULT_SERVER_URL = isHostedWeb() ? PRODUCTION_SERVER_URL : 'http://localhost:8788';
+export const DEFAULT_SERVER_URL = isHostedWeb() ? PRODUCTION_SERVER_URL : 'http://localhost:8787';
 
 export const useSettings = create<SettingsState>()(
   persist(
