@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerCoreMiddleware } from './middleware';
 
 const observabilityMocks = vi.hoisted(() => ({
@@ -18,6 +18,7 @@ function testApp() {
   app.get('/failure', () => {
     throw routeFailure;
   });
+  app.post('/convert', (c) => c.text('converted'));
   app.post('/upload', async (c) => c.text(await c.req.text()));
   return app;
 }
@@ -28,6 +29,8 @@ describe('core server middleware', () => {
     observabilityMocks.logger.info.mockClear();
     observabilityMocks.reportException.mockClear();
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it('adds security headers and permits the configured frontend', async () => {
     const response = await testApp().request('/ok', {
@@ -74,9 +77,23 @@ describe('core server middleware', () => {
     expect(await response.json()).toEqual({ error: 'The upload exceeds the configured size limit.' });
   });
 
+  it('installs conversion protection ahead of heavyweight route handlers', async () => {
+    vi.stubEnv('FILEMINT_CONVERSION_RATE_LIMIT', '1');
+    const app = testApp();
+
+    expect((await app.request('/convert', { method: 'POST' })).status).toBe(200);
+    const blocked = await app.request('/convert', { method: 'POST' });
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get('retry-after')).toBe('60');
+    expect(blocked.headers.get('x-request-id')).toBeTruthy();
+    expect(observabilityMocks.logger.info).toHaveBeenCalledTimes(2);
+  });
+
   it('exposes Prometheus metrics', async () => {
     const response = await testApp().request('/metrics');
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain('filemint_http_requests_total');
+    const metrics = await response.text();
+    expect(metrics).toContain('filemint_http_requests_total');
+    expect(metrics).toContain('filemint_conversion_active');
   });
 });

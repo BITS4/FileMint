@@ -390,7 +390,14 @@ Every response receives an `X-Request-Id`. Production logs are structured JSON
 from Pino, redact credentials, and omit URL query strings; setting `SENTRY_DSN`
 enables unhandled-error reporting. CORS is restricted through `CORS_ORIGINS`,
 uploads are capped by `FILEMINT_MAX_UPLOAD_BYTES`,
-and standard security headers are enabled centrally.
+and standard security headers are enabled centrally. Heavy public conversion
+routes also enforce a bounded per-client request budget and a process-wide
+concurrency ceiling before multipart parsing. Tune the documented
+`FILEMINT_CONVERSION_*` variables for the host's CPU and memory; rejected
+requests return `429` with `Retry-After`, and `/metrics` exposes rejection and
+active-job counters. Forwarded client addresses are ignored unless
+`FILEMINT_TRUST_PROXY=true`, which is safe only behind a proxy that overwrites
+the forwarding headers.
 
 ### API reference
 

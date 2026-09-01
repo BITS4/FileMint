@@ -4,11 +4,13 @@ import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { allowedOrigins, MAX_UPLOAD_BYTES, resolveCorsOrigin, sanitizeRequestPath } from './config';
+import { createConversionIngressProtection } from './ingress-protection';
 import { requestMetrics } from './metrics';
 import { logger, reportException } from './observability';
 
 export function registerCoreMiddleware(app: Hono): void {
   const origins = allowedOrigins();
+  const conversionIngress = createConversionIngressProtection();
 
   app.use(
     '*',
@@ -23,15 +25,17 @@ export function registerCoreMiddleware(app: Hono): void {
       origin: (origin) => resolveCorsOrigin(origin, origins),
       allowHeaders: ['Authorization', 'Content-Type', 'Stripe-Signature', 'X-WOPI-Override'],
       allowMethods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      exposeHeaders: ['Content-Disposition', 'Content-Length', 'X-FileMint-Report'],
+      exposeHeaders: [
+        'Content-Disposition',
+        'Content-Length',
+        'Retry-After',
+        'X-FileMint-Concurrency-Limit',
+        'X-FileMint-Report',
+        'X-RateLimit-Limit',
+        'X-RateLimit-Remaining',
+        'X-RateLimit-Reset',
+      ],
       maxAge: 600,
-    }),
-  );
-  app.use(
-    '*',
-    bodyLimit({
-      maxSize: MAX_UPLOAD_BYTES,
-      onError: (c) => c.json({ error: 'The upload exceeds the configured size limit.' }, 413),
     }),
   );
   app.use('*', async (c, next) => {
@@ -53,9 +57,17 @@ export function registerCoreMiddleware(app: Hono): void {
       }
     }
   });
+  app.use('*', conversionIngress.middleware);
+  app.use(
+    '*',
+    bodyLimit({
+      maxSize: MAX_UPLOAD_BYTES,
+      onError: (c) => c.json({ error: 'The upload exceeds the configured size limit.' }, 413),
+    }),
+  );
 
   app.get('/metrics', (c) =>
-    c.text(requestMetrics.toPrometheus(), 200, {
+    c.text(`${requestMetrics.toPrometheus()}${conversionIngress.toPrometheus()}`, 200, {
       'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
       'Cache-Control': 'no-store',
     }),
