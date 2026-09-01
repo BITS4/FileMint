@@ -102,7 +102,7 @@ Python dependencies, tests and compile-checks the conversion helpers, and uses
 `npm ci` so the committed lockfile is authoritative.
 
 Coverage thresholds are enforced in `vitest.config.mts`; the current suite has
-52 TypeScript spec files plus Python conversion/export tests. Dependency update and
+54 TypeScript spec files (262 tests) plus 126 Python conversion/export tests. Dependency update and
 audit policy is documented in [DEPENDENCIES.md](DEPENDENCIES.md), and security
 reports are handled according to [SECURITY.md](SECURITY.md).
 

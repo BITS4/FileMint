@@ -58,7 +58,7 @@ export function sanitizeRequestPath(value: string): string {
 }
 
 export const PORT = positiveInteger(process.env.PORT, 8787);
-export const VERSION = '1.0.0';
+export const VERSION = '1.2.0';
 export const MAX_UPLOAD_BYTES = positiveInteger(process.env.FILEMINT_MAX_UPLOAD_BYTES, 75 * 1024 * 1024);
 export const COLLABORA_URL = cleanServiceUrl(process.env.COLLABORA_URL, 'http://localhost:9980');
 export const WOPI_HOST = cleanServiceUrl(process.env.WOPI_HOST, `http://host.docker.internal:${PORT}`);

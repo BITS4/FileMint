@@ -4,6 +4,37 @@ All notable changes follow Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-01
+
+### Added
+
+- Expanded regression coverage to 54 TypeScript spec files and 262 tests, with
+  enforced 94/85/97/96 statement, branch, function, and line gates across API,
+  storage, conversion, editor, runtime, and state modules.
+- Added 126 Python conversion and export tests and a root `test:python` /
+  `test:all` workflow backed by pinned Python 3.11 CI.
+- Added weekly Dependabot updates for the pinned Python conversion stack.
+- Added repository-owned privacy and terms documents in place of placeholder
+  application links.
+
+### Changed
+
+- Split the PDF editor, controller, PDF-to-DOCX converter, PDF export pipeline,
+  authentication service, runtime routes, PDF core, and remaining registries
+  into focused production modules below 500 physical lines.
+- Raised CI coverage thresholds, enforced React hook dependency safety and a
+  500-line ESLint ceiling, and aligned Docker with the Node 20 CI runtime.
+- Completed environment documentation and hardened Windows fresh-clone line
+  endings for reproducible formatting checks.
+
+### Fixed
+
+- Preserved PDF editor interaction state across the component split and fixed
+  stale hook dependencies in editor, viewer, batch conversion, and office
+  preview flows.
+- Closed an HTML export image file handle and retained legacy converter/CLI
+  import compatibility through explicit facades.
+
 ## [1.1.0] - 2026-09-01
 
 ### Added
