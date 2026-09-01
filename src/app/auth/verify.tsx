@@ -4,6 +4,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppHeader, Button, Card, Icon, Screen, TextField, Txt } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
+import { buildAuthRoute, safeInternalRedirect } from '@/lib/auth-navigation';
 import { withAlpha } from '@/lib/color';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/store/useAuth';
@@ -19,9 +20,9 @@ export default function VerifyEmailScreen() {
   const devCode = useAuth((s) => s.devCode);
   const [email, setEmail] = useState(String(params.email ?? ''));
   const [code, setCode] = useState(String(params.code ?? ''));
-  const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
+  const redirect = useMemo(() => safeInternalRedirect(params.redirect), [params.redirect]);
 
-  const loginRoute = `/auth/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirect)}`;
+  const loginRoute = buildAuthRoute('/auth/login', { email, redirect });
 
   const submit = async () => {
     try {

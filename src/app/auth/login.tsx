@@ -5,17 +5,10 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { AppHeader, Button, Card, Icon, Screen, TextField, Txt } from '@/components/ui';
 import { Accents, Radius, Spacing } from '@/constants/theme';
 import { ApiError } from '@/lib/auth-api';
+import { buildAuthRoute, safeInternalRedirect } from '@/lib/auth-navigation';
 import { withAlpha } from '@/lib/color';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/store/useAuth';
-
-function routeWithRedirect(path: string, redirect?: string, email?: string) {
-  const params = new URLSearchParams();
-  if (redirect) params.set('redirect', redirect);
-  if (email) params.set('email', email);
-  const query = params.toString();
-  return query ? `${path}?${query}` : path;
-}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -28,7 +21,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
+  const redirect = useMemo(() => safeInternalRedirect(params.redirect), [params.redirect]);
 
   const submit = async () => {
     try {
@@ -36,7 +29,7 @@ export default function LoginScreen() {
       router.replace(redirect as never);
     } catch (e) {
       if (e instanceof ApiError && e.status === 403) {
-        router.replace(routeWithRedirect('/auth/verify', redirect, email) as never);
+        router.replace(buildAuthRoute('/auth/verify', { redirect, email }) as never);
         return;
       }
       Alert.alert('Login failed', e instanceof Error ? e.message : 'Could not log in.');
@@ -104,7 +97,7 @@ export default function LoginScreen() {
         <Button
           title="Forgot password?"
           variant="ghost"
-          onPress={() => router.push(routeWithRedirect('/auth/reset', redirect, email) as never)}
+          onPress={() => router.push(buildAuthRoute('/auth/reset', { redirect, email }) as never)}
         />
       </Card>
 
@@ -122,7 +115,7 @@ export default function LoginScreen() {
           title="Sign up"
           size="sm"
           variant="secondary"
-          onPress={() => router.push(routeWithRedirect('/auth/signup', redirect, email) as never)}
+          onPress={() => router.push(buildAuthRoute('/auth/signup', { redirect, email }) as never)}
         />
       </Card>
     </Screen>

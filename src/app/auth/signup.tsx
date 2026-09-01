@@ -4,15 +4,10 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppHeader, Button, Card, Icon, Screen, TextField, Txt } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
+import { buildAuthRoute, safeInternalRedirect } from '@/lib/auth-navigation';
 import { withAlpha } from '@/lib/color';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/store/useAuth';
-
-function verifyRoute(email: string, redirect?: string) {
-  const params = new URLSearchParams({ email });
-  if (redirect) params.set('redirect', redirect);
-  return `/auth/verify?${params.toString()}`;
-}
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -37,7 +32,7 @@ export default function SignupScreen() {
     message: 'At least 6 characters. Letters, numbers, and underscore only.',
   });
 
-  const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
+  const redirect = useMemo(() => safeInternalRedirect(params.redirect), [params.redirect]);
   const canSubmit =
     !!fullName.trim() && !!phone.trim() && !!email.trim() && !!password && usernameStatus.state === 'ok';
 
@@ -90,7 +85,7 @@ export default function SignupScreen() {
         phone: phone.trim(),
         username: username.trim().toLowerCase(),
       });
-      router.replace(verifyRoute(email, redirect) as never);
+      router.replace(buildAuthRoute('/auth/verify', { email, redirect }) as never);
     } catch (e) {
       Alert.alert('Sign up failed', e instanceof Error ? e.message : 'Could not create your account.');
     }
@@ -183,11 +178,7 @@ export default function SignupScreen() {
         <Button
           title="Already have an account?"
           variant="ghost"
-          onPress={() =>
-            router.replace(
-              `/auth/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirect)}` as never,
-            )
-          }
+          onPress={() => router.replace(buildAuthRoute('/auth/login', { email, redirect }) as never)}
         />
       </Card>
     </Screen>

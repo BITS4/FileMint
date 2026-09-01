@@ -4,6 +4,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppHeader, Button, Card, Icon, Screen, TextField, Txt } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
+import { buildAuthRoute, safeInternalRedirect } from '@/lib/auth-navigation';
 import { withAlpha } from '@/lib/color';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/store/useAuth';
@@ -24,8 +25,8 @@ export default function ResetPasswordScreen() {
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
-  const loginRoute = `/auth/login?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirect)}`;
+  const redirect = useMemo(() => safeInternalRedirect(params.redirect), [params.redirect]);
+  const loginRoute = buildAuthRoute('/auth/login', { email, redirect });
 
   const requestCode = async () => {
     try {

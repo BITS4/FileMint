@@ -8,6 +8,7 @@ import { Accents, Radius, Spacing } from '@/constants/theme';
 import { findTool } from '@/constants/tools';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '@/constants/legal';
 import type { PlanId, PremiumPlan } from '@/lib/auth-api';
+import { buildAuthRoute, safeInternalRedirect } from '@/lib/auth-navigation';
 import { withAlpha } from '@/lib/color';
 import { goBack } from '@/lib/nav';
 import { useTheme } from '@/hooks/use-theme';
@@ -82,7 +83,7 @@ export default function UpgradeScreen() {
   const [confirmingSession, setConfirmingSession] = useState(false);
   const handledCheckoutRef = useRef<string | null>(null);
 
-  const redirect = useMemo(() => (params.redirect ? String(params.redirect) : '/'), [params.redirect]);
+  const redirect = useMemo(() => safeInternalRedirect(params.redirect), [params.redirect]);
   const lockedTool = findTool(params.lockedTool ? String(params.lockedTool) : null);
   const plans = plansFromStore.length ? plansFromStore : FALLBACK_PLANS;
 
@@ -118,7 +119,9 @@ export default function UpgradeScreen() {
   }, [confirmCheckout, confirmingSession, isLoggedIn, params.checkout, params.session_id, redirect, router]);
 
   const authRoute = (path: '/auth/login' | '/auth/signup') =>
-    `${path}?redirect=${encodeURIComponent(`/upgrade?redirect=${encodeURIComponent(redirect)}${lockedTool ? `&lockedTool=${encodeURIComponent(lockedTool.id)}` : ''}`)}`;
+    buildAuthRoute(path, {
+      redirect: `/upgrade?redirect=${encodeURIComponent(redirect)}${lockedTool ? `&lockedTool=${encodeURIComponent(lockedTool.id)}` : ''}`,
+    });
 
   const continueToPayment = async () => {
     if (!isLoggedIn) {
@@ -127,7 +130,7 @@ export default function UpgradeScreen() {
     }
     if (!user?.emailVerified) {
       router.push(
-        `/auth/verify?email=${encodeURIComponent(user?.email ?? '')}&redirect=${encodeURIComponent('/upgrade')}` as never,
+        buildAuthRoute('/auth/verify', { email: user?.email ?? '', redirect: '/upgrade' }) as never,
       );
       return;
     }
