@@ -114,6 +114,17 @@ describe('Collabora edit sessions', () => {
     await expect(access(sessionDir)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
+  it('automatically removes abandoned sessions when their deadline passes', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-01T12:00:00.000Z'));
+    const app = editApp(undefined, undefined, { sessionTtlMs: 250 });
+    const session = await upload(app, 'abandoned.docx');
+
+    await vi.advanceTimersByTimeAsync(251);
+
+    expect((await app.request(`/edit/status/${session.id}?access_token=${session.token}`)).status).toBe(404);
+  });
+
   it('bounds the registry and cleans up the oldest session on overflow', async () => {
     const app = editApp(undefined, undefined, { maxSessions: 2 });
     const oldest = await upload(app, 'oldest.docx');
